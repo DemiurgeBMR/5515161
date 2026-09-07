@@ -23,12 +23,17 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $applications = $stmt->fetchAll();
 
+$flash = $_SESSION['flash'] ?? '';
+unset($_SESSION['flash']);
+
 $statusLabels = [
     'pending'    => '⏳ Ожидает',
     'negotiating' => '🤝 В переговорах',
     'agreed'     => '✅ Договорённость',
     'placed'     => '📍 Размещено',
-    'cancelled'  => '❌ Отменена'
+    'cancelled'  => '❌ Отменена',
+    'approved'   => '✅ Закрепление подтверждено',
+    'rejected'   => '❌ Закрепление отклонено',
 ];
 ?>
 <!DOCTYPE html>
@@ -43,6 +48,10 @@ $statusLabels = [
     <div style="max-width: 1000px; margin: 40px auto; padding: 0 20px;">
         <a href="/pages/profile.php" class="back-link">← Назад</a>
         <h2>📩 Заявки на мои локации</h2>
+
+        <?php if ($flash): ?>
+            <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
+        <?php endif; ?>
 
         <?php if (count($applications) > 0): ?>
             <div class="admin-table">
@@ -59,10 +68,14 @@ $statusLabels = [
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($applications as $app): 
+                        <?php foreach ($applications as $app):
                             // ★★★ Определяем, какой статус показывать этому владельцу ★★★
-                            if ($app['status'] === 'cancelled') {
-                                $displayStatus = 'cancelled';
+                            // status хранит и финальные статусы запроса на закрепление
+                            // (approved/rejected из api/operator_assign.php), которые
+                            // нужно показывать напрямую — иначе такие заявки выглядели
+                            // бы вечно "ожидающими".
+                            if (in_array($app['status'], ['cancelled', 'approved', 'rejected'], true)) {
+                                $displayStatus = $app['status'];
                             } else {
                                 // Используем личный тег владельца, если есть, иначе 'pending'
                                 $displayStatus = $app['owner_tag'] ? $app['owner_tag'] : 'pending';

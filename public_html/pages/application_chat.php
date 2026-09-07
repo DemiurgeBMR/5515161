@@ -1157,7 +1157,7 @@ $current_event = $stmt->fetch();
                     </label>
                 </div>
                 <div class="sidebar-action-row danger-link">
-                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>" onclick="return confirm('Удалить заявку и всю переписку безвозвратно?')">🗑️ Удалить чат</a>
+                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" onclick="return confirm('Удалить заявку и всю переписку безвозвратно?')">🗑️ Удалить чат</a>
                 </div>
             </div>
         </div>
