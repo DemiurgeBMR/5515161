@@ -161,8 +161,12 @@ if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
 $stmt_photos->execute([$id]);
 $photos = $stmt_photos->fetchAll();
 
-// Увеличиваем счётчик просмотров
-$pdo->prepare("UPDATE locations SET views = views + 1 WHERE id = ?")->execute([$id]);
+// Увеличиваем счётчик просмотров — но не в режиме предпросмотра, иначе
+// владелец/админ, листающий свой ещё не опубликованный черновик, накручивал
+// бы публичную статистику просмотров до того, как объявление вообще стало видно.
+if (!$is_preview) {
+    $pdo->prepare("UPDATE locations SET views = views + 1 WHERE id = ?")->execute([$id]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
