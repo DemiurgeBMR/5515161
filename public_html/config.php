@@ -333,6 +333,18 @@ function csrf_verify($token) {
     return !empty($_SESSION['csrf_token']) && is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+/**
+ * То же самое, но сама достаёт токен из тела POST-запроса (csrf_token) или
+ * из заголовка X-CSRF-Token — этим заголовком пользуются fetch()/XHR/$.ajax
+ * запросы, которым неудобно класть токен в тело (см. includes/footer.php,
+ * где токен подставляется в такие запросы автоматически на клиенте).
+ * Все API-эндпоинты, принимающие POST, должны проверять токен через неё.
+ */
+function csrf_verify_request() {
+    $token = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    return csrf_verify($token);
+}
+
 function formatDateRu($date) {
     if (empty($date)) return '';
     $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 

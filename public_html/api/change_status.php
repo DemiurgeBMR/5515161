@@ -8,9 +8,20 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$application_id = isset($_GET['application_id']) ? (int)$_GET['application_id'] : 0;
-$new_status = $_GET['status'] ?? '';
-$allowed_public = ['pending', 'cancelled'];
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['error' => 'Method not allowed']);
+    exit;
+}
+
+if (!csrf_verify_request()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
+    exit;
+}
+
+$application_id = isset($_POST['application_id']) ? (int)$_POST['application_id'] : 0;
+$new_status = $_POST['status'] ?? '';
 $allowed_personal = ['negotiating', 'agreed', 'placed'];
 
 if ($application_id <= 0) {

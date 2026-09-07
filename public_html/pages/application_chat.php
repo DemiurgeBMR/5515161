@@ -1433,7 +1433,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 if (!confirm('Изменить статус на "' + this.textContent.trim() + '"?')) return;
-                fetch('/api/change_status.php?application_id=' + applicationId + '&status=' + newStatus + '&ajax=1')
+                var statusFormData = new FormData();
+                statusFormData.append('application_id', applicationId);
+                statusFormData.append('status', newStatus);
+                fetch('/api/change_status.php', { method: 'POST', body: statusFormData })
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
