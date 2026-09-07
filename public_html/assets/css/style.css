@@ -1,0 +1,317 @@
+/* ============================================
+   БАЗОВЫЕ СТИЛИ ДЛЯ RR (riveg-rent)
+   ============================================ */
+
+/* Импорты */
+@import 'layout/_header.css';
+@import 'components/_forms.css';
+@import 'components/_modals.css';
+@import 'components/_star-rating.css';
+@import 'utils/_back-link.css';
+@import 'pages/_add_location.css';
+@import 'pages/_catalog.css';
+@import 'pages/_map.css';
+@import 'pages/_edit_location.css';
+@import 'pages/_location.css';
+@import 'pages/_auth.css';
+@import 'pages/_register.css';
+@import 'pages/_profile.css';
+@import 'admin/_admin.css';
+@import 'admin/_admin-locations.css'; 
+@import 'admin/_admin-preview-revision.css';
+@import 'admin/_admin-view-revisions.css';
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    color: #1a1a2e;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ===== ГЛАВНЫЙ БАННЕР ===== */
+.hero {
+    text-align: center;
+    padding: 80px 20px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: white;
+}
+
+.hero h1 {
+    font-size: 48px;
+    margin-bottom: 15px;
+}
+
+.hero p {
+    font-size: 20px;
+    opacity: 0.8;
+    margin-bottom: 30px;
+}
+
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 14px 40px;
+    border-radius: 30px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 18px;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: #e94560;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #c73652;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.btn-secondary:hover {
+    background: white;
+    color: #1a1a2e;
+}
+
+/* ===== ЛОКАЦИИ (для главной страницы) ===== */
+.locations-preview {
+    padding: 60px 20px;
+    background: white;
+}
+
+.locations-preview h2 {
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 40px;
+}
+
+.location-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.location-card {
+    background: #f5f7fa;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.location-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.location-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    background: #ddd;
+}
+
+.location-card h3 {
+    padding: 15px 15px 5px;
+    font-size: 18px;
+}
+
+.location-card p {
+    padding: 0 15px 20px;
+    color: #e94560;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+/* ===== ПОДВАЛ ===== */
+.footer {
+    background: #1a1a2e;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 30px 20px;
+    font-size: 14px;
+}
+
+.footer p:last-child {
+    margin-top: 8px;
+    font-size: 12px;
+    opacity: 0.5;
+}
+.badge {
+    background: #e94560;
+    color: white;
+    border-radius: 50%;
+    padding: 0 8px;
+    font-size: 12px;
+    line-height: 20px;
+    display: inline-block;
+    min-width: 20px;
+    text-align: center;
+    margin-left: auto;
+}
+/* ===== ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ (TOAST) ===== */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 380px;
+    width: 100%;
+}
+
+.toast-notification {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    border-left: 4px solid #e94560;
+    transform: translateX(110%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.toast-notification.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-notification .toast-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+}
+
+.toast-notification .toast-header .toast-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #e94560;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.toast-notification .toast-header .toast-sender {
+    flex: 1;
+}
+
+.toast-notification .toast-header .toast-sender strong {
+    display: block;
+    font-size: 14px;
+}
+
+.toast-notification .toast-header .toast-sender .toast-location {
+    font-size: 12px;
+    color: #e94560;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.toast-notification .toast-header .toast-time {
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+}
+
+.toast-notification .toast-body {
+    font-size: 14px;
+    color: #555;
+    margin-top: 2px;
+    padding-left: 42px; /* отступ под аватар */
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.toast-notification .toast-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #bbb;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+    padding: 0;
+}
+.toast-notification .toast-close:hover {
+    color: #333;
+}
+
+/* ===== ТОСТЫ ДЛЯ СИСТЕМНЫХ УВЕДОМЛЕНИЙ ===== */
+.toast-notification.notification-toast {
+    border-left-color: #3498db; /* синий вместо красного */
+}
+
+.toast-notification.notification-toast .toast-header .toast-avatar {
+    background: #3498db; /* синий фон для иконки */
+}
+
+/* Если хотите добавить иконку-колокольчик вместо аватара, можно переопределить */
+.toast-notification.notification-toast .toast-header .toast-avatar {
+    content: "🔔";
+    background: transparent;
+    font-size: 22px;
+    color: #3498db;
+}
+
+/* Адаптив для маленьких экранов */
+@media (max-width: 480px) {
+    .toast-container {
+        right: 10px;
+        bottom: 10px;
+        max-width: calc(100% - 20px);
+    }
+    .toast-notification {
+        padding: 12px 16px;
+    }
+    .toast-notification .toast-body {
+        padding-left: 0;
+        margin-top: 6px;
+    }
+    .toast-notification .toast-header .toast-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}

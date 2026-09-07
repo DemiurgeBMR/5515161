@@ -1,0 +1,79 @@
+/* ===== МОДАЛЬНЫЕ ОКНА ===== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+.modal-overlay.active {
+    display: flex;
+}
+.modal-box {
+    background: white;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow-y: auto;
+    position: relative;
+}
+.modal-box .close-btn {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #888;
+    transition: 0.2s;
+    background: none;
+    border: none;
+}
+.modal-box .close-btn:hover {
+    color: #333;
+}
+.modal-box h3 {
+    margin-top: 0;
+    color: #e94560;
+}
+.modal-box table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 10px;
+}
+.modal-box th {
+    background: #f5f7fa;
+    text-align: left;
+    padding: 10px 8px;
+}
+.modal-box td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+.modal-box td:first-child {
+    font-weight: bold;
+    white-space: nowrap;
+}
+.modal-box .stars-demo {
+    color: #f1c40f;
+    letter-spacing: 2px;
+}
+.modal-box .note {
+    background: #fff3cd;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 15px;
+    font-size: 14px;
+    border-left: 4px solid #f1c40f;
+}
+.modal-box .note strong {
+    display: block;
+    margin-bottom: 4px;
+}

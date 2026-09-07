@@ -1,0 +1,85 @@
+/* ===== СТРАНИЦА ДОБАВЛЕНИЯ ЛОКАЦИИ ===== */
+.add-form {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+}
+.add-form h2 {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* Загрузка файлов */
+.file-upload {
+    border: 2px dashed #ddd;
+    padding: 20px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.file-upload:hover {
+    border-color: #e94560;
+}
+.file-upload input[type="file"] {
+    display: none;
+}
+.file-upload .icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 10px;
+}
+.file-upload .text {
+    color: #888;
+}
+.file-upload .text span {
+    color: #e94560;
+    text-decoration: underline;
+}
+
+/* Город с автодополнением */
+.city-wrapper {
+    position: relative;
+}
+.city-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.city-suggestions .suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f5f5f5;
+}
+.city-suggestions .suggestion-item:last-child {
+    border-bottom: none;
+}
+.city-suggestions .suggestion-item:hover {
+    background: #f5f7fa;
+}
+#cityStatus {
+    font-size: 13px;
+    margin-top: 5px;
+    min-height: 20px;
+}
+#cityStatus .success {
+    color: #2ecc71;
+}
+#cityStatus .error {
+    color: #e94560;
+}
+#cityStatus .warning {
+    color: #f39c12;
+}

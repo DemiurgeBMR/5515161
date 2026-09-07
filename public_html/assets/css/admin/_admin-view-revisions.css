@@ -1,0 +1,69 @@
+/* ===== СТРАНИЦА СПИСКА РЕВИЗИЙ (АДМИНКА) ===== */
+
+.revisions-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+.revisions-card {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+}
+.revisions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.revisions-table th {
+    text-align: left;
+    padding: 12px 15px;
+    background: #f5f7fa;
+}
+.revisions-table td {
+    padding: 12px 15px;
+    border-top: 1px solid #eee;
+}
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+.status-approved {
+    background: #d4edda;
+    color: #155724;
+}
+.status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+.btn-view {
+    background: #3498db;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 13px;
+}
+.btn-view:hover {
+    background: #2980b9;
+}
+.btn-back {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #888;
+    text-decoration: none;
+}
+.btn-back:hover {
+    text-decoration: underline;
+}
+.empty {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
