@@ -86,13 +86,14 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
         return $boolValues[(int)$value];
     }
     if ($field === 'space_type') {
-        return $spaceTypes[$value] ?? $value;
+        return htmlspecialchars($spaceTypes[$value] ?? $value);
     }
     if ($field === 'price_month') {
         return number_format($value, 0, ',', ' ') . ' ₽';
     }
     if ($field === 'traffic_rating') {
-        return str_repeat('★', $value) . str_repeat('☆', 5 - $value) . ' (' . $value . '/5)';
+        $rating = max(0, min(5, (int)$value));
+        return str_repeat('★', $rating) . str_repeat('☆', 5 - $rating) . ' (' . $rating . '/5)';
     }
     return htmlspecialchars($value);
 }
@@ -166,7 +167,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                                 <div class="photo-grid">
                                     <?php foreach ($newPhotoPaths as $path): ?>
                                         <div class="photo-item photo-add">
-                                            <img src="/<?php echo $path; ?>" alt="Новое фото">
+                                            <img src="/<?php echo htmlspecialchars($path); ?>" alt="Новое фото">
                                             <div class="label" style="color:#2ecc71;">Новое</div>
                                         </div>
                                     <?php endforeach; ?>
@@ -185,7 +186,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                                 <div class="photo-grid">
                                     <?php foreach ($delPhotos as $path): ?>
                                         <div class="photo-item photo-delete">
-                                            <img src="/<?php echo $path; ?>" alt="Удаляемое фото">
+                                            <img src="/<?php echo htmlspecialchars($path); ?>" alt="Удаляемое фото">
                                             <div class="label" style="color:#e74c3c;">Удаляется</div>
                                         </div>
                                     <?php endforeach; ?>
@@ -203,8 +204,8 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             <?php endif; ?>
 
             <div class="change-actions">
-                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>" class="btn-approve" onclick="return confirm('Одобрить эту ревизию?')">✅ Одобрить</a>
-                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>" class="btn-reject" onclick="return confirm('Отклонить эту ревизию?')">❌ Отклонить</a>
+                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить эту ревизию?')">✅ Одобрить</a>
+                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить эту ревизию?')">❌ Отклонить</a>
             </div>
         </div>
     </div>

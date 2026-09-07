@@ -36,6 +36,9 @@ if (count($where) > 0) {
 
 $sql .= " ORDER BY l.created_at DESC";
 $locations = $pdo->query($sql)->fetchAll();
+
+$flash = $_SESSION['flash'] ?? '';
+unset($_SESSION['flash']);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -49,6 +52,11 @@ $locations = $pdo->query($sql)->fetchAll();
     
     <div class="admin-container">
         <h1>📍 Все локации</h1>
+
+        <?php if ($flash): ?>
+            <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
+        <?php endif; ?>
+
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
@@ -98,17 +106,17 @@ $locations = $pdo->query($sql)->fetchAll();
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
-                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>" class="btn-reject" onclick="return confirm('Удалить локацию?')">🗑️ Удалить</a>
+                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Удалить локацию?')">🗑️ Удалить</a>
                                 <?php else: ?>
                                     <!-- Уже опубликованная -->
                                     <?php if ($loc['is_active'] == 1): ?>
-                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>" class="btn-hide" onclick="return confirm('Скрыть локацию?')">🔒 Скрыть</a>
+                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" onclick="return confirm('Скрыть локацию?')">🔒 Скрыть</a>
                                     <?php else: ?>
-                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>" class="btn-approve" onclick="return confirm('Показать локацию?')">🔓 Показать</a>
+                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Показать локацию?')">🔓 Показать</a>
                                     <?php endif; ?>
                                 <?php endif; ?>
                                 <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
