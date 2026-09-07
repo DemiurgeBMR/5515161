@@ -16,6 +16,12 @@ if ($id <= 0) {
     exit;
 }
 
+if (!csrf_verify($_GET['csrf'] ?? '')) {
+    $_SESSION['flash'] = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
+    header('Location: /pages/profile.php');
+    exit;
+}
+
 $pdo = getDbConnection();
 
 // Проверяем, что локация принадлежит текущему пользователю

@@ -34,6 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $errors = [];
 
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $errors[] = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    }
+
     // Валидация
     if (empty($full_name)) {
         $errors[] = 'Имя обязательно для заполнения.';
@@ -61,16 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         try {
             // Формируем запрос на обновление
-            $updateFields = [
-                'full_name' => $full_name,
-                'phone' => $phone,
-                'email' => $email
-            ];
             $params = [$full_name, $phone, $email];
 
             // Если пароль заполнен – обновляем и его
             if (!empty($password)) {
-                $updateFields['password'] = password_hash($password, PASSWORD_DEFAULT);
                 $params[] = password_hash($password, PASSWORD_DEFAULT);
                 $sql = "UPDATE users SET full_name = ?, phone = ?, email = ?, password = ? WHERE id = ?";
                 $params[] = $user_id;
@@ -122,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label>Имя *</label>
                 <input type="text" name="full_name" required value="<?php echo htmlspecialchars($user['full_name']); ?>">

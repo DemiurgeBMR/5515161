@@ -24,10 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
             
 if ($user && password_verify($password, $user['password'])) {
+    session_regenerate_id(true); // новый ID сессии при смене уровня доступа
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_name'] = $user['full_name'];
     $_SESSION['user_role'] = $user['role'];
-    
+
     if ($user['role'] === 'admin') {
         header('Location: /admin/index.php');
     } elseif ($user['role'] === 'operator') {
