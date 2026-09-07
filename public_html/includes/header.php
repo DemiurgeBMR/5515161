@@ -60,7 +60,7 @@
         <span id="notificationBadge" style="position:absolute; top:-8px; right:-8px; background:#e94560; color:white; border-radius:50%; padding:0 6px; font-size:11px; line-height:18px; min-width:18px; text-align:center; display:none;">0</span>
     </a>
 
-    <?php if ($_SESSION['user_role'] === 'admin'): ?>
+    <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
         <!-- Админ -->
         <a href="/admin/index.php" style="color: #ffd700; margin-right: 15px; text-decoration: none;">⚙️ Админка</a>
         <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
@@ -68,16 +68,16 @@
         <!-- Обычный пользователь (оператор или собственник) -->
 <?php
 $profileLink = '/pages/profile.php';
-if ($_SESSION['user_role'] === 'operator') {
+if (($_SESSION['user_role'] ?? null) === 'operator') {
     $profileLink = '/pages/operator_dashboard.php';
-} elseif ($_SESSION['user_role'] === 'admin') {
+} elseif (($_SESSION['user_role'] ?? null) === 'admin') {
     $profileLink = '/admin/index.php';
 }
 ?>
 <a href="<?php echo $profileLink; ?>" style="color: white; text-decoration: none; margin-right: 15px;">
     👋 <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
 </a>
-        <?php if ($_SESSION['user_role'] === 'owner'): ?>
+        <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
             <a href="/pages/add_location.php" style="color: #e94560; margin-right: 15px; text-decoration: none;">➕ Добавить место</a>
         <?php endif; ?>
         <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>

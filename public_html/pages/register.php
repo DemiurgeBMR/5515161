@@ -1,6 +1,6 @@
 <?php
+session_start(); // ДОЛЖНО БЫТЬ ПЕРВОЙ СТРОКОЙ ПОСЛЕ ОТКРЫВАЮЩЕГО ТЕГА!
 require_once '../config.php';
-session_start();
 
 // Если пользователь уже авторизован — перенаправляем
 if (isset($_SESSION['user_id'])) {
@@ -17,7 +17,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $role = $_POST['role'] ?? 'operator';
-    
+    if (!in_array($role, ['owner', 'operator'], true)) {
+        $role = 'operator'; // роль admin никогда не выдаётся через форму регистрации
+    }
+
     // Простая валидация
     if (empty($email) || empty($password) || empty($full_name)) {
         $error = 'Пожалуйста, заполните все обязательные поля';
@@ -47,10 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Автоматически авторизуем
                 $user_id = $pdo->lastInsertId();
+                session_regenerate_id(true); // новая сессия для только что созданного пользователя
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $full_name;
                 $_SESSION['user_role'] = $role;
-                
+
                 header('Location: /pages/profile.php');
                 exit;
             }

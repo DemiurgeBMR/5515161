@@ -35,11 +35,20 @@ try {
     
     // --- ОБРАБОТКА СМЕНЫ АВАТАРА ---
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_avatar'])) {
-        $color = $_POST['avatar_color'] ?? '#e94560';
-        $stmt = $pdo->prepare("UPDATE users SET avatar_color = ? WHERE id = ?");
-        $stmt->execute([$color, $user_id]);
-        $_SESSION['avatar_color'] = $color;
-        $_SESSION['flash'] = 'Аватар обновлён!';
+        if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+            $_SESSION['flash'] = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
+            header('Location: /pages/profile.php');
+            exit;
+        }
+        $color = $_POST['avatar_color'] ?? '';
+        if (in_array($color, ALLOWED_AVATAR_COLORS, true)) {
+            $stmt = $pdo->prepare("UPDATE users SET avatar_color = ? WHERE id = ?");
+            $stmt->execute([$color, $user_id]);
+            $_SESSION['avatar_color'] = $color;
+            $_SESSION['flash'] = 'Аватар обновлён!';
+        } else {
+            $_SESSION['flash'] = 'Недопустимый цвет аватара.';
+        }
         header('Location: /pages/profile.php');
         exit;
     }
@@ -116,7 +125,7 @@ unset($_SESSION['flash']);
     <div class="profile-wrapper">
         <!-- ===== ЛЕВАЯ КОЛОНКА ===== -->
         <aside class="profile-sidebar">
-            <div class="avatar" style="background: <?php echo $avatar_color; ?>;" onclick="openModal()" title="Сменить цвет аватара">
+            <div class="avatar" style="background: <?php echo htmlspecialchars($avatar_color, ENT_QUOTES); ?>;" onclick="openModal()" title="Сменить цвет аватара">
                 <?php echo $first_letter; ?>
                 <span class="hint">🔄 Сменить цвет</span>
             </div>
@@ -222,19 +231,19 @@ unset($_SESSION['flash']);
                             </a>
 <div class="card-actions">
     <?php if ($loc['pending_revisions_count'] > 0): ?>
-        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>" class="btn-action small btn-withdraw" onclick="return confirm('Отозвать правки и перейти к редактированию?')">✏️ Отозвать и редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" onclick="return confirm('Отозвать правки и перейти к редактированию?')">✏️ Отозвать и редактировать</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
     <?php elseif (!$loc['is_moderated']): ?>
         <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
     <?php else: ?>
         <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
         <?php if ($loc['is_active'] == 1): ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>" class="btn-action small btn-toggle" onclick="return confirm('Скрыть?')">🙈 Скрыть</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" onclick="return confirm('Скрыть?')">🙈 Скрыть</a>
         <?php else: ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>" class="btn-action small btn-toggle" onclick="return confirm('Показать?')">👁️ Показать</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" onclick="return confirm('Показать?')">👁️ Показать</a>
         <?php endif; ?>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить безвозвратно?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить безвозвратно?')">🗑️ Удалить</a>
     <?php endif; ?>
 </div>
                         </div>
@@ -259,21 +268,19 @@ unset($_SESSION['flash']);
         <div class="modal">
             <h3>🎨 Выберите цвет аватара</h3>
             <form method="POST" id="avatarForm">
+                <?php echo csrf_field(); ?>
                 <div class="color-grid">
                     <?php
-                    $colors = ['#ff617b', '#3498db', '#2ecc71', '#f39c12', '#3f0058', 
-                               '#1abc9c', '#e67e22', '#e74c3c', '#2c3e50', '#8e44ad', 
-                               '#006954', '#fd79a8', '#6c5ce7', '#fdcb6e', '#00cec9'];
-                    foreach ($colors as $c):
+                    foreach (ALLOWED_AVATAR_COLORS as $c):
                         $checked = ($c === $avatar_color) ? 'active' : '';
                     ?>
-                        <div class="color-item <?php echo $checked; ?>" 
-                             style="background: <?php echo $c; ?>;" 
-                             data-color="<?php echo $c; ?>"
+                        <div class="color-item <?php echo $checked; ?>"
+                             style="background: <?php echo htmlspecialchars($c, ENT_QUOTES); ?>;"
+                             data-color="<?php echo htmlspecialchars($c, ENT_QUOTES); ?>"
                              onclick="selectColor(this)"></div>
                     <?php endforeach; ?>
                 </div>
-                <input type="hidden" name="avatar_color" id="selectedColor" value="<?php echo $avatar_color; ?>">
+                <input type="hidden" name="avatar_color" id="selectedColor" value="<?php echo htmlspecialchars($avatar_color, ENT_QUOTES); ?>">
                 <div class="modal-actions">
                     <button type="button" class="btn-close" onclick="closeModal()">Отмена</button>
                     <button type="submit" name="change_avatar" class="btn-save">Сохранить</button>
@@ -285,7 +292,7 @@ unset($_SESSION['flash']);
     <script>
         function openModal() {
             document.getElementById('avatarModal').classList.add('active');
-            const currentColor = '<?php echo $avatar_color; ?>';
+            const currentColor = <?php echo json_encode($avatar_color, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
             document.querySelectorAll('.color-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.color === currentColor);
             });

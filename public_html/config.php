@@ -3,11 +3,13 @@
 // КОНФИГУРАЦИЯ ПРОЕКТА RR (riveg-rent)
 // ============================================
 
-// --- НАСТРОЙКИ БАЗЫ ДАННЫХ (пока заглушка) ---
-define('DB_HOST', 'MySQL-8.0');   // Имя модуля MySQL в Open Server
-define('DB_NAME', 'riveg_rent');
-define('DB_USER', 'root');
-define('DB_PASS', '');            // По умолчанию пароль пустой
+// --- НАСТРОЙКИ БАЗЫ ДАННЫХ ---
+// Значения берутся из переменных окружения, если заданы (на проде — обязательно
+// через окружение), иначе используются дефолты локальной разработки в Open Server.
+define('DB_HOST', getenv('DB_HOST') ?: 'MySQL-8.0');   // Имя модуля MySQL в Open Server
+define('DB_NAME', getenv('DB_NAME') ?: 'riveg_rent');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');            // По умолчанию пароль пустой (только для локальной разработки)
 
 // --- ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ ---
 define('SITE_NAME', 'RR - Riveg Rent');
@@ -22,6 +24,14 @@ define('WATERMARK_PATH', __DIR__ . '/assets/images/watermark.png');
 
 // Через сколько дней без обслуживания точка считается "требующей внимания"
 define('SERVICE_DUE_DAYS', 14);
+
+// Единственно допустимые цвета аватара — используется и для валидации при
+// сохранении, и для отрисовки палитры выбора, чтобы эти два места не разъезжались.
+define('ALLOWED_AVATAR_COLORS', [
+    '#ff617b', '#3498db', '#2ecc71', '#f39c12', '#3f0058',
+    '#1abc9c', '#e67e22', '#e74c3c', '#2c3e50', '#8e44ad',
+    '#006954', '#fd79a8', '#6c5ce7', '#fdcb6e', '#00cec9',
+]);
 
 if (DEBUG_MODE) {
     error_reporting(E_ALL);
@@ -294,6 +304,33 @@ function geocodeAddress($address, $city) {
     ];
     setCache($cacheKey, $result);
     return $result;
+}
+
+// --- CSRF-ЗАЩИТА ---
+// Требует, чтобы session_start() уже был вызван к моменту обращения.
+
+/**
+ * Возвращает CSRF-токен текущей сессии, создавая его при первом обращении.
+ */
+function csrf_token() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Готовый экранированный <input type="hidden"> с токеном — для вставки в форму.
+ */
+function csrf_field() {
+    return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrf_token(), ENT_QUOTES) . '">';
+}
+
+/**
+ * Сверяет переданный токен с токеном сессии constant-time сравнением.
+ */
+function csrf_verify($token) {
+    return !empty($_SESSION['csrf_token']) && is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 function formatDateRu($date) {
