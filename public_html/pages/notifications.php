@@ -52,7 +52,7 @@ $notifications = $stmt->fetchAll();
                 <div class="message">
                     <?php echo nl2br(htmlspecialchars($n['message'])); ?>
                     <?php if ($n['link']): ?>
-                        <a href="<?php echo $n['link']; ?>">→ Перейти</a>
+                        <a href="<?php echo htmlspecialchars($n['link']); ?>">→ Перейти</a>
                     <?php endif; ?>
                 </div>
                 <div class="time"><?php echo date('d.m.Y H:i', strtotime($n['created_at'])); ?></div>

@@ -1257,8 +1257,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var lastMessageId = <?php echo !empty($messages) ? end($messages)['id'] : 0; ?>;
 
     var operatorId = <?php echo $application['operator_id']; ?>;
-    var operatorName = '<?php echo addslashes($application['operator_name']); ?>';
-    var ownerName = '<?php echo addslashes($application['owner_name']); ?>';
+    // json_encode с HEX-флагами вместо addslashes(): addslashes() экранирует
+    // только кавычки, а не </script> или &, так что имя вида
+    // x</script><script>... вырывалось бы из этого блока и исполнялось.
+    var operatorName = <?php echo json_encode($application['operator_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
+    var ownerName = <?php echo json_encode($application['owner_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
     function getInitials(name) {
         return name.split(/\s+/).filter(Boolean).slice(0, 2).map(function(p) {

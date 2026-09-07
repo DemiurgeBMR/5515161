@@ -36,7 +36,7 @@ $vending_count = $stmt->fetchColumn();
 
 // Количество точек, требующих обслуживания
 // (последнее обслуживание либо установка были раньше порога SERVICE_DUE_DAYS)
-$cutoff = date('Y-m-d H:i:s', time() - SERVICE_DUE_DAYS * 86400);
+$cutoff = serviceDueCutoffDate();
 $stmt = $pdo->prepare("
     SELECT COUNT(*)
     FROM location_machines m

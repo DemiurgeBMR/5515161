@@ -258,7 +258,7 @@ function daysSince($dateString) {
             if ($days === null) {
                 $badgeClass = 'service-unknown';
                 $badgeText = 'Нет данных об обслуживании';
-            } elseif ($days >= SERVICE_DUE_DAYS) {
+            } elseif (isServiceOverdue($days)) {
                 $badgeClass = 'service-due';
                 $badgeText = '⚠️ Требует обслуживания (' . $days . ' дн. назад)';
             } else {

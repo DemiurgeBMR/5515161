@@ -25,6 +25,24 @@ define('WATERMARK_PATH', __DIR__ . '/assets/images/watermark.png');
 // Через сколько дней без обслуживания точка считается "требующей внимания"
 define('SERVICE_DUE_DAYS', 14);
 
+/**
+ * Порог даты (Y-m-d H:i:s) для SQL-условий вида
+ * "COALESCE(last_service_at, installed_at) < ?" — единая точка правды для
+ * SERVICE_DUE_DAYS, чтобы дашборд оператора, список его точек и cron-
+ * напоминания не считали "просрочено" по-разному.
+ */
+function serviceDueCutoffDate() {
+    return date('Y-m-d H:i:s', time() - SERVICE_DUE_DAYS * 86400);
+}
+
+/**
+ * true, если число дней с последнего обслуживания/установки ($days,
+ * либо null, если данных ещё нет) означает, что точка требует внимания.
+ */
+function isServiceOverdue($days) {
+    return $days !== null && $days >= SERVICE_DUE_DAYS;
+}
+
 // Единственно допустимые цвета аватара — используется и для валидации при
 // сохранении, и для отрисовки палитры выбора, чтобы эти два места не разъезжались.
 define('ALLOWED_AVATAR_COLORS', [
