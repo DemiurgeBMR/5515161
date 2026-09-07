@@ -40,7 +40,7 @@ function applyRevision($pdo, $revision, $locationId) {
 
     // 1. Обновляем поля локации
     $fields = ['title', 'address', 'city', 'description', 'price_month', 'width', 'height', 'depth',
-               'has_electricity', 'has_wifi', 'access_hours', 'traffic_rating', 'space_type',
+               'has_electricity', 'has_wifi', 'has_water', 'access_hours', 'traffic_rating', 'space_type',
                'latitude', 'longitude'];
     $setParts = [];
     $params = [];

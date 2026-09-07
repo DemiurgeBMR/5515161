@@ -43,6 +43,25 @@ function isServiceOverdue($days) {
     return $days !== null && $days >= SERVICE_DUE_DAYS;
 }
 
+/**
+ * Заглушка платной подписки (users.is_subscribed, включается/выключается
+ * на pages/subscription.php — без реальной оплаты). От неё зависит доступ
+ * к карте с точками и к точному адресу локации.
+ *
+ * Админ считается имеющим полный доступ всегда — это внутренний
+ * персонал, а не участник платной модели. Требует, чтобы session_start()
+ * уже был вызван.
+ */
+function currentUserHasSubscription() {
+    if (!isset($_SESSION['user_id'])) {
+        return false;
+    }
+    if (($_SESSION['user_role'] ?? null) === 'admin') {
+        return true;
+    }
+    return !empty($_SESSION['is_subscribed']);
+}
+
 // Единственно допустимые цвета аватара — используется и для валидации при
 // сохранении, и для отрисовки палитры выбора, чтобы эти два места не разъезжались.
 define('ALLOWED_AVATAR_COLORS', [

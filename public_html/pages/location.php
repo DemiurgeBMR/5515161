@@ -15,24 +15,25 @@ if ($id <= 0) {
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $user_id = $_SESSION['user_id'] ?? 0;
 
+// Владелец больше не выводится на карточке (ни имя, ни контакты) — связь
+// с ним идёт только через платформу (заявка на аренду), поэтому JOIN с
+// users здесь не нужен.
 if ($is_admin) {
     $sql = "
-        SELECT l.*, u.full_name as owner_name, u.phone as owner_phone, u.email as owner_email,
+        SELECT l.*,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
         FROM locations l
-        JOIN users u ON l.owner_id = u.id
         WHERE l.id = ?
     ";
     $params = [$id];
 } else {
     // Для обычных пользователей: показываем, если активно ИЛИ если это владелец (даже неактивное)
     $sql = "
-        SELECT l.*, u.full_name as owner_name, u.phone as owner_phone, u.email as owner_email,
+        SELECT l.*,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
         FROM locations l
-        JOIN users u ON l.owner_id = u.id
-        WHERE l.id = ? 
-          AND ( (l.is_active = 1 AND l.is_moderated = 1) 
+        WHERE l.id = ?
+          AND ( (l.is_active = 1 AND l.is_moderated = 1)
                 OR (l.owner_id = ? AND (l.is_moderated = 0 OR l.is_active = 0)) )
     ";
     $params = [$id, $user_id];
@@ -55,6 +56,11 @@ if ($location) {
         $is_preview = true;
     }
 }
+
+// ★★★ Точный адрес виден владельцу, админу и подписчикам — без подписки
+// показываем только город (см. pages/subscription.php) ★★★
+$isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
+$hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
 
 // ★★★ ВЫЧИСЛЯЕМ ПЛОЩАДЬ ★★★
 $area = null;
@@ -216,7 +222,14 @@ if (!$is_preview) {
 
                 <div class="title"><?php echo htmlspecialchars($location['title']); ?></div>
                 <div class="price"><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽ / месяц</div>
-                <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
+                <?php if ($hasFullAccess): ?>
+                    <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
+                <?php else: ?>
+                    <div class="address">
+                        📍 <?php echo htmlspecialchars($location['city']); ?>
+                        <a href="/pages/subscription.php" class="address-locked-hint">🔒 точный адрес — по подписке</a>
+                    </div>
+                <?php endif; ?>
 
 <div style="color: #888; font-size: 14px; margin-top: 8px;">
 🗓️ Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
@@ -257,6 +270,9 @@ if (!$is_preview) {
                     <?php endif; ?>
                     <?php if ($location['has_wifi']): ?>
                         <span class="badge badge-wifi">📶 Wi-Fi</span>
+                    <?php endif; ?>
+                    <?php if ($location['has_water']): ?>
+                        <span class="badge badge-water">🚰 Вода</span>
                     <?php endif; ?>
                     <?php if ($location['access_hours'] === '24/7'): ?>
                         <span class="badge badge-24h">🕒 Круглосуточно</span>
@@ -335,48 +351,16 @@ if (!$is_preview) {
     </div>
 <?php endif; ?>
 
-                <!-- Владелец и контакты -->
-<?php
-// Кто может видеть контакты?
-$showContacts = false;
-if ($is_admin || (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'])) {
-    $showContacts = true;
-}
-?>
-
-<div class="owner-block">
-    <div class="owner-info">
-        <strong>👤 <?php echo htmlspecialchars($location['owner_name']); ?></strong>
-        <span style="color: #888; font-size: 14px;">Владелец</span>
-
-        <?php if ($showContacts): ?>
-            <!-- Контакты видны только владельцу и администратору -->
-            <?php if (!empty($location['owner_phone'])): ?>
-                <div style="margin-top: 5px;">📞 <?php echo htmlspecialchars($location['owner_phone']); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($location['owner_email'])): ?>
-                <div>📧 <?php echo htmlspecialchars($location['owner_email']); ?></div>
-            <?php endif; ?>
+                <!-- Связь с владельцем — только через платформу, без личных данных на карточке -->
+<?php if (!$is_admin && ($isOwnListing === false) && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator')): ?>
+    <div class="owner-block">
+        <?php if (isset($_SESSION['user_id'])): ?>
+            <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact">📩 Отправить заявку на аренду</a>
         <?php else: ?>
-            <!-- Для остальных – никакой информации о контактах -->
+            <a href="/pages/login.php" class="btn-contact">Войдите, чтобы отправить заявку</a>
         <?php endif; ?>
     </div>
-
-    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $location['owner_id'] && $showContacts): ?>
-        <!-- Кнопка "Связаться" показывается только если контакты видны -->
-        <a href="mailto:<?php echo htmlspecialchars($location['owner_email']); ?>" class="btn-contact">✉️ Связаться</a>
-    <?php endif; ?>
-</div>
-
-    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $location['owner_id']): ?>
-        <?php if ($showContacts): ?>
-            <!-- Если контакты видны – ссылка mailto -->
-            <a href="mailto:<?php echo htmlspecialchars($location['owner_email']); ?>" class="btn-contact">✉️ Связаться</a>
-        <?php else: ?>
-            <!-- Если не видны – ссылка на форму (пока заглушка) -->
-            <a href="/pages/contact_owner.php?id=<?php echo $location['id']; ?>" class="btn-contact">✉️ Связаться</a>
-        <?php endif; ?>
-    <?php endif; ?>
+<?php endif; ?>
 
 <?php if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'operator' && $_SESSION['user_id'] != $location['owner_id']): ?>
     <div style="margin-top: 20px; text-align: center;">

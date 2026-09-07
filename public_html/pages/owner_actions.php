@@ -45,7 +45,7 @@ function applyRevisionToLocation($pdo, $revision, $locationId, $setModerated = f
 
     // Обновляем поля локации
     $fields = ['title', 'address', 'city', 'description', 'price_month', 'width', 'height', 'depth',
-               'has_electricity', 'has_wifi', 'access_hours', 'traffic_rating', 'space_type'];
+               'has_electricity', 'has_wifi', 'has_water', 'access_hours', 'traffic_rating', 'space_type'];
     $setParts = [];
     $params = [];
     foreach ($fields as $f) {
@@ -355,6 +355,7 @@ if ($action === 'toggle') {
         'depth'            => $loc['depth'],
         'has_electricity'  => $loc['has_electricity'],
         'has_wifi'         => $loc['has_wifi'],
+        'has_water'        => $loc['has_water'],
         'access_hours'     => $loc['access_hours'],
         'traffic_rating'   => $loc['traffic_rating'],
         'space_type'       => $loc['space_type'],

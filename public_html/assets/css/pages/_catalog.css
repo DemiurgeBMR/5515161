@@ -41,6 +41,35 @@
     height: 20px;
     margin-top: 6px;
 }
+.filter-search {
+    flex: 1 1 260px;
+}
+.filter-search input {
+    width: 100%;
+    min-width: 220px;
+}
+.filter-checkboxes {
+    flex-direction: row;
+    gap: 16px;
+    align-items: center;
+}
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #333;
+    white-space: nowrap;
+}
+.checkbox-inline input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+.filter-actions {
+    flex-direction: row;
+    gap: 10px;
+}
 .btn-filter {
     padding: 8px 24px;
     background: #e94560;
@@ -136,11 +165,6 @@
     color: #e94560;
     font-weight: bold;
 }
-.catalog-card .owner {
-    font-size: 13px;
-    color: #888;
-    margin-top: 5px;
-}
 .catalog-card .badges {
     display: flex;
     gap: 8px;
@@ -161,6 +185,10 @@
 .badge.wifi {
     background: #d4edda;
     color: #155724;
+}
+.badge.water {
+    background: #d6eaf8;
+    color: #21618c;
 }
 .catalog-card .space-type-label {
     font-size: 13px;

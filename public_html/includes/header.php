@@ -46,13 +46,6 @@
                 <a href="/pages/catalog.php">Локации</a>
                 <a href="/pages/map.php">Карта</a>
 
-                <!-- ★★★ ПОИСК ★★★ -->
-                <form action="/pages/search.php" method="GET" class="search-form">
-                    <input type="text" name="q" placeholder="Поиск по ID или городу..." 
-                           value="<?php echo isset($_GET['q']) ? htmlspecialchars($_GET['q']) : ''; ?>">
-                    <button type="submit">🔍</button>
-                </form>
-                
 <?php if (isset($_SESSION['user_id'])): ?>
     <!-- Уведомления -->
     <a href="/pages/notifications.php" class="notification-bell" style="position:relative; color:white; text-decoration:none; margin-right:15px; font-size:20px;">
@@ -80,6 +73,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
         <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
             <a href="/pages/add_location.php" style="color: #e94560; margin-right: 15px; text-decoration: none;">➕ Добавить место</a>
         <?php endif; ?>
+        <a href="/pages/subscription.php" style="color: <?php echo currentUserHasSubscription() ? '#2ecc71' : 'white'; ?>; margin-right: 15px; text-decoration: none;">💳 Подписка</a>
         <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
     <?php endif; ?>
 <?php else: ?>
