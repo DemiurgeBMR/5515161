@@ -25,6 +25,24 @@ define('WATERMARK_PATH', __DIR__ . '/assets/images/watermark.png');
 // Через сколько дней без обслуживания точка считается "требующей внимания"
 define('SERVICE_DUE_DAYS', 14);
 
+/**
+ * Порог даты (Y-m-d H:i:s) для SQL-условий вида
+ * "COALESCE(last_service_at, installed_at) < ?" — единая точка правды для
+ * SERVICE_DUE_DAYS, чтобы дашборд оператора, список его точек и cron-
+ * напоминания не считали "просрочено" по-разному.
+ */
+function serviceDueCutoffDate() {
+    return date('Y-m-d H:i:s', time() - SERVICE_DUE_DAYS * 86400);
+}
+
+/**
+ * true, если число дней с последнего обслуживания/установки ($days,
+ * либо null, если данных ещё нет) означает, что точка требует внимания.
+ */
+function isServiceOverdue($days) {
+    return $days !== null && $days >= SERVICE_DUE_DAYS;
+}
+
 // Единственно допустимые цвета аватара — используется и для валидации при
 // сохранении, и для отрисовки палитры выбора, чтобы эти два места не разъезжались.
 define('ALLOWED_AVATAR_COLORS', [
@@ -331,6 +349,18 @@ function csrf_field() {
  */
 function csrf_verify($token) {
     return !empty($_SESSION['csrf_token']) && is_string($token) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * То же самое, но сама достаёт токен из тела POST-запроса (csrf_token) или
+ * из заголовка X-CSRF-Token — этим заголовком пользуются fetch()/XHR/$.ajax
+ * запросы, которым неудобно класть токен в тело (см. includes/footer.php,
+ * где токен подставляется в такие запросы автоматически на клиенте).
+ * Все API-эндпоинты, принимающие POST, должны проверять токен через неё.
+ */
+function csrf_verify_request() {
+    $token = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    return csrf_verify($token);
 }
 
 function formatDateRu($date) {

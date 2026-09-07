@@ -18,7 +18,7 @@ $traffic_min = isset($_GET['traffic_min']) ? (int)$_GET['traffic_min'] : 0;
 $space_type = $_GET['space_type'] ?? '';
 
 // Пагинация
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $per_page = 9;
 $offset = ($page - 1) * $per_page;
 
@@ -65,7 +65,7 @@ $total_pages = ceil($total / $per_page);
 
 // ---------- Основной запрос с LIMIT и OFFSET ----------
 $sql = "SELECT l.*, u.full_name as owner_name,
-        (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+        (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
         FROM locations l
         JOIN users u ON l.owner_id = u.id
         WHERE l.is_active = 1 AND l.is_moderated = 1";

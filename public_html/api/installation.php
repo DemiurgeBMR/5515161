@@ -9,6 +9,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify_request()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
+    exit;
+}
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
@@ -201,32 +207,52 @@ switch ($action) {
             exit;
         }
 
-        // Проверяем, нет ли у оператора другого активного события на это же время
-        $stmt = $pdo->prepare("
-            SELECT e.id
-            FROM installation_events e
-            JOIN location_operators lo2 ON lo2.id = e.location_operator_id
-            WHERE lo2.operator_id = ?
-              AND e.status NOT IN ('completed','cancelled')
-              AND (e.confirmed_datetime = ? OR e.proposed_datetime = ?)
-            LIMIT 1
-        ");
-        $stmt->execute([$lo['operator_id'], $datetime, $datetime]);
-        if ($stmt->fetch()) {
-            echo json_encode(['error' => 'У оператора уже запланирован другой выезд на это время']);
-            exit;
+        // Проверка на двойное бронирование и вставка — в одной транзакции с
+        // блокировкой строк (FOR UPDATE), как в reschedule ниже: без этого
+        // два параллельных запроса на одно и то же время у одного оператора
+        // могли оба пройти проверку до того, как первый успеет вставить свою
+        // запись.
+        try {
+            $pdo->beginTransaction();
+
+            $stmt = $pdo->prepare("
+                SELECT e.id
+                FROM installation_events e
+                JOIN location_operators lo2 ON lo2.id = e.location_operator_id
+                WHERE lo2.operator_id = ?
+                  AND e.status NOT IN ('completed','cancelled')
+                  AND (e.confirmed_datetime = ? OR e.proposed_datetime = ?)
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $stmt->execute([$lo['operator_id'], $datetime, $datetime]);
+            if ($stmt->fetch()) {
+                $pdo->rollBack();
+                echo json_encode(['error' => 'У оператора уже запланирован другой выезд на это время']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("
+                INSERT INTO installation_events
+                    (application_id, location_operator_id, event_type, proposed_datetime, status, requested_by, is_emergency, emergency_comment)
+                VALUES (?, ?, ?, ?, 'requested', ?, ?, ?)
+            ");
+            $stmt->execute([$application_id, $location_operator_id, $event_type, $datetime, $user_id, $is_emergency, $comment ?: null]);
+            $event_id = $pdo->lastInsertId();
+
+            $stmt = $pdo->prepare("INSERT INTO installation_event_log (event_id, action, new_datetime, user_id) VALUES (?, 'created', ?, ?)");
+            $stmt->execute([$event_id, $datetime, $user_id]);
+
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            error_log('installation.php request error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Не удалось создать заявку на выезд']);
+            break;
         }
-
-        $stmt = $pdo->prepare("
-            INSERT INTO installation_events
-                (application_id, location_operator_id, event_type, proposed_datetime, status, requested_by, is_emergency, emergency_comment)
-            VALUES (?, ?, ?, ?, 'requested', ?, ?, ?)
-        ");
-        $stmt->execute([$application_id, $location_operator_id, $event_type, $datetime, $user_id, $is_emergency, $comment ?: null]);
-        $event_id = $pdo->lastInsertId();
-
-        $stmt = $pdo->prepare("INSERT INTO installation_event_log (event_id, action, new_datetime, user_id) VALUES (?, 'created', ?, ?)");
-        $stmt->execute([$event_id, $datetime, $user_id]);
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $lo['operator_id']) ? $lo['owner_id'] : $lo['operator_id'];
@@ -265,6 +291,15 @@ switch ($action) {
         if (!$event || ($event['operator_id'] != $user_id && $event['owner_id'] != $user_id)) {
             http_response_code(403);
             echo json_encode(['error' => 'Access denied']);
+            exit;
+        }
+
+        // Подтвердить дату должна вторая сторона — иначе автор предложения
+        // мог бы в одиночку «закрепить» дату, которую сам же и предложил,
+        // без реального согласия второго участника.
+        if ($event['requested_by'] == $user_id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Дождитесь подтверждения от второй стороны — вы не можете подтвердить собственное предложение.']);
             exit;
         }
 

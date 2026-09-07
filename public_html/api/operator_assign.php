@@ -9,6 +9,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify_request()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
+    exit;
+}
+
 $user_id = $_SESSION['user_id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $pdo = getDbConnection();

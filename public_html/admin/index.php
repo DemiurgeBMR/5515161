@@ -25,6 +25,9 @@ $pending = $stmt->fetchAll();
 $total_all = $pdo->query("SELECT COUNT(*) FROM locations")->fetchColumn();
 $total_active = $pdo->query("SELECT COUNT(*) FROM locations WHERE is_active = 1 AND is_moderated = 1")->fetchColumn();
 $total_pending = $pdo->query("SELECT COUNT(DISTINCT location_id) FROM location_revisions WHERE status = 'pending'")->fetchColumn();
+
+$flash = $_SESSION['flash'] ?? '';
+unset($_SESSION['flash']);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -38,7 +41,11 @@ $total_pending = $pdo->query("SELECT COUNT(DISTINCT location_id) FROM location_r
     
     <div class="admin-container">
         <h1>👑 Админ-панель</h1>
-        
+
+        <?php if ($flash): ?>
+            <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
+        <?php endif; ?>
+
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
@@ -89,9 +96,9 @@ $total_pending = $pdo->query("SELECT COUNT(DISTINCT location_id) FROM location_r
                                     <!-- Просмотр всех ревизий -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
                                     <!-- Одобрить все правки (применяет последнюю) -->
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
                                     <!-- Отклонить все правки -->
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
                                     <!-- Просмотр на сайте -->
                                     <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
                                 </td>

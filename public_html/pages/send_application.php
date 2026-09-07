@@ -27,8 +27,11 @@ if (!$location) {
 $operator_id = $_SESSION['user_id'];
 $owner_id = $location['owner_id'];
 
-// Проверяем, не отправлял ли оператор уже заявку на эту локацию
-$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'placed')");
+// Проверяем, не отправлял ли оператор уже заявку на эту локацию.
+// 'rejected' исключён из блокирующих статусов так же, как и в
+// api/operator_assign.php ('request') — иначе одна отклонённая заявка
+// навсегда закрывала бы эту локацию для повторной подачи.
+$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'placed', 'rejected')");
 $stmt->execute([$location_id, $operator_id]);
 if ($stmt->fetch()) {
     $error = 'Вы уже отправили заявку на эту локацию.';

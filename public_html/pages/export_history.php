@@ -31,6 +31,19 @@ function counterpartName($row, $role) {
     return $role === 'owner' ? $row['operator_name'] : $row['owner_name'];
 }
 
+// Защита от CSV/formula injection: location_title, комментарий и имя
+// контрагента — свободный текст пользователей. Если такое поле начинается
+// с символа, который Excel/Sheets трактуют как начало формулы (=+-@),
+// открытие экспортированного файла может выполнить произвольную формулу
+// на машине того, кто его открыл. Ведущий апостроф нейтрализует это.
+function csvSafe($value) {
+    $value = (string)$value;
+    if ($value !== '' && strpbrk($value[0], "=+-@") !== false) {
+        return "'" . $value;
+    }
+    return $value;
+}
+
 // ===== CSV =====
 if ($format === 'csv') {
     header('Content-Type: text/csv; charset=UTF-8');
@@ -45,12 +58,12 @@ if ($format === 'csv') {
     foreach ($rows as $row) {
         fputcsv($out, [
             date('d.m.Y H:i', strtotime($row['event_date'])),
-            $row['location_title'] . ' (' . $row['city'] . ')',
+            csvSafe($row['location_title'] . ' (' . $row['city'] . ')'),
             serviceEventTypeLabel($row['event_type']),
             $row['source_type'] === 'log' ? 'Постфактум' : 'Согласовано',
-            counterpartName($row, $role),
+            csvSafe(counterpartName($row, $role)),
             $row['is_emergency'] ? 'Да' : '',
-            $row['comment'] ?? '',
+            csvSafe($row['comment'] ?? ''),
             !empty($row['photos']) ? count($row['photos']) . ' фото' : '',
         ], ';', '"', '\\');
     }

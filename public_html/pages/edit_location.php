@@ -59,28 +59,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $space_type = $_POST['space_type'] ?? null;
     if ($space_type === '') $space_type = null;
 
-    // ★★★ ОБРАБОТКА ФОТО ПРИ РЕДАКТИРОВАНИИ ★★★
-    
-    // 1. Обработка удалённых фото (отмечаем их как удалённые, но не удаляем физически до модерации)
-    $deletedPhotos = $_POST['delete_photos'] ?? [];
-    if (is_array($deletedPhotos) && !empty($deletedPhotos)) {
-        foreach ($deletedPhotos as $photo_id) {
-            $photo_id = (int)$photo_id;
-            // Проверяем, что фото принадлежит этой локации
-            $checkStmt = $pdo->prepare("SELECT id FROM location_photos WHERE id = ? AND location_id = ?");
-            $checkStmt->execute([$photo_id, $id]);
-            if ($checkStmt->fetch()) {
-                // Отмечаем фото как удалённое (pending_action = 'delete')
-                $updateStmt = $pdo->prepare("
-                    UPDATE location_photos 
-                    SET pending_action = 'delete', is_pending = 1 
-                    WHERE id = ? AND location_id = ?
-                ");
-                $updateStmt->execute([$photo_id, $id]);
-            }
-        }
-    }
-
 // Валидация
 if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
     $error = 'Заполните все обязательные поля (название, адрес, город, цена)';
@@ -113,10 +91,31 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             }
         }
 
-        // Добавляем информацию о фото, которые были отмечены на удаление
+        // Помечаем фото на удаление только сейчас, вместе с созданием ревизии —
+        // а не сразу при получении формы. Иначе фото пропадало бы с публичной
+        // карточки (is_pending=1 фильтруется на витрине) ещё до модерации, а
+        // при провале валидации формы — зависало бы в таком состоянии навсегда,
+        // потому что ревизия так и не создавалась.
         $deletedPhotos = $_POST['delete_photos'] ?? [];
+        $deletedPhotoIds = [];
         if (is_array($deletedPhotos) && !empty($deletedPhotos)) {
-            $revisionData['delete_photos'] = array_map('intval', $deletedPhotos);
+            foreach ($deletedPhotos as $photo_id) {
+                $photo_id = (int)$photo_id;
+                $checkStmt = $pdo->prepare("SELECT id FROM location_photos WHERE id = ? AND location_id = ?");
+                $checkStmt->execute([$photo_id, $id]);
+                if ($checkStmt->fetch()) {
+                    $updateStmt = $pdo->prepare("
+                        UPDATE location_photos
+                        SET pending_action = 'delete', is_pending = 1
+                        WHERE id = ? AND location_id = ?
+                    ");
+                    $updateStmt->execute([$photo_id, $id]);
+                    $deletedPhotoIds[] = $photo_id;
+                }
+            }
+        }
+        if (!empty($deletedPhotoIds)) {
+            $revisionData['delete_photos'] = $deletedPhotoIds;
         }
 
         // Если есть новые фото – сохраняем их временно и записываем пути в ревизию
@@ -126,30 +125,45 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             $upload_dir = __DIR__ . '/../uploads/revisions/';
             if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
             
-            $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            // Расширение сохранённого файла берётся из проверенного MIME-типа,
+            // а не из имени файла клиента: имя вида x.jpg"><script>...</script>
+            // иначе целиком становится "расширением" и попадает в путь на диске
+            // и в БД, откуда выводится без экранирования на других страницах.
+            $allowed_extensions = [
+                'image/jpeg' => 'jpg',
+                'image/png'  => 'png',
+                'image/webp' => 'webp',
+                'image/gif'  => 'gif',
+            ];
             $max_size = 5 * 1024 * 1024;
             $uploaded_files = $_FILES['photos'];
-            $total_files = count($uploaded_files['name']);
+            $total_files = min(count($uploaded_files['name']), 5);
 
             for ($i = 0; $i < $total_files; $i++) {
                 if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) continue;
                 $tmp_name = $uploaded_files['tmp_name'][$i];
                 $file_type = mime_content_type($tmp_name);
-                if (!in_array($file_type, $allowed_types)) continue;
+                $extension = $allowed_extensions[$file_type] ?? null;
+                if (!$extension) continue;
                 if ($uploaded_files['size'][$i] > $max_size) {
                     $error = 'Файл "' . $uploaded_files['name'][$i] . '" превышает 5 МБ';
                     continue;
                 }
 
-                $extension = pathinfo($uploaded_files['name'][$i], PATHINFO_EXTENSION);
                 $new_name = uniqid() . '.' . $extension;
                 $temp_path = $upload_dir . 'temp_' . $new_name;
                 if (!move_uploaded_file($tmp_name, $temp_path)) continue;
 
                 $final_path = $upload_dir . $new_name;
                 $compressed = compressImage($temp_path, $final_path, 1200, 1200, 80);
-                if (file_exists($temp_path)) unlink($temp_path);
-                if (!$compressed) rename($temp_path, $final_path);
+                if ($compressed) {
+                    unlink($temp_path);
+                } else {
+                    // Сжатие не удалось (например, повреждённое тело файла) —
+                    // сохраняем как есть под тем же безопасным именем, вместо
+                    // того чтобы просто потерять фото молча.
+                    rename($temp_path, $final_path);
+                }
 
                 $newPhotoPaths[] = 'uploads/revisions/' . $new_name;
             }

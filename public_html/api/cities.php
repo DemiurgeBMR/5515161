@@ -10,10 +10,13 @@ if (mb_strlen($query, 'UTF-8') < 2) {
     exit;
 }
 
-// Кеш на 10 минут
+// Кеш на 10 минут — файловый (getCached/setCache из config.php), а не в
+// сессии: сессионный кеш рос бы бессрочно с каждым новым поисковым запросом
+// и никогда не освобождался, пока жива сессия пользователя.
 $cache_key = 'city_' . md5($query);
-if (isset($_SESSION[$cache_key]) && time() - $_SESSION[$cache_key . '_time'] < 600) {
-    echo json_encode($_SESSION[$cache_key]);
+$cached = getCached($cache_key, 600);
+if ($cached !== null) {
+    echo json_encode($cached);
     exit;
 }
 
@@ -42,11 +45,11 @@ try {
     }
     
     // Сохраняем в кеш
-    $_SESSION[$cache_key] = $result;
-    $_SESSION[$cache_key . '_time'] = time();
-    
+    setCache($cache_key, $result);
+
     echo json_encode($result);
-    
+
 } catch (PDOException $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['error' => 'Не удалось выполнить поиск городов']);
 }

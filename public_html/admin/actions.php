@@ -17,6 +17,12 @@ if ($id <= 0 && $action !== 'approve_revision' && $action !== 'reject_revision')
     exit;
 }
 
+if (!csrf_verify($_GET['csrf'] ?? '')) {
+    $_SESSION['flash'] = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
+    header('Location: /admin/index.php');
+    exit;
+}
+
 $pdo = getDbConnection();
 
 // ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
@@ -76,6 +82,12 @@ function applyRevision($pdo, $revision, $locationId) {
         }
 
         foreach ($data['new_photos'] as $tempPath) {
+            // Ожидаемый формат — "uploads/revisions/<имя_файла>" без вложенных
+            // директорий; всё остальное отбрасываем, чтобы ../ в данных ревизии
+            // не позволил переместить произвольный файл сервера.
+            if (!is_string($tempPath) || !preg_match('#^uploads/revisions/[A-Za-z0-9_.-]+$#', $tempPath)) {
+                continue;
+            }
             $tempFull = __DIR__ . '/../' . $tempPath;
             if (!file_exists($tempFull)) continue;
 
@@ -229,7 +241,10 @@ try {
         $_SESSION['flash'] = 'Ревизия отклонена.';
     }
     elseif ($action === 'approve_pending' && $id > 0) {
-        // Одобрить все ожидающие ревизии для локации (применяем самую последнюю)
+        // Одобрить все ожидающие ревизии для локации.
+        // Применяем их все по порядку создания (а не только последнюю) —
+        // иначе поля, изменённые в более ранней ревизии, но не тронутые в
+        // последней, молча терялись бы при отклонении этой ранней ревизии.
         $stmt = $pdo->prepare("SELECT * FROM location_revisions WHERE location_id = ? AND status = 'pending' ORDER BY created_at ASC");
         $stmt->execute([$id]);
         $revisions = $stmt->fetchAll();
@@ -239,30 +254,24 @@ try {
             exit;
         }
 
-        // Применяем последнюю ревизию (самую свежую)
-        $lastRevision = end($revisions);
-        if (applyRevision($pdo, $lastRevision, $id)) {
-            // Все остальные ревизии помечаем как отклонённые (или можно тоже одобрить, но лучше отклонить)
-            foreach ($revisions as $rev) {
-                if ($rev['id'] == $lastRevision['id']) {
-                    // Одобряем последнюю
-                    $stmt = $pdo->prepare("UPDATE location_revisions SET status = 'approved', reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
-                    $stmt->execute([$_SESSION['user_id'], $rev['id']]);
-                } else {
-                    // Остальные отклоняем (чтобы не висели)
-                    rejectRevision($pdo, $rev);
-                }
+        $allApplied = true;
+        foreach ($revisions as $rev) {
+            if (applyRevision($pdo, $rev, $id)) {
+                $stmt = $pdo->prepare("UPDATE location_revisions SET status = 'approved', reviewed_at = NOW(), reviewed_by = ? WHERE id = ?");
+                $stmt->execute([$_SESSION['user_id'], $rev['id']]);
+            } else {
+                $allApplied = false;
             }
-
-    // ★★★ НОВОЕ: если локация новая (не промодерирована), делаем её активной ★★★
-    $stmt = $pdo->prepare("UPDATE locations SET is_moderated = 1, is_active = 1 WHERE id = ? AND is_moderated = 0");
-    $stmt->execute([$id]);
-
-            clearCache('rec_' . $id);
-            $_SESSION['flash'] = 'Все правки одобрены (применена последняя версия).';
-        } else {
-            $_SESSION['flash'] = 'Ошибка при применении ревизии.';
         }
+
+        // ★★★ Если локация новая (не промодерирована), делаем её активной ★★★
+        $stmt = $pdo->prepare("UPDATE locations SET is_moderated = 1, is_active = 1 WHERE id = ? AND is_moderated = 0");
+        $stmt->execute([$id]);
+
+        clearCache('rec_' . $id);
+        $_SESSION['flash'] = $allApplied
+            ? 'Все правки применены по порядку и одобрены.'
+            : 'Часть правок не удалось применить — проверьте локацию.';
     }
     elseif ($action === 'reject_pending' && $id > 0) {
         // Отклонить все ожидающие ревизии для локации
@@ -287,6 +296,45 @@ try {
         $stmt = $pdo->prepare("UPDATE locations SET is_active = 1 WHERE id = ?");
         $stmt->execute([$id]);
         $_SESSION['flash'] = 'Локация опубликована.';
+    }
+    elseif ($action === 'delete' && $id > 0) {
+        // Удаляем ожидающие ревизии вместе с их временными фото
+        $stmt = $pdo->prepare("SELECT * FROM location_revisions WHERE location_id = ? AND status = 'pending'");
+        $stmt->execute([$id]);
+        $revisions = $stmt->fetchAll();
+        foreach ($revisions as $rev) {
+            $data = json_decode($rev['data'], true);
+            if ($data && !empty($data['new_photos'])) {
+                foreach ($data['new_photos'] as $path) {
+                    if (!is_string($path) || !preg_match('#^uploads/revisions/[A-Za-z0-9_.-]+$#', $path)) {
+                        continue;
+                    }
+                    $fullPath = __DIR__ . '/../' . $path;
+                    if (file_exists($fullPath)) {
+                        unlink($fullPath);
+                    }
+                }
+            }
+            $stmt2 = $pdo->prepare("DELETE FROM location_revisions WHERE id = ?");
+            $stmt2->execute([$rev['id']]);
+        }
+
+        // Удаляем уже сохранённые фото локации
+        $stmt = $pdo->prepare("SELECT photo_path FROM location_photos WHERE location_id = ?");
+        $stmt->execute([$id]);
+        $photos = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($photos as $path) {
+            $fullPath = __DIR__ . '/../' . $path;
+            if (file_exists($fullPath)) {
+                unlink($fullPath);
+            }
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM locations WHERE id = ?");
+        $stmt->execute([$id]);
+
+        clearCache('rec_' . $id);
+        $_SESSION['flash'] = 'Локация и все связанные файлы удалены.';
     }
     else {
         $_SESSION['flash'] = 'Неизвестное действие или недостаточно параметров.';

@@ -10,6 +10,12 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if (!csrf_verify_request()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
+    exit;
+}
+
 $application_id = isset($_POST['application_id']) ? (int)$_POST['application_id'] : 0;
 $message = trim($_POST['message'] ?? '');
 

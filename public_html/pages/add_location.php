@@ -92,30 +92,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $upload_dir = __DIR__ . '/../uploads/revisions/';
                 if (!is_dir($upload_dir)) mkdir($upload_dir, 0755, true);
 
-                $allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                // Расширение сохранённого файла берётся из проверенного MIME-типа,
+                // а не из имени файла клиента: имя вида x.jpg"><script>...</script>
+                // иначе целиком становится "расширением" и попадает в путь на диске
+                // и в БД, откуда выводится без экранирования на других страницах.
+                $allowed_extensions = [
+                    'image/jpeg' => 'jpg',
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp',
+                    'image/gif'  => 'gif',
+                ];
                 $max_size = 5 * 1024 * 1024;
                 $uploaded_files = $_FILES['photos'];
-                $total_files = count($uploaded_files['name']);
+                $total_files = min(count($uploaded_files['name']), 5);
 
                 for ($i = 0; $i < $total_files; $i++) {
                     if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) continue;
                     $tmp_name = $uploaded_files['tmp_name'][$i];
                     $file_type = mime_content_type($tmp_name);
-                    if (!in_array($file_type, $allowed_types)) continue;
+                    $extension = $allowed_extensions[$file_type] ?? null;
+                    if (!$extension) continue;
                     if ($uploaded_files['size'][$i] > $max_size) {
                         $error = 'Файл "' . $uploaded_files['name'][$i] . '" превышает 5 МБ';
                         continue;
                     }
 
-                    $extension = pathinfo($uploaded_files['name'][$i], PATHINFO_EXTENSION);
                     $new_name = uniqid() . '.' . $extension;
                     $temp_path = $upload_dir . 'temp_' . $new_name;
                     if (!move_uploaded_file($tmp_name, $temp_path)) continue;
 
                     $final_path = $upload_dir . $new_name;
                     $compressed = compressImage($temp_path, $final_path, 1200, 1200, 80);
-                    if (file_exists($temp_path)) unlink($temp_path);
-                    if (!$compressed) rename($temp_path, $final_path);
+                    if ($compressed) {
+                        unlink($temp_path);
+                    } else {
+                        // Сжатие не удалось (например, повреждённое тело файла) —
+                        // сохраняем как есть под тем же безопасным именем, вместо
+                        // того чтобы просто потерять фото молча.
+                        rename($temp_path, $final_path);
+                    }
 
                     $newPhotoPaths[] = 'uploads/revisions/' . $new_name;
                 }

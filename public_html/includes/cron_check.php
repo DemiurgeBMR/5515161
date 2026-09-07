@@ -42,7 +42,7 @@ function recentReminderExists($pdo, $user_id, $type, $link) {
 }
 
 function runMaintenanceReminders($pdo) {
-    $cutoff = date('Y-m-d H:i:s', time() - SERVICE_DUE_DAYS * 86400);
+    $cutoff = serviceDueCutoffDate();
 
     $stmt = $pdo->prepare("
         SELECT m.id as machine_id,
