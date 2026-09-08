@@ -71,6 +71,13 @@ $hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
 $showInquiryBlock = !$is_admin && !$isOwnListing
     && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator');
 
+// Отметка "прошло модерацию" — то же самое условие, по которому объявление
+// вообще попадает в публичный каталог (см. catalog.php), поэтому в самом
+// каталоге она будет стоять всегда, а здесь корректно пропадёт для
+// черновика/ожидающего модерации объявления, которое видит только его
+// владелец или админ в режиме предпросмотра.
+$isVerified = ($location['is_moderated'] == 1 && $location['is_active'] == 1);
+
 // ★★★ ВЫЧИСЛЯЕМ ПЛОЩАДЬ ★★★
 $area = null;
 if (!empty($location['width']) && !empty($location['depth'])) {
@@ -209,12 +216,15 @@ if (!$is_preview) {
         <div class="location-layout<?php echo $showInquiryBlock ? ' has-sidebar' : ''; ?>">
         <div class="detail-card">
             <!-- Главное фото -->
+            <?php if ($isVerified): ?>
+                <span class="verified-badge-photo">✓ Верифицировано</span>
+            <?php endif; ?>
             <?php if (!empty($location['main_photo'])): ?>
                 <img src="/<?php echo $location['main_photo']; ?>" alt="<?php echo htmlspecialchars($location['title']); ?>" class="main-photo">
             <?php else: ?>
                 <img src="/assets/images/placeholder.jpg" alt="Нет фото" class="main-photo">
             <?php endif; ?>
-            
+
 <!-- Галерея дополнительных фото -->
 <?php if (count($photos) > 0): ?>
     <div class="gallery">
@@ -230,7 +240,12 @@ if (!$is_preview) {
                     📍 ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
                 </div>
 
-                <div class="title"><?php echo htmlspecialchars($location['title']); ?></div>
+                <div class="title">
+                    <?php echo htmlspecialchars($location['title']); ?>
+                    <?php if ($isVerified): ?>
+                        <span class="verified-pill">✓ Проверено</span>
+                    <?php endif; ?>
+                </div>
                 <div class="price"><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽ / месяц</div>
                 <?php if ($hasFullAccess): ?>
                     <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
@@ -367,21 +382,21 @@ if (!$is_preview) {
         <?php if (count($recommendations) > 0): ?>
     <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
         <h3 style="margin-bottom: 15px;">🔍 Похожие объявления</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <div class="rec-grid">
             <?php foreach ($recommendations as $rec): ?>
-                <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
-                    <div style="background: #f9f9f9; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: 0.2s; height: 100%;">
+                <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" class="rec-card-link">
+                    <div class="rec-card">
                         <?php if (!empty($rec['main_photo'])): ?>
-                            <img src="/<?php echo $rec['main_photo']; ?>" alt="<?php echo htmlspecialchars($rec['title']); ?>" style="width: 100%; height: 140px; object-fit: cover; background: #eee;">
+                            <img src="/<?php echo $rec['main_photo']; ?>" alt="<?php echo htmlspecialchars($rec['title']); ?>">
                         <?php else: ?>
-                            <img src="/assets/images/placeholder.jpg" alt="Нет фото" style="width: 100%; height: 140px; object-fit: cover; background: #eee;">
+                            <img src="/assets/images/placeholder.jpg" alt="Нет фото">
                         <?php endif; ?>
-                        <div style="padding: 10px;">
-                            <div style="font-weight: bold; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($rec['title']); ?></div>
-                            <div style="color: #888; font-size: 13px;"><?php echo htmlspecialchars($rec['city']); ?></div>
-                            <div style="color: #e94560; font-weight: bold; font-size: 16px;"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
+                        <div class="rec-body">
+                            <div class="rec-title"><?php echo htmlspecialchars($rec['title']); ?></div>
+                            <div class="rec-city"><?php echo htmlspecialchars($rec['city']); ?></div>
+                            <div class="rec-price"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
                             <?php if ($rec['traffic_rating'] > 0): ?>
-                                <div style="font-size: 12px; color: #555;">
+                                <div class="rec-traffic">
                                     🚶
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : '#ddd'; ?>;">★</span>

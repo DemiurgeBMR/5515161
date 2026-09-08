@@ -108,12 +108,50 @@
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    position: relative;
 }
 .detail-card .main-photo {
     width: 100%;
     max-height: 500px;
     object-fit: cover;
     background: #eee;
+}
+
+/* Отметка модерации — над главным фото и пилюля рядом с названием */
+.verified-badge-photo {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #2f6fed;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    pointer-events: none;
+}
+.verified-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eaf1ff;
+    color: #2f6fed;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    vertical-align: middle;
+}
+.detail-card .title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 .detail-card .gallery {
     display: grid;
@@ -353,4 +391,64 @@
         right: 10px;
         font-size: 30px;
     }
+}
+
+/* Похожие объявления — карточки как в каталоге: лёгкий подъём + зум фото
+   по наведению, чтобы было видно, что курсор реально на карточке. */
+.rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.rec-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.rec-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+}
+.rec-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.rec-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #eee;
+    display: block;
+    transition: transform 0.3s;
+}
+.rec-card:hover img {
+    transform: scale(1.05);
+}
+.rec-card .rec-body {
+    padding: 10px;
+}
+.rec-card .rec-title {
+    font-weight: bold;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rec-card .rec-city {
+    color: #888;
+    font-size: 13px;
+}
+.rec-card .rec-price {
+    color: #e94560;
+    font-weight: bold;
+    font-size: 16px;
+}
+.rec-card .rec-traffic {
+    font-size: 12px;
+    color: #555;
+    margin-top: 2px;
 }

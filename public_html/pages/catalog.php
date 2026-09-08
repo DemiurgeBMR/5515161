@@ -280,6 +280,9 @@ $filterParams = array_filter($_GET, function ($k) {
             <div class="catalog-grid">
                 <?php foreach ($locations as $loc): ?>
                     <div class="catalog-card">
+                        <?php if ($loc['is_moderated'] == 1 && $loc['is_active'] == 1): ?>
+                            <span class="verified-badge-photo">✓ Верифицировано</span>
+                        <?php endif; ?>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>">
                             <?php if (!empty($loc['main_photo'])): ?>
                                 <img src="/<?php echo htmlspecialchars($loc['main_photo']); ?>" alt="<?php echo htmlspecialchars($loc['title']); ?>">
@@ -287,7 +290,12 @@ $filterParams = array_filter($_GET, function ($k) {
                                 <img src="/assets/images/placeholder.jpg" alt="Нет фото">
                             <?php endif; ?>
                             <div class="info">
-                                <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
+                                <div class="title">
+                                    <?php echo htmlspecialchars($loc['title']); ?>
+                                    <?php if ($loc['is_moderated'] == 1 && $loc['is_active'] == 1): ?>
+                                        <span class="verified-pill">✓ Проверено</span>
+                                    <?php endif; ?>
+                                </div>
                                 <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
 
                                 <div style="color: #888; font-size: 13px; margin-top: 4px;">
