@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             $pdo = getDbConnection();
-            $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, is_subscribed FROM users WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, has_subscription FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch();
 
@@ -28,7 +28,7 @@ if ($user && password_verify($password, $user['password'])) {
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_name'] = $user['full_name'];
     $_SESSION['user_role'] = $user['role'];
-    $_SESSION['is_subscribed'] = (int)$user['is_subscribed'];
+    $_SESSION['has_subscription'] = (int)$user['has_subscription'];
 
     if ($user['role'] === 'admin') {
         header('Location: /admin/index.php');

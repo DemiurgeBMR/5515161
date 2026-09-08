@@ -54,6 +54,14 @@ $stmt->execute([$application_id, $user_id]);
 $is_operator = ($user_id == $application['operator_id']);
 $other_party = $is_operator ? $application['owner_name'] : $application['operator_name'];
 
+// Запрос оператора на закрепление за локацией (api/operator_assign.php,
+// action=request) создаёт обычную заявку с этим фиксированным
+// initial_message — раньше кнопки "Одобрить"/"Отклонить" для него вообще
+// нигде не были подключены в интерфейсе, теперь показываем их прямо здесь,
+// владельцу, пока запрос не рассмотрен.
+$isAssignmentRequest = ($application['initial_message'] === 'Запрос на закрепление');
+$canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator;
+
 function getInitials($name) {
     $parts = preg_split('/\s+/', trim($name));
     $initials = '';
@@ -78,14 +86,22 @@ $statusLabels = [
     'negotiating' => '🤝 В переговорах',
     'agreed' => '✅ Договорённость',
     'placed' => '📍 Размещено',
-    'cancelled' => '❌ Отменена'
+    'cancelled' => '❌ Отменена',
+    'approved' => '✅ Закрепление подтверждено',
+    'rejected' => '❌ Закрепление отклонено',
 ];
 
-$currentPublicStatus = $application['status']; // pending или cancelled
+$currentPublicStatus = $application['status'];
 $cancelled_by = $application['cancelled_by'];
 $canChangeCancel = ($currentPublicStatus === 'cancelled' && $cancelled_by == $user_id);
 
-$displayStatus = $currentPublicStatus === 'cancelled' ? 'cancelled' : ($my_tag ? $my_tag : 'pending');
+// status хранит и финальные статусы запроса на закрепление (approved/
+// rejected из api/operator_assign.php) — показываем их напрямую, как и
+// cancelled, а не только личный тег ($my_tag), иначе решённый запрос
+// выглядел бы вечно "ожидающим" (см. A19 в owner/operator_applications.php).
+$displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected'], true)
+    ? $currentPublicStatus
+    : ($my_tag ? $my_tag : 'pending');
 
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("
@@ -1050,6 +1066,21 @@ $current_event = $stmt->fetch();
                 </div>
             </div>
 
+            <?php if ($canDecideAssignment): ?>
+            <!-- запрос на закрепление за локацией — решение владельца -->
+            <div class="sidebar-section" id="assignmentRequestBlock">
+                <p class="sidebar-section-title">Запрос на закрепление</p>
+                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                    Оператор просит закрепить его за этой локацией.
+                </p>
+                <div class="modal-buttons">
+                    <button type="button" id="approveAssignmentBtn" class="btn-primary">✅ Одобрить</button>
+                    <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
+                </div>
+                <div id="assignmentRequestStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+            </div>
+            <?php endif; ?>
+
             <!-- статус заявки -->
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Статус</p>
@@ -1253,6 +1284,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // делаем application_id видимым глобально, чтобы notifications.js мог
     // не показывать тост о сообщении, если пользователь уже в этом чате
     window.currentChatApplicationId = applicationId;
+
+    // --- РЕШЕНИЕ ПО ЗАПРОСУ НА ЗАКРЕПЛЕНИЕ ---
+    var approveAssignmentBtn = document.getElementById('approveAssignmentBtn');
+    var rejectAssignmentBtn = document.getElementById('rejectAssignmentBtn');
+    var assignmentRequestStatus = document.getElementById('assignmentRequestStatus');
+
+    function decideAssignmentRequest(action, btn) {
+        var confirmText = action === 'approve' ? 'Одобрить закрепление этого оператора?' : 'Отклонить запрос на закрепление?';
+        if (!confirm(confirmText)) return;
+
+        approveAssignmentBtn.disabled = true;
+        rejectAssignmentBtn.disabled = true;
+        btn.textContent = 'Отправка...';
+        assignmentRequestStatus.textContent = '';
+
+        var formData = new FormData();
+        formData.append('action', action);
+        formData.append('application_id', applicationId);
+
+        fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    assignmentRequestStatus.style.color = '#2ecc71';
+                    assignmentRequestStatus.textContent = '✅ Готово, обновляем страницу...';
+                    setTimeout(function() { location.reload(); }, 700);
+                } else {
+                    assignmentRequestStatus.style.color = '#e74c3c';
+                    assignmentRequestStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                    approveAssignmentBtn.disabled = false;
+                    rejectAssignmentBtn.disabled = false;
+                    approveAssignmentBtn.textContent = '✅ Одобрить';
+                    rejectAssignmentBtn.textContent = '❌ Отклонить';
+                }
+            })
+            .catch(function() {
+                assignmentRequestStatus.style.color = '#e74c3c';
+                assignmentRequestStatus.textContent = '❌ Ошибка соединения';
+                approveAssignmentBtn.disabled = false;
+                rejectAssignmentBtn.disabled = false;
+                approveAssignmentBtn.textContent = '✅ Одобрить';
+                rejectAssignmentBtn.textContent = '❌ Отклонить';
+            });
+    }
+
+    if (approveAssignmentBtn && rejectAssignmentBtn) {
+        approveAssignmentBtn.addEventListener('click', function() { decideAssignmentRequest('approve', approveAssignmentBtn); });
+        rejectAssignmentBtn.addEventListener('click', function() { decideAssignmentRequest('reject', rejectAssignmentBtn); });
+    }
+
     var userId = <?php echo $user_id; ?>;
     var lastMessageId = <?php echo !empty($messages) ? end($messages)['id'] : 0; ?>;
 

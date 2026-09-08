@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $full_name;
                 $_SESSION['user_role'] = $role;
-                $_SESSION['is_subscribed'] = 0;
+                $_SESSION['has_subscription'] = 0;
 
                 header('Location: /pages/profile.php');
                 exit;

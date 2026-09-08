@@ -27,10 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_subscription']
         exit;
     }
 
-    $newValue = !empty($_SESSION['is_subscribed']) ? 0 : 1;
-    $stmt = $pdo->prepare("UPDATE users SET is_subscribed = ? WHERE id = ?");
+    $newValue = !empty($_SESSION['has_subscription']) ? 0 : 1;
+    $stmt = $pdo->prepare("UPDATE users SET has_subscription = ? WHERE id = ?");
     $stmt->execute([$newValue, $user_id]);
-    $_SESSION['is_subscribed'] = $newValue;
+    $_SESSION['has_subscription'] = $newValue;
     $_SESSION['flash'] = $newValue
         ? 'Подписка включена. Теперь доступны карта с точками и точные адреса локаций.'
         : 'Подписка выключена.';
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_subscription']
     exit;
 }
 
-$isSubscribed = !empty($_SESSION['is_subscribed']);
+$isSubscribed = !empty($_SESSION['has_subscription']);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
