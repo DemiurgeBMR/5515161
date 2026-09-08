@@ -114,6 +114,17 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$application_id]);
 $current_event = $stmt->fetch();
+
+// Планировать выезд можно только когда за локацией реально закреплён этот
+// оператор (api/installation.php резолвит location_operator_id именно по
+// этой паре) — без этого запрос всегда будет отклонён, поэтому скрываем
+// кнопку и объясняем, чего не хватает, вместо непонятной ошибки при клике.
+$stmt = $pdo->prepare("
+    SELECT id FROM location_operators
+    WHERE location_id = ? AND operator_id = ? AND status = 'active'
+");
+$stmt->execute([$application['location_id'], $application['operator_id']]);
+$hasActiveAssignment = (bool)$stmt->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -1179,7 +1190,7 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
+                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed' && $hasActiveAssignment): ?>
                     <div class="event-card">
                         <span class="event-icon">📅</span>
                         <div class="event-body">
@@ -1192,6 +1203,8 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
+                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
+                    <div class="event-empty">Планировать выезд можно после того, как владелец закрепит оператора за этой локацией.</div>
                 <?php else: ?>
                     <div class="event-empty">Нет активных событий.</div>
                 <?php endif; ?>
