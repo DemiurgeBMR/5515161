@@ -54,13 +54,14 @@ $stmt->execute([$application_id, $user_id]);
 $is_operator = ($user_id == $application['operator_id']);
 $other_party = $is_operator ? $application['owner_name'] : $application['operator_name'];
 
-// Запрос оператора на закрепление за локацией (api/operator_assign.php,
-// action=request) создаёт обычную заявку с этим фиксированным
-// initial_message — раньше кнопки "Одобрить"/"Отклонить" для него вообще
-// нигде не были подключены в интерфейсе, теперь показываем их прямо здесь,
-// владельцу, пока запрос не рассмотрен.
-$isAssignmentRequest = ($application['initial_message'] === 'Запрос на закрепление');
+// Запрос на закрепление — это отметка на уже открытой заявке/чате
+// (api/operator_assign.php, action=request ставит applications.assignment_requested=1),
+// а не отдельная заявка. Оператор решает сам, когда его отправить, прямо
+// из переписки; владельцу здесь же показываются кнопки "Одобрить"/"Отклонить",
+// пока запрос не рассмотрен.
+$isAssignmentRequest = !empty($application['assignment_requested']);
 $canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator;
+$canRequestAssignment = $is_operator && $application['status'] === 'pending' && !$isAssignmentRequest;
 
 function getInitials($name) {
     $parts = preg_split('/\s+/', trim($name));
@@ -1081,6 +1082,25 @@ $current_event = $stmt->fetch();
             </div>
             <?php endif; ?>
 
+            <?php if ($canRequestAssignment): ?>
+            <!-- оператор может по своей инициативе запросить закрепление прямо из чата -->
+            <div class="sidebar-section" id="requestAssignmentBlock">
+                <p class="sidebar-section-title">Закрепление за локацией</p>
+                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                    Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
+                </p>
+                <button type="button" id="requestAssignmentBtn" class="btn-primary">📩 Запросить закрепление</button>
+                <div id="requestAssignmentStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+            </div>
+            <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">Закрепление за локацией</p>
+                <p style="font-size:13px; color:var(--text-muted, #888);">
+                    ⏳ Запрос на закрепление отправлен, ожидайте решения владельца.
+                </p>
+            </div>
+            <?php endif; ?>
+
             <!-- статус заявки -->
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Статус</p>
@@ -1334,13 +1354,53 @@ document.addEventListener('DOMContentLoaded', function() {
         rejectAssignmentBtn.addEventListener('click', function() { decideAssignmentRequest('reject', rejectAssignmentBtn); });
     }
 
+    // --- ОПЕРАТОР ЗАПРАШИВАЕТ ЗАКРЕПЛЕНИЕ ПРЯМО ИЗ ЧАТА ---
+    var requestAssignmentBtn = document.getElementById('requestAssignmentBtn');
+    var requestAssignmentStatus = document.getElementById('requestAssignmentStatus');
+
+    if (requestAssignmentBtn) {
+        requestAssignmentBtn.addEventListener('click', function() {
+            if (!confirm('Отправить владельцу запрос на закрепление за этой локацией?')) return;
+
+            requestAssignmentBtn.disabled = true;
+            requestAssignmentBtn.textContent = 'Отправка...';
+            requestAssignmentStatus.textContent = '';
+
+            var formData = new FormData();
+            formData.append('action', 'request');
+            formData.append('application_id', applicationId);
+
+            fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        requestAssignmentStatus.style.color = '#2ecc71';
+                        requestAssignmentStatus.textContent = '✅ Запрос отправлен, обновляем страницу...';
+                        setTimeout(function() { location.reload(); }, 800);
+                    } else {
+                        requestAssignmentStatus.style.color = '#e74c3c';
+                        requestAssignmentStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                        requestAssignmentBtn.disabled = false;
+                        requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                    }
+                })
+                .catch(function() {
+                    requestAssignmentStatus.style.color = '#e74c3c';
+                    requestAssignmentStatus.textContent = '❌ Ошибка соединения';
+                    requestAssignmentBtn.disabled = false;
+                    requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                });
+        });
+    }
+
     var userId = <?php echo $user_id; ?>;
     var lastMessageId = <?php echo !empty($messages) ? end($messages)['id'] : 0; ?>;
 
     var operatorId = <?php echo $application['operator_id']; ?>;
     // json_encode с HEX-флагами вместо addslashes(): addslashes() экранирует
-    // только кавычки, а не </script> или &, так что имя вида
-    // x</script><script>... вырывалось бы из этого блока и исполнялось.
+    // только кавычки, а не угловые скобки и амперсанд, так что имя с
+    // закрывающим тегом script внутри вырывалось бы из этого блока и
+    // исполнялось как отдельный скрипт.
     var operatorName = <?php echo json_encode($application['operator_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
     var ownerName = <?php echo json_encode($application['owner_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 

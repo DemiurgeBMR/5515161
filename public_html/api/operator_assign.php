@@ -92,7 +92,8 @@ switch ($action) {
         echo json_encode(['success' => true, 'message' => 'Operator assigned successfully']);
         break;
 
-    // 2. Оператор запрашивает закрепление (создаёт заявку)
+    // 2. Оператор запрашивает закрепление в рамках уже открытого чата/заявки
+    // (не создаёт новую заявку — просто помечает существующую флагом)
     case 'request':
         if ($role !== 'operator') {
             http_response_code(403);
@@ -100,48 +101,45 @@ switch ($action) {
             exit;
         }
 
-        $location_id = (int)($_POST['location_id'] ?? 0);
-        if ($location_id <= 0) {
-            echo json_encode(['error' => 'Invalid location ID']);
+        $application_id = (int)($_POST['application_id'] ?? 0);
+        if ($application_id <= 0) {
+            echo json_encode(['error' => 'Invalid application ID']);
             exit;
         }
 
-        // Проверяем, что локация существует и активна
-        $stmt = $pdo->prepare("SELECT id, owner_id, title FROM locations WHERE id = ? AND is_active = 1 AND is_moderated = 1");
-        $stmt->execute([$location_id]);
-        $loc = $stmt->fetch();
-        if (!$loc) {
-            echo json_encode(['error' => 'Location not found or not available']);
-            exit;
-        }
-
-        $owner_id = $loc['owner_id'];
-        if ($owner_id == $user_id) {
-            echo json_encode(['error' => 'You cannot request your own location']);
-            exit;
-        }
-
-        // Проверяем, есть ли уже активная заявка от этого оператора на эту локацию
-        $stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('rejected', 'cancelled')");
-        $stmt->execute([$location_id, $user_id]);
-        if ($stmt->fetch()) {
-            echo json_encode(['error' => 'You already have a pending request for this location']);
-            exit;
-        }
-
-        // Создаём заявку (новый тип – запрос на закрепление)
+        // Проверяем, что заявка принадлежит этому оператору
         $stmt = $pdo->prepare("
-            INSERT INTO applications (location_id, operator_id, owner_id, status, operator_approved, initial_message)
-            VALUES (?, ?, ?, 'pending', 0, 'Запрос на закрепление')
+            SELECT a.*, l.title as location_title
+            FROM applications a
+            JOIN locations l ON a.location_id = l.id
+            WHERE a.id = ? AND a.operator_id = ?
         ");
-        $stmt->execute([$location_id, $user_id, $owner_id]);
-        $application_id = $pdo->lastInsertId();
+        $stmt->execute([$application_id, $user_id]);
+        $app = $stmt->fetch();
+        if (!$app) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Access denied']);
+            exit;
+        }
+
+        if ($app['status'] !== 'pending') {
+            echo json_encode(['error' => 'Нельзя запросить закрепление для заявки в этом статусе']);
+            exit;
+        }
+
+        if (!empty($app['assignment_requested'])) {
+            echo json_encode(['error' => 'Запрос на закрепление уже отправлен']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("UPDATE applications SET assignment_requested = 1 WHERE id = ?");
+        $stmt->execute([$application_id]);
 
         // Уведомление владельцу
         $link = '/pages/application_chat.php?application_id=' . $application_id;
-        $message = 'Оператор запросил закрепление за локацией ' . $loc['title'];
+        $message = 'Оператор запросил закрепление за локацией ' . $app['location_title'];
         $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'assignment_request', ?, ?)");
-        $stmt->execute([$owner_id, $message, $link]);
+        $stmt->execute([$app['owner_id'], $message, $link]);
 
         echo json_encode(['success' => true, 'application_id' => $application_id]);
         break;

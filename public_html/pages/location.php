@@ -362,49 +362,6 @@ if (!$is_preview) {
     </div>
 <?php endif; ?>
 
-<?php if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'operator' && $_SESSION['user_id'] != $location['owner_id']): ?>
-    <div style="margin-top: 20px; text-align: center;">
-        <button id="requestAssignmentBtn" class="btn-contact" style="background: #3498db; border: none; cursor: pointer;">📩 Запросить закрепление</button>
-        <div id="requestStatus" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-    <script>
-        document.getElementById('requestAssignmentBtn').addEventListener('click', function() {
-            var btn = this;
-            var statusDiv = document.getElementById('requestStatus');
-            btn.disabled = true;
-            btn.textContent = 'Отправка...';
-            statusDiv.textContent = '';
-
-            var formData = new FormData();
-            formData.append('action', 'request');
-            formData.append('location_id', <?php echo $location['id']; ?>);
-
-            fetch('/api/operator_assign.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusDiv.style.color = '#2ecc71';
-                    statusDiv.textContent = '✅ Запрос отправлен владельцу! Ожидайте подтверждения.';
-                    btn.style.display = 'none';
-                } else {
-                    statusDiv.style.color = '#e74c3c';
-                    statusDiv.textContent = '❌ ' + (data.error || 'Ошибка отправки запроса');
-                    btn.disabled = false;
-                    btn.textContent = '📩 Запросить закрепление';
-                }
-            })
-            .catch(err => {
-                statusDiv.style.color = '#e74c3c';
-                statusDiv.textContent = '❌ Ошибка соединения';
-                btn.disabled = false;
-                btn.textContent = '📩 Запросить закрепление';
-            });
-        });
-    </script>
-<?php endif; ?>
 </div>
                 <div class="views">👁️ Просмотров: <?php echo $location['views']; ?></div>
             </div>
