@@ -7,6 +7,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
     exit;
 }
 
+// Отправка первой заявки владельцу — часть того же платного доступа, что и
+// точный адрес/имя владельца на карточке локации (см. pages/location.php).
+// Проверяем и здесь, а не только скрываем кнопку в шаблоне, иначе доступ
+// обходился бы прямой ссылкой на эту страницу.
+if (!currentUserHasSubscription()) {
+    $_SESSION['flash'] = 'Чтобы отправить заявку владельцу, оформите подписку.';
+    header('Location: /pages/subscription.php');
+    exit;
+}
+
 $location_id = isset($_GET['location_id']) ? (int)$_GET['location_id'] : 0;
 if ($location_id <= 0) {
     header('Location: /pages/catalog.php');

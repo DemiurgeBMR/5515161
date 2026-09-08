@@ -15,23 +15,24 @@ if ($id <= 0) {
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $user_id = $_SESSION['user_id'] ?? 0;
 
-// Владелец больше не выводится на карточке (ни имя, ни контакты) — связь
-// с ним идёт только через платформу (заявка на аренду), поэтому JOIN с
-// users здесь не нужен.
+// Имя владельца показываем только подписчикам (см. $hasFullAccess ниже) —
+// сам JOIN безобиден, это просто SELECT, скрытие происходит в шаблоне.
 if ($is_admin) {
     $sql = "
-        SELECT l.*,
+        SELECT l.*, ow.full_name as owner_name,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
         FROM locations l
+        JOIN users ow ON ow.id = l.owner_id
         WHERE l.id = ?
     ";
     $params = [$id];
 } else {
     // Для обычных пользователей: показываем, если активно ИЛИ если это владелец (даже неактивное)
     $sql = "
-        SELECT l.*,
+        SELECT l.*, ow.full_name as owner_name,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
         FROM locations l
+        JOIN users ow ON ow.id = l.owner_id
         WHERE l.id = ?
           AND ( (l.is_active = 1 AND l.is_moderated = 1)
                 OR (l.owner_id = ? AND (l.is_moderated = 0 OR l.is_active = 0)) )
@@ -57,10 +58,18 @@ if ($location) {
     }
 }
 
-// ★★★ Точный адрес виден владельцу, админу и подписчикам — без подписки
-// показываем только город (см. pages/subscription.php) ★★★
+// ★★★ Точный адрес, имя владельца и возможность написать ему — по подписке
+// (или владельцу/админу своей же локации), без неё — только город
+// (см. pages/subscription.php) ★★★
 $isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
 $hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
+
+// Блок обращения к владельцу показываем гостям (предложим войти) и
+// операторам, которые не владеют этой локацией — самому владельцу и
+// другим владельцам, листающим чужую локацию, писать самому себе/друг
+// другу через аренду незачем.
+$showInquiryBlock = !$is_admin && !$isOwnListing
+    && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator');
 
 // ★★★ ВЫЧИСЛЯЕМ ПЛОЩАДЬ ★★★
 $area = null;
@@ -197,6 +206,7 @@ if (!$is_preview) {
         <?php endif; ?>
     </div>
 <?php endif; ?>
+        <div class="location-layout<?php echo $showInquiryBlock ? ' has-sidebar' : ''; ?>">
         <div class="detail-card">
             <!-- Главное фото -->
             <?php if (!empty($location['main_photo'])): ?>
@@ -317,9 +327,44 @@ if (!$is_preview) {
                     <?php endif; ?>
                     <div class="spec-item"><span class="label">Просмотров:</span> <span class="value"><?php echo $location['views']; ?></span></div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Вывод рекомендаций в HTML -->
-                 <?php if (count($recommendations) > 0): ?>
+        <?php if ($showInquiryBlock): ?>
+        <aside class="inquiry-sidebar">
+            <div class="inquiry-card">
+                <h3>Заинтересовала локация?</h3>
+                <p class="inquiry-sub">С подпиской можно написать владельцу напрямую в один клик.</p>
+
+                <div class="inquiry-price-row">
+                    <span>Аренда в месяц</span>
+                    <strong><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽</strong>
+                </div>
+
+                <?php if (!isset($_SESSION['user_id'])): ?>
+                    <a href="/pages/login.php" class="btn-contact btn-block">Войдите, чтобы связаться</a>
+                <?php elseif ($hasFullAccess): ?>
+                    <div class="inquiry-owner">
+                        <span>Владелец</span>
+                        <strong><?php echo htmlspecialchars($location['owner_name']); ?></strong>
+                    </div>
+                    <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block">📩 Отправить заявку на аренду</a>
+                <?php else: ?>
+                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe">🔒 Подписка, чтобы связаться</a>
+                <?php endif; ?>
+
+                <ul class="inquiry-points">
+                    <li>💬 RR передаёт ваше обращение владельцу — звонить самому не нужно</li>
+                    <li>🤝 Условия аренды обсуждаются напрямую в чате с владельцем</li>
+                    <li>🔒 Подписка открывает имя и контакт владельца на всех локациях</li>
+                </ul>
+            </div>
+        </aside>
+        <?php endif; ?>
+        </div>
+
+        <!-- Похожие объявления -->
+        <?php if (count($recommendations) > 0): ?>
     <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
         <h3 style="margin-bottom: 15px;">🔍 Похожие объявления</h3>
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
@@ -337,7 +382,7 @@ if (!$is_preview) {
                             <div style="color: #e94560; font-weight: bold; font-size: 16px;"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
                             <?php if ($rec['traffic_rating'] > 0): ?>
                                 <div style="font-size: 12px; color: #555;">
-                                    🚶 
+                                    🚶
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : '#ddd'; ?>;">★</span>
                                     <?php endfor; ?>
@@ -350,24 +395,8 @@ if (!$is_preview) {
         </div>
     </div>
 <?php endif; ?>
-
-                <!-- Связь с владельцем — только через платформу, без личных данных на карточке -->
-<?php if (!$is_admin && ($isOwnListing === false) && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator')): ?>
-    <div class="owner-block">
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact">📩 Отправить заявку на аренду</a>
-        <?php else: ?>
-            <a href="/pages/login.php" class="btn-contact">Войдите, чтобы отправить заявку</a>
-        <?php endif; ?>
     </div>
-<?php endif; ?>
 
-</div>
-                <div class="views">👁️ Просмотров: <?php echo $location['views']; ?></div>
-            </div>
-        </div>
-    </div>
-    
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
 <div class="modal-overlay" id="trafficHelpModal">

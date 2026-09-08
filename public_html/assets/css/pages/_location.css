@@ -1,9 +1,106 @@
 /* ===== СТРАНИЦА ПРОСМОТРА ЛОКАЦИИ ===== */
 
 .location-detail {
-    max-width: 900px;
+    max-width: 1140px;
     margin: 40px auto;
     padding: 0 20px;
+}
+
+.location-layout {
+    display: block;
+}
+.location-layout.has-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 24px;
+}
+
+/* Блок обращения к владельцу — "прилипает" при прокрутке основного контента
+   и естественно отпускает страницу, как только под ним заканчивается
+   .location-layout (то есть на уровне блока "Похожие объявления", который
+   вынесен наружу как отдельный, не-грид, элемент). */
+.inquiry-sidebar {
+    position: sticky;
+    top: 20px;
+}
+.inquiry-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    padding: 24px;
+}
+.inquiry-card h3 {
+    font-size: 19px;
+    margin: 0 0 6px;
+}
+.inquiry-sub {
+    color: #888;
+    font-size: 14px;
+    margin: 0 0 18px;
+    line-height: 1.4;
+}
+.inquiry-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f5f7fa;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #555;
+}
+.inquiry-price-row strong {
+    font-size: 18px;
+    color: #222;
+}
+.inquiry-owner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: #555;
+}
+.inquiry-owner strong {
+    color: #222;
+    font-size: 15px;
+}
+.btn-block {
+    display: block;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+.btn-contact.btn-subscribe {
+    background: #6c5ce7;
+}
+.btn-contact.btn-subscribe:hover {
+    background: #5a4bd1;
+}
+.inquiry-points {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.inquiry-points li {
+    font-size: 13px;
+    color: #777;
+    line-height: 1.4;
+}
+
+@media (max-width: 960px) {
+    .location-layout.has-sidebar {
+        display: block;
+    }
+    .inquiry-sidebar {
+        position: static;
+        margin-top: 24px;
+    }
 }
 
 .detail-card {
@@ -109,23 +206,7 @@
     font-weight: bold;
 }
 
-.detail-card .owner-block {
-    border-top: 1px solid #eee;
-    padding-top: 20px;
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.detail-card .owner-block .owner-info {
-    font-size: 16px;
-}
-.detail-card .owner-block .owner-info strong {
-    display: block;
-    font-size: 18px;
-}
-.detail-card .btn-contact {
+.btn-contact {
     background: #e94560;
     color: white;
     padding: 12px 30px;
@@ -134,7 +215,7 @@
     font-weight: bold;
     display: inline-block;
 }
-.detail-card .btn-contact:hover {
+.btn-contact:hover {
     background: #c73652;
 }
 
