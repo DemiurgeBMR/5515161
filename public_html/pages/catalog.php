@@ -280,9 +280,6 @@ $filterParams = array_filter($_GET, function ($k) {
             <div class="catalog-grid">
                 <?php foreach ($locations as $loc): ?>
                     <div class="catalog-card">
-                        <?php if ($loc['is_moderated'] == 1 && $loc['is_active'] == 1): ?>
-                            <span class="verified-badge-photo">✓ Верифицировано</span>
-                        <?php endif; ?>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>">
                             <?php if (!empty($loc['main_photo'])): ?>
                                 <img src="/<?php echo htmlspecialchars($loc['main_photo']); ?>" alt="<?php echo htmlspecialchars($loc['title']); ?>">
