@@ -68,10 +68,11 @@ $maintenance_due_count = $stmt->fetchColumn();
             gap: 30px;
         }
         .dashboard-sidebar {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
             align-self: start;
         }
         .dashboard-sidebar .avatar {
@@ -95,7 +96,7 @@ $maintenance_due_count = $stmt->fetchColumn();
         }
         .dashboard-sidebar .user-role {
             text-align: center;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
             font-size: 14px;
             margin-bottom: 20px;
         }
@@ -108,14 +109,14 @@ $maintenance_due_count = $stmt->fetchColumn();
             padding: 10px 16px;
             border-radius: 8px;
             text-decoration: none;
-            color: #333;
+            color: var(--text, #f2f2f5);
             transition: 0.2s;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         .dashboard-nav a:hover {
-            background: #f5f7fa;
+            background: var(--bg-elevated-2, #1c1c24);
         }
         .dashboard-nav a.active {
             background: #e94560;
@@ -127,10 +128,11 @@ $maintenance_due_count = $stmt->fetchColumn();
             text-align: center;
         }
         .dashboard-main {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
         }
         .dashboard-main h2 {
             margin-top: 0;
@@ -143,7 +145,7 @@ $maintenance_due_count = $stmt->fetchColumn();
             margin-bottom: 30px;
         }
         .stat-card {
-            background: #f5f7fa;
+            background: var(--bg-elevated-2, #1c1c24);
             padding: 20px;
             border-radius: 12px;
             text-align: center;
@@ -151,17 +153,17 @@ $maintenance_due_count = $stmt->fetchColumn();
         .stat-card .number {
             font-size: 28px;
             font-weight: bold;
-            color: #1a1a2e;
+            color: var(--text, #f2f2f5);
         }
         .stat-card .label {
             font-size: 14px;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
         }
         .stat-card-warning {
-            background: #fdecea;
+            background: rgba(231, 76, 60, 0.15);
         }
         .stat-card-warning .number {
-            color: #e74c3c;
+            color: #ff6b6b;
         }
         .welcome-text {
             font-size: 18px;
@@ -254,10 +256,10 @@ $maintenance_due_count = $stmt->fetchColumn();
             </div>
 
             <?php if ($maintenance_due_count > 0): ?>
-                <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-                <div style="background: #fdecea; border-radius: 12px; padding: 16px 20px;">
+                <hr style="margin: 30px 0; border: none; border-top: 1px solid var(--border, #2a2a33);">
+                <div style="background: rgba(231, 76, 60, 0.15); color: var(--text, #f2f2f5); border-radius: 12px; padding: 16px 20px;">
                     <strong>⚠️ У вас <?php echo $maintenance_due_count; ?> <?php echo ($maintenance_due_count === 1) ? 'точка требует' : 'точек требуют'; ?> внимания.</strong>
-                    <p style="margin: 6px 0 0; color: #555;">
+                    <p style="margin: 6px 0 0; color: var(--text-muted, #9a9aa5);">
                         Загляните в <a href="/pages/operator_locations.php" style="color: #e94560;">Мои точки</a>, чтобы отметить обслуживание.
                     </p>
                 </div>
