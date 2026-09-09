@@ -139,24 +139,24 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
         :root {
             --primary: #e94560;
             --primary-dark: #d63852;
-            --text: #202124;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-            --background: #f6f7fb;
-            --white: #ffffff;
-            --blue: #3b82f6;
-            --blue-bg: #eff6ff;
-            --yellow: #f59e0b;
-            --yellow-bg: #fffbeb;
-            --green: #22c55e;
-            --green-bg: #f0fdf4;
-            --red: #ef4444;
-            --red-bg: #fef2f2;
-            --gray: #6b7280;
-            --gray-bg: #f3f4f6;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
-            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
-            --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
+            --text: #f2f2f5;
+            --text-light: #9a9aa5;
+            --border: #2a2a33;
+            --background: #0b0b0f;
+            --white: #16161c;
+            --blue: #5b9bf7;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --yellow: #f5a623;
+            --yellow-bg: rgba(245, 158, 11, 0.15);
+            --green: #2ecc71;
+            --green-bg: rgba(34, 197, 94, 0.15);
+            --red: #ff6b6b;
+            --red-bg: rgba(239, 68, 68, 0.15);
+            --gray: #9a9aa5;
+            --gray-bg: #1c1c24;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
             --radius: 14px;
             --sidebar-w: 300px;
         }
@@ -273,7 +273,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             width: var(--sidebar-w);
             flex-shrink: 0;
             border-left: 1px solid var(--border);
-            background: #fbfbfd;
+            background: var(--gray-bg);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -349,11 +349,11 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             font-size: 13px;
             font-weight: 700;
         }
-        .status-pending { background: var(--yellow-bg); color: #b45309; }
-        .status-negotiating { background: #fef3c7; color: #92400e; }
-        .status-agreed { background: var(--green-bg); color: #15803d; }
-        .status-placed { background: #dbeafe; color: #1d4ed8; }
-        .status-cancelled { background: var(--red-bg); color: #dc2626; }
+        .status-pending { background: var(--yellow-bg); color: #ffcf7a; }
+        .status-negotiating { background: rgba(245, 158, 11, 0.22); color: #ffcf7a; }
+        .status-agreed { background: var(--green-bg); color: #6ee7a0; }
+        .status-placed { background: rgba(59, 130, 246, 0.2); color: #8ab8fb; }
+        .status-cancelled { background: var(--red-bg); color: #ff8a9b; }
         .status-arrow {
             font-size: 13px;
             color: var(--text-light);
@@ -435,7 +435,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             border-radius: 8px;
             font-size: 13px;
             border-left: 4px solid var(--yellow);
-            color: #78350f;
+            color: #ffcf7a;
         }
         .event-actions {
             display: flex;
@@ -480,10 +480,10 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
         .sidebar-action-row + .sidebar-action-row { border-top: 1px solid var(--border); }
         .sidebar-action-row.danger-link {
             cursor: pointer;
-            color: #dc2626;
+            color: var(--red);
         }
         .sidebar-action-row.danger-link a {
-            color: #dc2626;
+            color: var(--red);
             text-decoration: none;
             width: 100%;
         }
@@ -525,13 +525,13 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-            background: #fafafa;
+            background: var(--background);
             scroll-behavior: smooth;
         }
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background: #d7dae0; border-radius: 10px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background: #b7bcc4; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 
         .date-separator {
             text-align: center;
@@ -596,7 +596,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
         .message .sender .time {
             font-weight: 400;
             font-size: 11px;
-            color: #9ca3af;
+            color: var(--text-light);
             margin-left: 8px;
         }
         .message .text {
@@ -625,9 +625,9 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             margin-top: 3px;
             padding: 0 4px;
             font-size: 11px;
-            color: #9ca3af;
+            color: var(--text-light);
         }
-        .read-receipt { font-size: 13px; letter-spacing: -2px; color: #9ca3af; }
+        .read-receipt { font-size: 13px; letter-spacing: -2px; color: var(--text-light); }
         .read-receipt.read { color: var(--blue); letter-spacing: -1px; }
         .chat-empty {
             color: var(--text-light);
@@ -735,7 +735,9 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             width: min(520px, 100%);
             max-height: calc(100vh - 40px);
             overflow-y: auto;
-            background: white;
+            background: var(--white);
+            color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 18px;
             padding: 25px;
             box-shadow: var(--shadow-lg);
@@ -793,7 +795,8 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             padding: 10px 13px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            background: white;
+            background: var(--gray-bg);
+            color: var(--text);
             font-size: 14px;
             outline: none;
             transition: .2s;
@@ -951,12 +954,12 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             cursor: pointer;
             font-size: 13px;
             font-weight: 700;
-            color: #15803d;
+            color: #6ee7a0;
             text-align: left;
             font-family: inherit;
             transition: .15s;
         }
-        .event-summary-pill:hover { background: #dcfce7; }
+        .event-summary-pill:hover { background: rgba(34, 197, 94, 0.25); }
         .event-summary-icon { flex-shrink: 0; }
         .event-summary-text { flex: 1; min-width: 0; }
         .event-summary-chevron { flex-shrink: 0; font-size: 11px; opacity: .7; }
@@ -1577,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentDisplay = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
         options.forEach(function(status) {
             var isActive = (status === currentDisplay);
-            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:#f0f0f0;' : '') + '">' +
+            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:var(--gray-bg);' : '') + '">' +
                         allStatuses[status] +
                     '</div>';
         });
