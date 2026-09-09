@@ -1,13 +1,14 @@
-/* ===== КАТАЛОГ ЛОКАЦИЙ (тёмная тема) ===== */
+/* ===== КАТАЛОГ ЛОКАЦИЙ ===== */
 
-/* Тёмная подложка под шапкой — <main>/<body> нигде не задают отступов,
-   поэтому обычный блочный div уже растягивается на всю ширину сам по
-   себе (в отличие от 100vw-приёма, это не вызывает горизонтальный скролл
-   при наличии вертикальной полосы прокрутки). Видимый контент — внутри
-   вложенного .catalog-container со своим max-width. */
+/* .catalog-page ничего не ограничивает по ширине — <main>/<body> нигде не
+   задают отступов, поэтому обычный блочный div уже растягивается на всю
+   ширину сам по себе (в отличие от 100vw-приёма, это не вызывает
+   горизонтальный скролл при наличии вертикальной полосы прокрутки).
+   Видимый контент — внутри вложенного .catalog-container со своим
+   max-width. */
 .catalog-page {
-    background: #0b0b0f;
-    color: #e8e8ee;
+    background: var(--bg, #0b0b0f);
+    color: var(--text-muted, #9a9aa5);
     padding-bottom: 60px;
 }
 
@@ -19,10 +20,10 @@
 .catalog-container h1 {
     margin-bottom: 4px;
     font-size: 30px;
-    color: #fff;
+    color: var(--text, #f2f2f5);
 }
 .catalog-subtitle {
-    color: #9a9aa5;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin-bottom: 24px;
 }
@@ -46,8 +47,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: #16161c;
-    border: 1px solid #2a2a33;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 10px;
     padding: 0 14px;
 }
@@ -60,19 +61,19 @@
     background: transparent;
     border: none;
     outline: none;
-    color: #f2f2f5;
+    color: var(--text, #f2f2f5);
     padding: 12px 0;
     font-size: 14px;
     min-width: 0;
 }
 .search-box input::placeholder {
-    color: #6f6f7a;
+    color: var(--text-faint, #6f6f7a);
 }
 
 .select-pill {
-    background: #16161c;
-    border: 1px solid #2a2a33;
-    color: #e8e8ee;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    color: var(--text, #f2f2f5);
     padding: 11px 14px;
     border-radius: 10px;
     font-size: 14px;
@@ -105,15 +106,15 @@
     text-decoration: none;
     padding: 11px 16px;
     border-radius: 10px;
-    color: #9a9aa5;
-    border: 1px solid #2a2a33;
+    color: var(--text-muted, #9a9aa5);
+    border: 1px solid var(--border, #2a2a33);
     cursor: pointer;
     font-size: 14px;
     white-space: nowrap;
 }
 .btn-reset:hover {
-    color: #fff;
-    border-color: #444;
+    color: var(--text, #f2f2f5);
+    border-color: var(--border-strong, #3a3a45);
 }
 
 /* Чекбоксы-"чипы" (электричество/wifi/вода) */
@@ -122,10 +123,10 @@
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    color: #c5c5cd;
+    color: var(--text-muted, #9a9aa5);
     white-space: nowrap;
-    background: #16161c;
-    border: 1px solid #2a2a33;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 20px;
     padding: 8px 14px;
     cursor: pointer;
@@ -133,7 +134,7 @@
 .chip-checkbox:has(input:checked) {
     background: rgba(233, 69, 96, 0.15);
     border-color: #e94560;
-    color: #fff;
+    color: var(--text, #f2f2f5);
 }
 .chip-checkbox input[type="checkbox"] {
     width: 14px;
@@ -150,12 +151,12 @@
 }
 .more-filters summary {
     list-style: none;
-    background: #16161c;
-    border: 1px solid #2a2a33;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 20px;
     padding: 8px 14px;
     font-size: 13px;
-    color: #c5c5cd;
+    color: var(--text-muted, #9a9aa5);
     cursor: pointer;
 }
 .more-filters summary::-webkit-details-marker {
@@ -163,21 +164,21 @@
 }
 .more-filters[open] summary {
     border-color: #e94560;
-    color: #fff;
+    color: var(--text, #f2f2f5);
 }
 .more-filters-body {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
     z-index: 20;
-    background: #16161c;
-    border: 1px solid #2a2a33;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     padding: 16px;
     display: grid;
     grid-template-columns: repeat(2, minmax(140px, 1fr));
     gap: 12px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
     min-width: 320px;
 }
 .more-filters-field {
@@ -187,14 +188,14 @@
 }
 .more-filters-field label {
     font-size: 12px;
-    color: #9a9aa5;
+    color: var(--text-muted, #9a9aa5);
 }
 .more-filters-field input,
 .more-filters-field select {
-    background: #0b0b0f;
-    border: 1px solid #2a2a33;
+    background: var(--bg-input, #0f0f14);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 6px;
-    color: #e8e8ee;
+    color: var(--text, #f2f2f5);
     padding: 7px 10px;
     font-size: 13px;
 }
@@ -213,9 +214,9 @@
 }
 .city-chip {
     flex-shrink: 0;
-    background: #16161c;
-    border: 1px solid #2a2a33;
-    color: #c5c5cd;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    color: var(--text-muted, #9a9aa5);
     text-decoration: none;
     padding: 10px 18px;
     border-radius: 30px;
@@ -224,8 +225,8 @@
     white-space: nowrap;
 }
 .city-chip:hover {
-    border-color: #555;
-    color: #fff;
+    border-color: var(--border-strong, #3a3a45);
+    color: var(--text, #f2f2f5);
 }
 .city-chip.active {
     background: #e94560;
@@ -243,8 +244,8 @@
     gap: 22px;
 }
 .catalog-card {
-    background: #16161c;
-    border: 1px solid #24242c;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 14px;
     overflow: hidden;
     transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
@@ -255,8 +256,8 @@
 }
 .catalog-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-    border-color: #3a3a45;
+    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
+    border-color: var(--border-strong, #3a3a45);
 }
 .catalog-card-link {
     text-decoration: none;
@@ -277,7 +278,8 @@
     transform: scale(1.05);
 }
 
-/* Отметка модерации — пилюля рядом с названием */
+/* Отметка модерации — пилюля рядом с названием (фиксированная светлая
+   плашка — читается одинаково на любой теме страницы) */
 .verified-pill {
     display: inline-flex;
     align-items: center;
@@ -304,26 +306,26 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 8px;
-    color: #fff;
+    color: var(--text, #f2f2f5);
 }
 .catalog-card .price {
     font-size: 22px;
-    color: #ff5c7a;
+    color: #e94560;
     font-weight: bold;
     margin-bottom: 6px;
 }
 .catalog-card .price .price-unit {
     font-size: 13px;
     font-weight: normal;
-    color: #9a9aa5;
+    color: var(--text-muted, #9a9aa5);
 }
 .catalog-card .address {
-    color: #9a9aa5;
+    color: var(--text-muted, #9a9aa5);
     font-size: 13px;
     margin-bottom: 10px;
 }
 .address-locked {
-    color: #6f6f7a;
+    color: var(--text-faint, #6f6f7a);
     font-style: italic;
 }
 .catalog-card .meta-row {
@@ -334,8 +336,8 @@
     flex-wrap: wrap;
 }
 .meta-tag {
-    background: #202028;
-    color: #c5c5cd;
+    background: var(--bg-elevated-2, #1c1c24);
+    color: var(--text-muted, #9a9aa5);
     padding: 4px 10px;
     border-radius: 20px;
     white-space: nowrap;
@@ -348,34 +350,34 @@
     align-items: center;
 }
 .id-badge {
-    background: #202028;
+    background: var(--bg-elevated-2, #1c1c24);
     padding: 3px 10px;
     border-radius: 12px;
     font-size: 11px;
-    color: #8a8a95;
+    color: var(--text-muted, #9a9aa5);
 }
 /* Не .badge — та же строка глобально используется как круглый счётчик
    уведомлений (см. style.css), и, будучи подключённой позже catalog.css
    в общей style.css, перекрывала бы форму/отступы у этих плашек. */
 .amenity-badge {
-    background: #202028;
+    background: var(--bg-elevated-2, #1c1c24);
     padding: 3px 10px;
     border-radius: 20px;
     font-size: 12px;
-    color: #c5c5cd;
+    color: var(--text-muted, #9a9aa5);
     display: inline-block;
 }
 .amenity-badge.electricity {
-    background: rgba(255, 193, 7, 0.15);
-    color: #ffc107;
+    background: #fff3cd;
+    color: #856404;
 }
 .amenity-badge.wifi {
-    background: rgba(46, 204, 113, 0.15);
-    color: #2ecc71;
+    background: #d4edda;
+    color: #155724;
 }
 .amenity-badge.water {
-    background: rgba(52, 152, 219, 0.15);
-    color: #5dade2;
+    background: #d6eaf8;
+    color: #21618c;
 }
 
 .btn-card-cta {
@@ -406,14 +408,14 @@
 .pagination a,
 .pagination span {
     padding: 8px 16px;
-    border: 1px solid #2a2a33;
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 8px;
     text-decoration: none;
-    color: #c5c5cd;
+    color: var(--text-muted, #9a9aa5);
 }
 .pagination a:hover {
-    border-color: #555;
-    color: #fff;
+    border-color: var(--border-strong, #3a3a45);
+    color: var(--text, #f2f2f5);
 }
 .pagination .active {
     background: #e94560;
@@ -424,12 +426,12 @@
 .empty {
     text-align: center;
     padding: 60px 20px;
-    color: #9a9aa5;
+    color: var(--text-muted, #9a9aa5);
 }
 .empty h3 {
     font-size: 24px;
     margin-bottom: 10px;
-    color: #fff;
+    color: var(--text, #f2f2f5);
 }
 .empty a {
     color: #e94560;

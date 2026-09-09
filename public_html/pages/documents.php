@@ -49,13 +49,13 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .btn-download:hover { background: #c73652; }
 
         .warning-box {
-            background: rgba(255, 193, 7, 0.12);
-            border: 1px solid rgba(255, 193, 7, 0.4);
+            background: #fff3cd;
+            border: 1px solid #e9a23b;
             border-radius: 10px;
             padding: 14px 18px;
             margin-bottom: 24px;
             font-size: 14px;
-            color: #ffd873;
+            color: #664d03;
             line-height: 1.5;
         }
         .warning-box b { display: block; margin-bottom: 4px; }

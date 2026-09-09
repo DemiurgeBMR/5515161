@@ -165,8 +165,8 @@ function daysSince($dateString) {
             font-weight: 700;
             margin-top: 8px;
         }
-        .service-ok { background: rgba(46, 204, 113, 0.15); color: #6ee7a0; }
-        .service-due { background: rgba(231, 76, 60, 0.15); color: #ff8a9b; }
+        .service-ok { background: #d4edda; color: #155724; }
+        .service-due { background: #f8d7da; color: #721c24; }
         .service-unknown { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
 
         .machine-actions {

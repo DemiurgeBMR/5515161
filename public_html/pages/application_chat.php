@@ -160,6 +160,29 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             --radius: 14px;
             --sidebar-w: 300px;
         }
+        /* Светлая тема — переключатель в шапке (includes/header.php)
+           ставит data-theme="light" на <html>; этот блок держит
+           собственную палитру страницы синхронной с общей. */
+        :root[data-theme="light"] {
+            --text: #202124;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --background: #f6f7fb;
+            --white: #ffffff;
+            --blue: #3b82f6;
+            --blue-bg: #eff6ff;
+            --yellow: #f59e0b;
+            --yellow-bg: #fffbeb;
+            --green: #22c55e;
+            --green-bg: #f0fdf4;
+            --red: #ef4444;
+            --red-bg: #fef2f2;
+            --gray: #6b7280;
+            --gray-bg: #f3f4f6;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
+        }
         body { background: var(--background); }
 
         /* =========================================================
@@ -349,11 +372,11 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             font-size: 13px;
             font-weight: 700;
         }
-        .status-pending { background: var(--yellow-bg); color: #ffcf7a; }
-        .status-negotiating { background: rgba(245, 158, 11, 0.22); color: #ffcf7a; }
-        .status-agreed { background: var(--green-bg); color: #6ee7a0; }
-        .status-placed { background: rgba(59, 130, 246, 0.2); color: #8ab8fb; }
-        .status-cancelled { background: var(--red-bg); color: #ff8a9b; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-negotiating { background: #fef3c7; color: #92400e; }
+        .status-agreed { background: #d4edda; color: #155724; }
+        .status-placed { background: #dbeafe; color: #1d4ed8; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
         .status-arrow {
             font-size: 13px;
             color: var(--text-light);
@@ -430,12 +453,12 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             color: var(--text);
         }
         .event-comment {
-            background: var(--yellow-bg);
+            background: #fffbeb;
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 13px;
             border-left: 4px solid var(--yellow);
-            color: #ffcf7a;
+            color: #78350f;
         }
         .event-actions {
             display: flex;
@@ -947,19 +970,19 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             align-items: center;
             gap: 8px;
             width: 100%;
-            background: var(--green-bg);
+            background: #d4edda;
             border: 1px solid transparent;
             padding: 10px 12px;
             border-radius: 10px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 700;
-            color: #6ee7a0;
+            color: #155724;
             text-align: left;
             font-family: inherit;
             transition: .15s;
         }
-        .event-summary-pill:hover { background: rgba(34, 197, 94, 0.25); }
+        .event-summary-pill:hover { background: #c3e6cb; }
         .event-summary-icon { flex-shrink: 0; }
         .event-summary-text { flex: 1; min-width: 0; }
         .event-summary-chevron { flex-shrink: 0; font-size: 11px; opacity: .7; }

@@ -68,6 +68,29 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
             --radius: 14px;
         }
+        /* Светлая тема — переключатель в шапке (includes/header.php)
+           ставит data-theme="light" на <html>; этот блок держит
+           собственную палитру страницы синхронной с общей. */
+        :root[data-theme="light"] {
+            --text: #202124;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --background: #f6f7fb;
+            --white: #ffffff;
+            --blue: #3b82f6;
+            --blue-bg: #eff6ff;
+            --yellow: #f59e0b;
+            --yellow-bg: #fffbeb;
+            --green: #22c55e;
+            --green-bg: #f0fdf4;
+            --red: #ef4444;
+            --red-bg: #fef2f2;
+            --gray: #6b7280;
+            --gray-bg: #f3f4f6;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
+        }
         body { background: var(--background); }
         .calendar-container {
             max-width: 1500px;
@@ -339,11 +362,11 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             font-size: 11px;
             font-weight: 700;
         }
-        .status-confirmed { background: var(--blue-bg); color: #8ab8fb; }
-        .status-proposed { background: var(--yellow-bg); color: #ffcf7a; }
-        .status-completed { background: var(--green-bg); color: #6ee7a0; }
+        .status-confirmed { background: #dbeafe; color: #2563eb; }
+        .status-proposed { background: #fffbeb; color: #b45309; }
+        .status-completed { background: #f0fdf4; color: #15803d; }
         .status-cancelled { background: var(--gray-bg); color: var(--gray); }
-        .status-emergency { background: var(--red-bg); color: #ff8a9b; }
+        .status-emergency { background: #fef2f2; color: #dc2626; }
         /* =========================================================
            CALENDAR BOX
         ========================================================= */
@@ -592,8 +615,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             align-items: center;
             gap: 10px;
             padding: 12px 13px;
-            border: 1px solid rgba(239, 68, 68, 0.4);
-            background: var(--red-bg);
+            border: 1px solid #fecaca;
+            background: #fff7f7;
             border-radius: 10px;
             cursor: pointer;
         }
@@ -601,7 +624,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .emergency-toggle span {
             font-size: 14px;
             font-weight: 800;
-            color: #ff8a9b;
+            color: #dc2626;
         }
         .modal-buttons {
             display: flex;
@@ -663,19 +686,19 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .emergency-reason {
             padding: 13px;
             border-radius: 10px;
-            background: var(--red-bg);
-            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: #fef2f2;
+            border: 1px solid #fecaca;
             margin-bottom: 18px;
         }
         .emergency-reason-title {
-            color: #ff8a9b;
+            color: #dc2626;
             font-size: 12px;
             font-weight: 800;
             margin-bottom: 5px;
         }
         .emergency-reason-text {
             font-size: 14px;
-            color: var(--text);
+            color: #7f1d1d;
             line-height: 1.45;
         }
         .detail-actions {

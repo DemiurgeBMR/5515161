@@ -128,8 +128,8 @@ $exportQuery = http_build_query(array_filter($filters));
             font-weight: 700;
         }
         .source-log { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
-        .source-event { background: rgba(46, 204, 113, 0.15); color: #6ee7a0; }
-        .emergency-tag { color: #ff6b6b; font-weight: 700; }
+        .source-event { background: #d4edda; color: #155724; }
+        .emergency-tag { color: var(--danger, #e74c3c); font-weight: 700; }
         .empty { text-align: center; padding: 60px 20px; color: var(--text-muted, #9a9aa5); }
         .summary-line { color: var(--text-muted, #9a9aa5); font-size: 13px; margin-bottom: 14px; }
     </style>

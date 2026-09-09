@@ -95,8 +95,8 @@ $operators = $stmt->fetchAll();
         .modal-box .btn-submit:hover { background: #c73652; }
         .empty { text-align: center; padding: 40px; color: var(--text-muted, #9a9aa5); }
         .flash { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; }
-        .flash-success { background: rgba(46, 204, 113, 0.15); color: #6ee7a0; border: 1px solid rgba(46, 204, 113, 0.3); }
-        .flash-error { background: rgba(231, 76, 60, 0.15); color: #ff8a9b; border: 1px solid rgba(231, 76, 60, 0.3); }
+        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     </style>
 </head>
 <body>

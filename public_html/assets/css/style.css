@@ -47,6 +47,32 @@
     --shadow: rgba(0, 0, 0, 0.5);
 }
 
+/* Светлая тема — переключается через data-theme="light" на <html>
+   (см. переключатель в шапке, includes/header.php). Тёмная палитра
+   выше остаётся значением по умолчанию. */
+:root[data-theme="light"] {
+    --bg: #f5f7fa;
+    --bg-elevated: #ffffff;
+    --bg-elevated-2: #f0f2f5;
+    --bg-input: #ffffff;
+    --border: #e0e0e6;
+    --border-strong: #c8c8d2;
+    --text: #1a1a2e;
+    --text-muted: #666a75;
+    --text-faint: #999da6;
+    --accent: #e94560;
+    --accent-hover: #c73652;
+    --accent-soft: #fde8ec;
+    --success: #2ecc71;
+    --success-soft: #e8f8ed;
+    --warning: #f39c12;
+    --warning-soft: #fff3cd;
+    --info: #3498db;
+    --info-soft: #d6eaf8;
+    --danger: #e74c3c;
+    --shadow: rgba(0, 0, 0, 0.1);
+}
+
 * {
     margin: 0;
     padding: 0;

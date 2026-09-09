@@ -80,20 +80,21 @@
     background: #666;
 }
 
-/* Сообщения об ошибках и успехе */
+/* Сообщения об ошибках и успехе — фиксированные светлые "стикеры":
+   так они одинаково хорошо читаются что на тёмной, что на светлой теме. */
 .error {
-    color: #ff8a9b;
+    color: #e94560;
     text-align: center;
     margin-bottom: 15px;
     padding: 10px;
-    background: rgba(233, 69, 96, 0.12);
+    background: #fde8ec;
     border-radius: 6px;
 }
 .success {
-    color: #6ee7a0;
+    color: #1e8449;
     text-align: center;
     margin-bottom: 15px;
     padding: 10px;
-    background: rgba(46, 204, 113, 0.12);
+    background: #e8f8ed;
     border-radius: 6px;
 }

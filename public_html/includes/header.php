@@ -4,6 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Ставим сохранённую тему ДО загрузки CSS, иначе при light-теме
+        // страница на долю секунды мигнёт тёмной (по умолчанию) — это
+        // должно быть первым, что выполняется в <head>.
+        (function() {
+            try {
+                var saved = localStorage.getItem('rr_theme');
+                if (saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <title><?php echo SITE_NAME; ?></title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -49,7 +62,7 @@
 
 <?php if (isset($_SESSION['user_id'])): ?>
     <!-- Уведомления -->
-    <a href="/pages/notifications.php" class="notification-bell" style="position:relative; color:white; text-decoration:none; margin-right:15px; font-size:20px;">
+    <a href="/pages/notifications.php" class="notification-bell" style="position:relative; color:var(--text, #f2f2f5); text-decoration:none; margin-right:15px; font-size:20px;">
         🔔
         <span id="notificationBadge" style="position:absolute; top:-8px; right:-8px; background:#e94560; color:white; border-radius:50%; padding:0 6px; font-size:11px; line-height:18px; min-width:18px; text-align:center; display:none;">0</span>
     </a>
@@ -68,23 +81,48 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
     $profileLink = '/admin/index.php';
 }
 ?>
-<a href="<?php echo $profileLink; ?>" style="color: white; text-decoration: none; margin-right: 15px;">
+<a href="<?php echo $profileLink; ?>" style="color: var(--text, #f2f2f5); text-decoration: none; margin-right: 15px;">
     👋 <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
 </a>
         <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
             <a href="/pages/add_location.php" style="color: #e94560; margin-right: 15px; text-decoration: none;">➕ Добавить место</a>
         <?php endif; ?>
-        <a href="/pages/subscription.php" style="color: <?php echo currentUserHasSubscription() ? '#2ecc71' : 'white'; ?>; margin-right: 15px; text-decoration: none;">💳 Подписка</a>
+        <a href="/pages/subscription.php" style="color: <?php echo currentUserHasSubscription() ? '#2ecc71' : 'var(--text, #f2f2f5)'; ?>; margin-right: 15px; text-decoration: none;">💳 Подписка</a>
         <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
     <?php endif; ?>
 <?php else: ?>
     <!-- Гость -->
-    <a href="/pages/login.php" style="color: white; margin-right: 15px; text-decoration: none;">Вход</a>
+    <a href="/pages/login.php" style="color: var(--text, #f2f2f5); margin-right: 15px; text-decoration: none;">Вход</a>
     <a href="/pages/register.php" style="background: #e94560; padding: 8px 20px; border-radius: 6px; color: white; text-decoration: none;">Регистрация</a>
 <?php endif; ?>
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему">🌙</button>
             </nav>
         </div>
     </header>
+    <script>
+        (function() {
+            var KEY = 'rr_theme';
+            var btn = document.getElementById('themeToggleBtn');
+            if (!btn) return;
+            function isLight() {
+                return document.documentElement.getAttribute('data-theme') === 'light';
+            }
+            function updateIcon() {
+                btn.textContent = isLight() ? '☀️' : '🌙';
+            }
+            updateIcon();
+            btn.addEventListener('click', function() {
+                var next = isLight() ? 'dark' : 'light';
+                if (next === 'light') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                }
+                try { localStorage.setItem(KEY, next); } catch (e) {}
+                updateIcon();
+            });
+        })();
+    </script>
     <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'how_it_works.php'): ?>
     <div class="howitworks-banner" id="howItWorksBanner">
         <div class="container howitworks-banner-inner">
