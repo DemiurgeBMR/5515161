@@ -7,6 +7,21 @@ $search_query = trim($_GET['q'] ?? '');
 
 $pdo = getDbConnection();
 
+$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+$user_id = $_SESSION['user_id'] ?? 0;
+$hasFullAccess = $is_admin || currentUserHasSubscription();
+
+// Текстовые уровни трафика — те же формулировки, что и в подсказке "Как
+// оценить проходимость места?" на карточке локации (pages/location.php),
+// чтобы термины совпадали по всему сайту.
+$trafficLabels = [
+    1 => 'Низкая',
+    2 => 'Ниже среднего',
+    3 => 'Средняя',
+    4 => 'Высокая',
+    5 => 'Максимальная',
+];
+
 // Параметры фильтрации
 $city            = trim($_GET['city'] ?? '');
 $min_price       = $_GET['min_price'] ?? '';
@@ -36,12 +51,17 @@ $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $per_page = 9;
 $offset = ($page - 1) * $per_page;
 
-// ---------- Список городов для выпадающего списка (только там, где есть активные локации) ----------
-$cities = $pdo->query("
-    SELECT DISTINCT city FROM locations
+// ---------- Города для строки быстрых фильтров: топ-12 по числу активных
+// локаций (независимо от остальных фильтров — это витрина, а не результат
+// текущего поиска) ----------
+$cityCounts = $pdo->query("
+    SELECT city, COUNT(*) as cnt
+    FROM locations
     WHERE is_active = 1 AND is_moderated = 1
-    ORDER BY city
-")->fetchAll(PDO::FETCH_COLUMN);
+    GROUP BY city
+    ORDER BY cnt DESC, city ASC
+    LIMIT 12
+")->fetchAll();
 
 // ---------- Строим условия WHERE один раз — и для подсчёта, и для выборки,
 // чтобы они не могли разъехаться между собой (было именно так раньше). ----------
@@ -168,110 +188,113 @@ $filterParams = array_filter($_GET, function ($k) {
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
+    <div class="catalog-page">
     <div class="catalog-container">
-        <h1>📍 Доступные локации</h1>
+        <h1>Доступные локации</h1>
+        <div class="catalog-subtitle">Найдено локаций: <?php echo $total; ?></div>
 
         <!-- Поиск и фильтры -->
         <form class="filters" method="GET">
-            <div class="filter-group filter-search">
-                <label>Поиск</label>
-                <input type="text" name="q" placeholder="Название, адрес, город или ID (RR-00007)" value="<?php echo htmlspecialchars($search_query); ?>">
-            </div>
+            <div class="filters-row">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>">
+                </div>
 
-            <div class="filter-group">
-                <label>Город</label>
-                <select name="city">
-                    <option value="">Любой город</option>
-                    <?php foreach ($cities as $c): ?>
-                        <option value="<?php echo htmlspecialchars($c); ?>" <?php echo ($city === $c) ? 'selected' : ''; ?>><?php echo htmlspecialchars($c); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label>Цена от</label>
-                <input type="number" name="min_price" placeholder="1000" min="0" value="<?php echo htmlspecialchars($min_price); ?>">
-            </div>
-            <div class="filter-group">
-                <label>Цена до</label>
-                <input type="number" name="max_price" placeholder="10000" min="0" value="<?php echo htmlspecialchars($max_price); ?>">
-            </div>
-
-            <div class="filter-group">
-                <label>Площадь от, м²</label>
-                <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" value="<?php echo htmlspecialchars($min_area); ?>">
-            </div>
-            <div class="filter-group">
-                <label>Площадь до, м²</label>
-                <input type="number" name="max_area" placeholder="5" min="0" step="0.1" value="<?php echo htmlspecialchars($max_area); ?>">
-            </div>
-
-            <div class="filter-group">
-                <label>Тип помещения</label>
-                <select name="space_type">
-                    <option value="">Любой</option>
+                <select name="space_type" class="select-pill" onchange="this.form.submit()">
+                    <option value="">Любой тип</option>
                     <?php foreach ($space_types as $key => $label): ?>
                         <option value="<?php echo $key; ?>" <?php echo ($space_type === $key) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                     <?php endforeach; ?>
                 </select>
-            </div>
 
-            <div class="filter-group">
-                <label>Часы доступа</label>
-                <select name="access_hours">
-                    <option value="">Любые</option>
-                    <?php foreach ($access_hours_options as $ah): ?>
-                        <option value="<?php echo htmlspecialchars($ah); ?>" <?php echo ($access_hours === $ah) ? 'selected' : ''; ?>><?php echo htmlspecialchars($ah); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="filter-group">
-                <label>Минимальный трафик</label>
-                <select name="traffic_min">
-                    <option value="">Любой</option>
+                <select name="traffic_min" class="select-pill" onchange="this.form.submit()">
+                    <option value="">Любой трафик</option>
                     <?php for ($i = 1; $i <= 5; $i++): ?>
                         <option value="<?php echo $i; ?>" <?php echo ($traffic_min == $i) ? 'selected' : ''; ?>>
-                            <?php echo $i; ?> ★ и выше
+                            <?php echo $trafficLabels[$i]; ?> и выше
                         </option>
                     <?php endfor; ?>
                 </select>
-            </div>
 
-            <div class="filter-group">
-                <label>Сортировка</label>
-                <select name="sort">
+                <select name="sort" class="select-pill" onchange="this.form.submit()">
                     <option value="newest" <?php echo ($sort === 'newest') ? 'selected' : ''; ?>>Сначала новые</option>
                     <option value="price_asc" <?php echo ($sort === 'price_asc') ? 'selected' : ''; ?>>Цена: по возрастанию</option>
                     <option value="price_desc" <?php echo ($sort === 'price_desc') ? 'selected' : ''; ?>>Цена: по убыванию</option>
                     <option value="traffic_desc" <?php echo ($sort === 'traffic_desc') ? 'selected' : ''; ?>>Сначала проходимые</option>
                 </select>
-            </div>
 
-            <div class="filter-group filter-checkboxes">
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="has_electricity" value="1" <?php echo $has_electricity ? 'checked' : ''; ?>> ⚡ Электричество
-                </label>
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="has_wifi" value="1" <?php echo $has_wifi ? 'checked' : ''; ?>> 📶 Wi-Fi
-                </label>
-                <label class="checkbox-inline">
-                    <input type="checkbox" name="has_water" value="1" <?php echo $has_water ? 'checked' : ''; ?>> 🚰 Вода
-                </label>
-            </div>
-
-            <div class="filter-group filter-actions">
                 <button type="submit" class="btn-filter">Найти</button>
-                <a href="/pages/catalog.php" class="btn-reset">Сбросить</a>
+                <?php if ($search_query !== '' || $city !== '' || $space_type !== '' || $has_electricity || $has_wifi || $has_water || $traffic_min > 0 || $min_price !== '' || $max_price !== '' || $min_area !== '' || $max_area !== '' || $access_hours !== ''): ?>
+                    <a href="/pages/catalog.php" class="btn-reset">✕ Сбросить</a>
+                <?php endif; ?>
             </div>
+
+            <div class="filters-row filters-row-secondary">
+                <label class="chip-checkbox">
+                    <input type="checkbox" name="has_electricity" value="1" onchange="this.form.submit()" <?php echo $has_electricity ? 'checked' : ''; ?>> ⚡ Электричество
+                </label>
+                <label class="chip-checkbox">
+                    <input type="checkbox" name="has_wifi" value="1" onchange="this.form.submit()" <?php echo $has_wifi ? 'checked' : ''; ?>> 📶 Wi-Fi
+                </label>
+                <label class="chip-checkbox">
+                    <input type="checkbox" name="has_water" value="1" onchange="this.form.submit()" <?php echo $has_water ? 'checked' : ''; ?>> 🚰 Вода
+                </label>
+
+                <details class="more-filters">
+                    <summary>Цена, площадь, часы доступа</summary>
+                    <div class="more-filters-body">
+                        <div class="more-filters-field">
+                            <label>Цена от</label>
+                            <input type="number" name="min_price" placeholder="1000" min="0" value="<?php echo htmlspecialchars($min_price); ?>">
+                        </div>
+                        <div class="more-filters-field">
+                            <label>Цена до</label>
+                            <input type="number" name="max_price" placeholder="10000" min="0" value="<?php echo htmlspecialchars($max_price); ?>">
+                        </div>
+                        <div class="more-filters-field">
+                            <label>Площадь от, м²</label>
+                            <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" value="<?php echo htmlspecialchars($min_area); ?>">
+                        </div>
+                        <div class="more-filters-field">
+                            <label>Площадь до, м²</label>
+                            <input type="number" name="max_area" placeholder="5" min="0" step="0.1" value="<?php echo htmlspecialchars($max_area); ?>">
+                        </div>
+                        <div class="more-filters-field">
+                            <label>Часы доступа</label>
+                            <select name="access_hours">
+                                <option value="">Любые</option>
+                                <?php foreach ($access_hours_options as $ah): ?>
+                                    <option value="<?php echo htmlspecialchars($ah); ?>" <?php echo ($access_hours === $ah) ? 'selected' : ''; ?>><?php echo htmlspecialchars($ah); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-filter btn-filter-small">Применить</button>
+                    </div>
+                </details>
+            </div>
+            <?php if ($city !== ''): ?>
+                <input type="hidden" name="city" value="<?php echo htmlspecialchars($city); ?>">
+            <?php endif; ?>
         </form>
 
-        <?php if ($search_query !== '' || $city !== '' || $space_type !== '' || $has_electricity || $has_wifi || $has_water || $traffic_min > 0): ?>
-            <div class="search-info">
-                Найдено локаций: <strong><?php echo $total; ?></strong>
-                <?php if ($search_query !== ''): ?>
-                    по запросу «<strong><?php echo htmlspecialchars($search_query); ?></strong>»
-                <?php endif; ?>
+        <!-- Быстрый выбор города -->
+        <?php if (count($cityCounts) > 0): ?>
+            <?php
+                $cityLinkParams = array_filter($_GET, function ($k) {
+                    return $k !== 'page' && $k !== 'city';
+                }, ARRAY_FILTER_USE_KEY);
+                $cityLinkQs = http_build_query($cityLinkParams);
+            ?>
+            <div class="city-chip-row">
+                <a href="/pages/catalog.php<?php echo $cityLinkQs ? '?' . $cityLinkQs : ''; ?>" class="city-chip <?php echo $city === '' ? 'active' : ''; ?>">
+                    Все города
+                </a>
+                <?php foreach ($cityCounts as $cc): ?>
+                    <a href="/pages/catalog.php?<?php echo $cityLinkQs ? $cityLinkQs . '&' : ''; ?>city=<?php echo urlencode($cc['city']); ?>" class="city-chip <?php echo ($city === $cc['city']) ? 'active' : ''; ?>">
+                        <?php echo htmlspecialchars($cc['city']); ?> <span class="city-chip-count">(<?php echo $cc['cnt']; ?>)</span>
+                    </a>
+                <?php endforeach; ?>
             </div>
         <?php endif; ?>
 
@@ -279,8 +302,9 @@ $filterParams = array_filter($_GET, function ($k) {
         <?php if (count($locations) > 0): ?>
             <div class="catalog-grid">
                 <?php foreach ($locations as $loc): ?>
+                    <?php $locHasFullAccess = $hasFullAccess || $loc['owner_id'] == $user_id; ?>
                     <div class="catalog-card">
-                        <a href="/pages/location.php?id=<?php echo $loc['id']; ?>">
+                        <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="catalog-card-link">
                             <?php if (!empty($loc['main_photo'])): ?>
                                 <img src="/<?php echo htmlspecialchars($loc['main_photo']); ?>" alt="<?php echo htmlspecialchars($loc['title']); ?>">
                             <?php else: ?>
@@ -293,46 +317,41 @@ $filterParams = array_filter($_GET, function ($k) {
                                         <span class="verified-pill">✓ Проверено</span>
                                     <?php endif; ?>
                                 </div>
-                                <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
-
-                                <div style="color: #888; font-size: 13px; margin-top: 4px;">
-                                    🗓️ <?php echo formatDateRu($loc['updated_at']); ?>
-                                </div>
-
-                                <?php if (!empty($loc['space_type']) && isset($space_types[$loc['space_type']])): ?>
-                                    <div class="space-type-label">
-                                        🏢 <?php echo htmlspecialchars($space_types[$loc['space_type']]); ?>
-                                    </div>
+                                <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ <span class="price-unit">/ мес</span></div>
+                                <?php if ($locHasFullAccess): ?>
+                                    <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
+                                <?php else: ?>
+                                    <div class="address">📍 <?php echo htmlspecialchars($loc['city']); ?> <span class="address-locked">· точный адрес по подписке</span></div>
                                 <?php endif; ?>
 
                                 <div class="meta-row">
-                                    <span class="id-badge">ID: RR-<?php echo str_pad($loc['id'], 5, '0', STR_PAD_LEFT); ?></span>
-                                    <?php if (!empty($loc['width']) && !empty($loc['depth'])): ?>
-                                        <span>📐 <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
+                                    <?php if (!empty($loc['space_type']) && isset($space_types[$loc['space_type']])): ?>
+                                        <span class="meta-tag">🏢 <?php echo htmlspecialchars($space_types[$loc['space_type']]); ?></span>
                                     <?php endif; ?>
                                     <?php if ($loc['traffic_rating'] > 0): ?>
-                                        <span>
-                                            🚶
-                                            <?php for ($i = 1; $i <= 5; $i++): ?>
-                                                <span class="star <?php echo ($i <= $loc['traffic_rating']) ? 'filled' : ''; ?>">★</span>
-                                            <?php endfor; ?>
-                                        </span>
+                                        <span class="meta-tag">🚶 <?php echo $trafficLabels[(int)$loc['traffic_rating']] ?? ''; ?> трафик</span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($loc['width']) && !empty($loc['depth'])): ?>
+                                        <span class="meta-tag">📐 <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
                                     <?php endif; ?>
                                 </div>
 
-                                <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ / мес</div>
                                 <div class="badges">
+                                    <span class="id-badge">RR-<?php echo str_pad($loc['id'], 5, '0', STR_PAD_LEFT); ?></span>
                                     <?php if ($loc['has_electricity']): ?>
-                                        <span class="badge electricity">⚡</span>
+                                        <span class="amenity-badge electricity">⚡</span>
                                     <?php endif; ?>
                                     <?php if ($loc['has_wifi']): ?>
-                                        <span class="badge wifi">📶</span>
+                                        <span class="amenity-badge wifi">📶</span>
                                     <?php endif; ?>
                                     <?php if ($loc['has_water']): ?>
-                                        <span class="badge water">🚰</span>
+                                        <span class="amenity-badge water">🚰</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
+                        </a>
+                        <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="btn-card-cta">
+                            <?php echo $locHasFullAccess ? '📩 Узнать подробнее' : '🔒 Узнать подробнее'; ?>
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -360,9 +379,10 @@ $filterParams = array_filter($_GET, function ($k) {
         <?php else: ?>
             <div class="empty">
                 <h3>😕 Ничего не найдено</h3>
-                <p>Попробуйте изменить параметры фильтра или <a href="/pages/add_location.php" style="color:#e94560;">добавьте свою локацию</a>.</p>
+                <p>Попробуйте изменить параметры фильтра или <a href="/pages/add_location.php">добавьте свою локацию</a>.</p>
             </div>
         <?php endif; ?>
+    </div>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
