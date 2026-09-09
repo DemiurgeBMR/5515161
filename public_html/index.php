@@ -87,22 +87,24 @@ $latest_locations = $stmt->fetchAll();
             gap: 25px;
         }
         .location-card {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             transition: 0.2s;
             position: relative;
         }
         .location-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            border-color: var(--border-strong, #3a3a45);
         }
         .location-card img {
             width: 100%;
             height: 200px;
             object-fit: cover;
-            background: #eee;
+            background: #222;
         }
         .location-card .info {
             padding: 15px;
@@ -111,9 +113,10 @@ $latest_locations = $stmt->fetchAll();
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 5px;
+            color: var(--text, #f2f2f5);
         }
         .location-card .address {
-            color: #777;
+            color: var(--text-muted, #9a9aa5);
             font-size: 14px;
         }
         /* ★★★ Блок с ID, площадью и трафиком ★★★ */
@@ -121,27 +124,27 @@ $latest_locations = $stmt->fetchAll();
             display: flex;
             gap: 10px;
             font-size: 13px;
-            color: #555;
+            color: var(--text-muted, #9a9aa5);
             margin: 5px 0 8px;
             flex-wrap: wrap;
             align-items: center;
         }
         .location-card .meta-row .id-badge {
-            background: #eee;
+            background: var(--bg-elevated-2, #1c1c24);
             padding: 0 8px;
             border-radius: 12px;
             font-size: 11px;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
         }
         .location-card .meta-row .star {
-            color: #ddd;
+            color: var(--border-strong, #3a3a45);
         }
         .location-card .meta-row .star.filled {
             color: #f1c40f;
         }
         .location-card .price {
             font-size: 22px;
-            color: #e94560;
+            color: #ff5c7a;
             font-weight: bold;
             margin-top: 6px;
         }
@@ -163,7 +166,8 @@ $latest_locations = $stmt->fetchAll();
         .empty-home {
             text-align: center;
             padding: 60px 20px;
-            background: #f5f7fa;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 12px;
             margin-top: 30px;
         }
