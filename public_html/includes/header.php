@@ -45,6 +45,7 @@
             <nav class="nav">
                 <a href="/pages/catalog.php">Локации</a>
                 <a href="/pages/map.php">Карта</a>
+                <a href="/pages/how_it_works.php">Как это работает</a>
 
 <?php if (isset($_SESSION['user_id'])): ?>
     <!-- Уведомления -->
@@ -84,4 +85,36 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
             </nav>
         </div>
     </header>
+    <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'how_it_works.php'): ?>
+    <div class="howitworks-banner" id="howItWorksBanner">
+        <div class="container howitworks-banner-inner">
+            <span class="howitworks-banner-icon">🎯</span>
+            <span class="howitworks-banner-text">
+                Новый на RR? Найдите точку или сдайте своё место в аренду — вся сделка проходит прямо на платформе.
+            </span>
+            <a href="/pages/how_it_works.php" class="howitworks-banner-link">Как это работает →</a>
+            <button type="button" class="howitworks-banner-close" id="howItWorksBannerClose" aria-label="Закрыть">×</button>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var KEY = 'rr_hiw_banner_dismissed';
+            var banner = document.getElementById('howItWorksBanner');
+            if (!banner) return;
+            try {
+                if (localStorage.getItem(KEY)) {
+                    banner.style.display = 'none';
+                    return;
+                }
+            } catch (e) {}
+            var closeBtn = document.getElementById('howItWorksBannerClose');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    banner.style.display = 'none';
+                    try { localStorage.setItem(KEY, '1'); } catch (e) {}
+                });
+            }
+        })();
+    </script>
+    <?php endif; ?>
     <main>
