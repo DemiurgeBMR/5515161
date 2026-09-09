@@ -6,10 +6,12 @@
     padding: 0 20px;
 }
 .revisions-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     padding: 25px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    color: var(--text, #f2f2f5);
 }
 .revisions-table {
     width: 100%;
@@ -18,11 +20,11 @@
 .revisions-table th {
     text-align: left;
     padding: 12px 15px;
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
 }
 .revisions-table td {
     padding: 12px 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 .status-badge {
     display: inline-block;
@@ -56,7 +58,7 @@
 .btn-back {
     display: inline-block;
     margin-bottom: 20px;
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     text-decoration: none;
 }
 .btn-back:hover {
@@ -65,5 +67,5 @@
 .empty {
     text-align: center;
     padding: 40px;
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }

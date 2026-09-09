@@ -12,7 +12,7 @@
     font-weight: normal;
     cursor: pointer;
     padding: 10px 20px;
-    border: 2px solid #ddd;
+    border: 2px solid var(--border, #2a2a33);
     border-radius: 8px;
 }
 .role-selector input[type="radio"] {
@@ -20,5 +20,5 @@
 }
 .role-selector label:has(input:checked) {
     border-color: #e94560;
-    background: #fde8ec;
+    background: var(--accent-soft, rgba(233, 69, 96, 0.15));
 }

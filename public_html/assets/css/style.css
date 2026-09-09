@@ -22,6 +22,30 @@
 @import 'admin/_admin-preview-revision.css';
 @import 'admin/_admin-view-revisions.css';
 
+/* ===== ТЁМНАЯ ТЕМА — единая палитра для всего сайта ===== */
+:root {
+    --bg: #0b0b0f;
+    --bg-elevated: #16161c;
+    --bg-elevated-2: #1c1c24;
+    --bg-input: #0f0f14;
+    --border: #2a2a33;
+    --border-strong: #3a3a45;
+    --text: #f2f2f5;
+    --text-muted: #9a9aa5;
+    --text-faint: #6f6f7a;
+    --accent: #e94560;
+    --accent-hover: #c73652;
+    --accent-soft: rgba(233, 69, 96, 0.15);
+    --success: #2ecc71;
+    --success-soft: rgba(46, 204, 113, 0.15);
+    --warning: #ffc107;
+    --warning-soft: rgba(255, 193, 7, 0.15);
+    --info: #5dade2;
+    --info-soft: rgba(52, 152, 219, 0.15);
+    --danger: #ff6b6b;
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -30,8 +54,11 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f7fa;
-    color: #1a1a2e;
+    background: var(--bg);
+    color: var(--text);
+}
+a {
+    color: inherit;
 }
 
 .container {
@@ -99,13 +126,14 @@ body {
 /* ===== ЛОКАЦИИ (для главной страницы) ===== */
 .locations-preview {
     padding: 60px 20px;
-    background: white;
+    background: var(--bg);
 }
 
 .locations-preview h2 {
     text-align: center;
     font-size: 32px;
     margin-bottom: 40px;
+    color: var(--text);
 }
 
 .location-grid {
@@ -115,33 +143,36 @@ body {
 }
 
 .location-card {
-    background: #f5f7fa;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     border-radius: 12px;
     overflow: hidden;
-    transition: transform 0.3s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .location-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    box-shadow: 0 12px 30px var(--shadow);
+    border-color: var(--border-strong);
 }
 
 .location-card img {
     width: 100%;
     height: 200px;
     object-fit: cover;
-    background: #ddd;
+    background: #222;
 }
 
 .location-card h3 {
     padding: 15px 15px 5px;
     font-size: 18px;
+    color: var(--text);
 }
 
 .location-card p {
     padding: 0 15px 20px;
-    color: #e94560;
+    color: var(--accent);
     font-weight: bold;
     font-size: 20px;
 }
@@ -186,10 +217,11 @@ body {
 }
 
 .toast-notification {
-    background: #ffffff;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     border-left: 4px solid #e94560;
     transform: translateX(110%);
     opacity: 0;
@@ -209,7 +241,7 @@ body {
     gap: 10px;
     font-weight: 600;
     font-size: 15px;
-    color: #1a1a2e;
+    color: var(--text);
     margin-bottom: 4px;
 }
 
@@ -246,13 +278,13 @@ body {
 
 .toast-notification .toast-header .toast-time {
     font-size: 11px;
-    color: #999;
+    color: var(--text-faint);
     white-space: nowrap;
 }
 
 .toast-notification .toast-body {
     font-size: 14px;
-    color: #555;
+    color: var(--text-muted);
     margin-top: 2px;
     padding-left: 42px; /* отступ под аватар */
     line-height: 1.4;
@@ -269,14 +301,14 @@ body {
     background: none;
     border: none;
     font-size: 18px;
-    color: #bbb;
+    color: var(--text-faint);
     cursor: pointer;
     transition: color 0.2s;
     line-height: 1;
     padding: 0;
 }
 .toast-notification .toast-close:hover {
-    color: #333;
+    color: var(--text);
 }
 
 /* ===== ТОСТЫ ДЛЯ СИСТЕМНЫХ УВЕДОМЛЕНИЙ ===== */

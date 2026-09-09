@@ -13,19 +13,20 @@
     margin-bottom: 30px;
 }
 .stat-box {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     padding: 20px;
     border-radius: 12px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 .stat-box .number {
     font-size: 32px;
     font-weight: bold;
-    color: #1a1a2e;
+    color: var(--text, #f2f2f5);
 }
 .stat-box .label {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
 }
 .stat-box.pending .number {
@@ -33,24 +34,26 @@
 }
 
 .admin-table {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
 }
 .admin-table table {
     width: 100%;
     border-collapse: collapse;
+    color: var(--text, #f2f2f5);
 }
 .admin-table th {
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     text-align: left;
     padding: 12px 15px;
     font-weight: 600;
 }
 .admin-table td {
     padding: 12px 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 .admin-table .actions a {
     margin-right: 10px;
@@ -85,7 +88,7 @@
 .empty-pending {
     text-align: center;
     padding: 40px;
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }
 .nav-admin {
     margin-bottom: 20px;

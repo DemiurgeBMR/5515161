@@ -25,17 +25,19 @@
     top: 20px;
 }
 .inquiry-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
     padding: 24px;
 }
 .inquiry-card h3 {
     font-size: 19px;
     margin: 0 0 6px;
+    color: var(--text, #f2f2f5);
 }
 .inquiry-sub {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin: 0 0 18px;
     line-height: 1.4;
@@ -44,16 +46,16 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 16px;
     font-size: 14px;
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
 }
 .inquiry-price-row strong {
     font-size: 18px;
-    color: #222;
+    color: var(--text, #f2f2f5);
 }
 .inquiry-owner {
     display: flex;
@@ -61,10 +63,10 @@
     align-items: center;
     margin-bottom: 14px;
     font-size: 14px;
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
 }
 .inquiry-owner strong {
-    color: #222;
+    color: var(--text, #f2f2f5);
     font-size: 15px;
 }
 .btn-block {
@@ -89,7 +91,7 @@
 }
 .inquiry-points li {
     font-size: 13px;
-    color: #777;
+    color: var(--text-muted, #9a9aa5);
     line-height: 1.4;
 }
 
@@ -104,17 +106,18 @@
 }
 
 .detail-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
     position: relative;
 }
 .detail-card .main-photo {
     width: 100%;
     max-height: 500px;
     object-fit: cover;
-    background: #eee;
+    background: #222;
 }
 
 /* Отметка модерации — над главным фото и пилюля рядом с названием */
@@ -132,7 +135,7 @@
     font-weight: 600;
     padding: 6px 14px;
     border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     pointer-events: none;
 }
 .verified-pill {
@@ -158,7 +161,7 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
     padding: 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 .detail-card .gallery img {
     width: 100%;
@@ -170,7 +173,7 @@
 }
 .detail-card .gallery img:hover {
     transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 .detail-card .info {
     padding: 25px;
@@ -179,14 +182,15 @@
     font-size: 28px;
     font-weight: bold;
     margin-bottom: 10px;
+    color: var(--text, #f2f2f5);
 }
 .detail-card .price {
     font-size: 32px;
-    color: #e94560;
+    color: #ff5c7a;
     font-weight: bold;
 }
 .detail-card .address {
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
     font-size: 18px;
     margin: 10px 0;
 }
@@ -196,7 +200,7 @@
     font-size: 13px;
     color: #e94560;
     text-decoration: none;
-    background: #fdecef;
+    background: rgba(233, 69, 96, 0.12);
     padding: 2px 10px;
     border-radius: 12px;
     vertical-align: middle;
@@ -208,7 +212,7 @@
     font-size: 16px;
     line-height: 1.7;
     margin: 20px 0;
-    color: #333;
+    color: var(--text, #f2f2f5);
 }
 .detail-card .description h4 {
     margin-top: 15px;
@@ -226,7 +230,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     padding: 20px;
     border-radius: 10px;
     margin: 20px 0;
@@ -238,7 +242,7 @@
     font-size: 15px;
 }
 .detail-card .spec-item .label {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }
 .detail-card .spec-item .value {
     font-weight: bold;
@@ -259,25 +263,25 @@
 
 /* Бейджики */
 .badge-electricity {
-    background: #fff3cd;
-    color: #856404;
+    background: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
 }
 .badge-wifi {
-    background: #d4edda;
-    color: #155724;
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
 }
 .badge-water {
-    background: #d6eaf8;
-    color: #21618c;
+    background: rgba(52, 152, 219, 0.15);
+    color: #5dade2;
 }
 .badge-24h {
-    background: #cce5ff;
-    color: #004085;
+    background: rgba(52, 152, 219, 0.15);
+    color: #5dade2;
 }
 
 /* Просмотры, мета-теги */
 .views {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin-top: 10px;
 }
@@ -288,19 +292,20 @@
     flex-wrap: wrap;
 }
 .meta-tags .tag {
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
+    color: var(--text, #f2f2f5);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 14px;
 }
 .meta-tags .tag .star {
-    color: #ddd;
+    color: var(--border-strong, #3a3a45);
 }
 .meta-tags .tag .star.filled {
     color: #f1c40f;
 }
 .space-type-block {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin-top: 4px;
 }
@@ -406,22 +411,24 @@
     display: block;
 }
 .rec-card {
-    background: #f9f9f9;
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
     height: 100%;
 }
 .rec-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    border-color: var(--border-strong, #3a3a45);
 }
 .rec-card img {
     width: 100%;
     height: 140px;
     object-fit: cover;
-    background: #eee;
+    background: #222;
     display: block;
     transition: transform 0.3s;
 }
@@ -437,18 +444,19 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--text, #f2f2f5);
 }
 .rec-card .rec-city {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 13px;
 }
 .rec-card .rec-price {
-    color: #e94560;
+    color: #ff5c7a;
     font-weight: bold;
     font-size: 16px;
 }
 .rec-card .rec-traffic {
     font-size: 12px;
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
     margin-top: 2px;
 }

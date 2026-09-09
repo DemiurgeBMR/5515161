@@ -204,7 +204,7 @@ if (!$is_preview) {
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <?php if ($is_preview): ?>
-    <div style="background: #fff3cd; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+    <div style="background: #fff3cd; color: #333; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
         <strong>👁️ Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
         <?php if ($location['is_moderated'] == 0): ?>
             <span style="display: inline-block; margin-left: 10px; background: #ffc107; color: #333; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Ожидает модерации</span>

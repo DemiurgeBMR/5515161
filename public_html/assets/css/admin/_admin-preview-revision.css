@@ -6,17 +6,19 @@
     padding: 0 20px;
 }
 .changes-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     padding: 25px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    color: var(--text, #f2f2f5);
 }
 .changes-card h2 {
     margin-bottom: 20px;
 }
 .change-row {
     display: flex;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border, #2a2a33);
     padding: 10px 0;
 }
 .change-row:last-child {
@@ -25,7 +27,7 @@
 .change-label {
     width: 200px;
     font-weight: 600;
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
     flex-shrink: 0;
 }
 .change-values {
@@ -40,27 +42,27 @@
     color: #2ecc71;
 }
 .change-old .value {
-    background: #fde8ec;
+    background: rgba(233, 69, 96, 0.12);
     padding: 2px 8px;
     border-radius: 4px;
 }
 .change-new .value {
-    background: #e8f8ed;
+    background: rgba(46, 204, 113, 0.12);
     padding: 2px 8px;
     border-radius: 4px;
 }
 .change-arrow {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-weight: bold;
     margin: 0 10px;
 }
 .change-same {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }
 .btn-back {
     display: inline-block;
     margin-bottom: 20px;
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     text-decoration: none;
 }
 .btn-back:hover {
@@ -69,7 +71,7 @@
 .change-actions {
     margin-top: 25px;
     padding-top: 20px;
-    border-top: 2px solid #eee;
+    border-top: 2px solid var(--border, #2a2a33);
     text-align: center;
 }
 .change-actions a {
@@ -96,7 +98,7 @@
 .no-changes {
     text-align: center;
     padding: 40px;
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }
 .photo-section {
     margin-top: 15px;
@@ -107,7 +109,7 @@
     gap: 10px;
 }
 .photo-item {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 4px;
     padding: 4px;
     width: 100px;

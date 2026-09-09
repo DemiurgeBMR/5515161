@@ -8,9 +8,10 @@
     margin: 15px 0 20px;
 }
 .subscription-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
     padding: 30px;
 }
 .subscription-status {
@@ -29,18 +30,18 @@
     color: #721c24;
 }
 .subscription-description {
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
     line-height: 1.6;
     margin-bottom: 15px;
 }
 .subscription-benefits {
     margin: 0 0 25px;
     padding-left: 20px;
-    color: #333;
+    color: var(--text, #f2f2f5);
     line-height: 1.8;
 }
 .btn-danger-outline {
-    background: white;
+    background: transparent;
     color: #e74c3c;
     border: 2px solid #e74c3c;
 }
