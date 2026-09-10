@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $depth = floatval($_POST['depth'] ?? 0);
     $has_electricity = isset($_POST['has_electricity']) ? 1 : 0;
     $has_wifi = isset($_POST['has_wifi']) ? 1 : 0;
+    $has_water = isset($_POST['has_water']) ? 1 : 0;
     $access_hours = $_POST['access_hours'] ?? '24/7';
 
     // ★★★ Получаем и валидируем рейтинг проходимости ★★★
@@ -76,6 +77,7 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             'depth'            => $depth,
             'has_electricity'  => $has_electricity,
             'has_wifi'         => $has_wifi,
+            'has_water'        => $has_water,
             'access_hours'     => $access_hours,
             'traffic_rating'   => $traffic_rating,
             'space_type'       => $space_type
@@ -343,9 +345,12 @@ if (strpos($mainPhoto, 'existing_') === 0) {
                     <label>
                         <input type="checkbox" name="has_wifi" <?php echo $location['has_wifi'] ? 'checked' : ''; ?>> 📶 Wi-Fi
                     </label>
+                    <label>
+                        <input type="checkbox" name="has_water" <?php echo $location['has_water'] ? 'checked' : ''; ?>> 🚰 Вода
+                    </label>
                 </div>
             </div>
-            
+
 <!-- Текущие фото -->
 <?php 
 // Загружаем ТОЛЬКО активные фото (не удалённые и не ожидающие удаления)

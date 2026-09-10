@@ -1,29 +1,167 @@
 /* ===== СТРАНИЦА ПРОСМОТРА ЛОКАЦИИ ===== */
 
 .location-detail {
-    max-width: 900px;
+    max-width: 1140px;
     margin: 40px auto;
     padding: 0 20px;
 }
 
+.location-layout {
+    display: block;
+}
+.location-layout.has-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: 24px;
+}
+
+/* Блок обращения к владельцу — "прилипает" при прокрутке основного контента
+   и естественно отпускает страницу, как только под ним заканчивается
+   .location-layout (то есть на уровне блока "Похожие объявления", который
+   вынесен наружу как отдельный, не-грид, элемент). */
+.inquiry-sidebar {
+    position: sticky;
+    top: 20px;
+}
+.inquiry-card {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    padding: 24px;
+}
+.inquiry-card h3 {
+    font-size: 19px;
+    margin: 0 0 6px;
+    color: var(--text, #f2f2f5);
+}
+.inquiry-sub {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 14px;
+    margin: 0 0 18px;
+    line-height: 1.4;
+}
+.inquiry-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-elevated-2, #1c1c24);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+}
+.inquiry-price-row strong {
+    font-size: 18px;
+    color: var(--text, #f2f2f5);
+}
+.inquiry-owner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+}
+.inquiry-owner strong {
+    color: var(--text, #f2f2f5);
+    font-size: 15px;
+}
+.btn-block {
+    display: block;
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+}
+.btn-contact.btn-subscribe {
+    background: #6c5ce7;
+}
+.btn-contact.btn-subscribe:hover {
+    background: #5a4bd1;
+}
+.inquiry-points {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.inquiry-points li {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    line-height: 1.4;
+}
+
+@media (max-width: 960px) {
+    .location-layout.has-sidebar {
+        display: block;
+    }
+    .inquiry-sidebar {
+        position: static;
+        margin-top: 24px;
+    }
+}
+
 .detail-card {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    position: relative;
 }
 .detail-card .main-photo {
     width: 100%;
     max-height: 500px;
     object-fit: cover;
-    background: #eee;
+    background: #222;
+}
+
+/* Отметка модерации — над главным фото и пилюля рядом с названием */
+.verified-badge-photo {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #2f6fed;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    pointer-events: none;
+}
+.verified-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #eaf1ff;
+    color: #2f6fed;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    vertical-align: middle;
+}
+.detail-card .title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 .detail-card .gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 10px;
     padding: 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 .detail-card .gallery img {
     width: 100%;
@@ -35,7 +173,7 @@
 }
 .detail-card .gallery img:hover {
     transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
 }
 .detail-card .info {
     padding: 25px;
@@ -44,22 +182,37 @@
     font-size: 28px;
     font-weight: bold;
     margin-bottom: 10px;
+    color: var(--text, #f2f2f5);
 }
 .detail-card .price {
     font-size: 32px;
-    color: #e94560;
+    color: #ff5c7a;
     font-weight: bold;
 }
 .detail-card .address {
-    color: #555;
+    color: var(--text-muted, #9a9aa5);
     font-size: 18px;
     margin: 10px 0;
+}
+.address-locked-hint {
+    display: inline-block;
+    margin-left: 10px;
+    font-size: 13px;
+    color: #e94560;
+    text-decoration: none;
+    background: rgba(233, 69, 96, 0.12);
+    padding: 2px 10px;
+    border-radius: 12px;
+    vertical-align: middle;
+}
+.address-locked-hint:hover {
+    text-decoration: underline;
 }
 .detail-card .description {
     font-size: 16px;
     line-height: 1.7;
     margin: 20px 0;
-    color: #333;
+    color: var(--text, #f2f2f5);
 }
 .detail-card .description h4 {
     margin-top: 15px;
@@ -77,7 +230,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     padding: 20px;
     border-radius: 10px;
     margin: 20px 0;
@@ -89,29 +242,13 @@
     font-size: 15px;
 }
 .detail-card .spec-item .label {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
 }
 .detail-card .spec-item .value {
     font-weight: bold;
 }
 
-.detail-card .owner-block {
-    border-top: 1px solid #eee;
-    padding-top: 20px;
-    margin-top: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.detail-card .owner-block .owner-info {
-    font-size: 16px;
-}
-.detail-card .owner-block .owner-info strong {
-    display: block;
-    font-size: 18px;
-}
-.detail-card .btn-contact {
+.btn-contact {
     background: #e94560;
     color: white;
     padding: 12px 30px;
@@ -120,7 +257,7 @@
     font-weight: bold;
     display: inline-block;
 }
-.detail-card .btn-contact:hover {
+.btn-contact:hover {
     background: #c73652;
 }
 
@@ -133,6 +270,10 @@
     background: #d4edda;
     color: #155724;
 }
+.badge-water {
+    background: #d6eaf8;
+    color: #21618c;
+}
 .badge-24h {
     background: #cce5ff;
     color: #004085;
@@ -140,7 +281,7 @@
 
 /* Просмотры, мета-теги */
 .views {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin-top: 10px;
 }
@@ -151,19 +292,20 @@
     flex-wrap: wrap;
 }
 .meta-tags .tag {
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
+    color: var(--text, #f2f2f5);
     padding: 4px 12px;
     border-radius: 20px;
     font-size: 14px;
 }
 .meta-tags .tag .star {
-    color: #ddd;
+    color: var(--border-strong, #3a3a45);
 }
 .meta-tags .tag .star.filled {
     color: #f1c40f;
 }
 .space-type-block {
-    color: #888;
+    color: var(--text-muted, #9a9aa5);
     font-size: 14px;
     margin-top: 4px;
 }
@@ -254,4 +396,67 @@
         right: 10px;
         font-size: 30px;
     }
+}
+
+/* Похожие объявления — карточки как в каталоге: лёгкий подъём + зум фото
+   по наведению, чтобы было видно, что курсор реально на карточке. */
+.rec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+}
+.rec-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.rec-card {
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    height: 100%;
+}
+.rec-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    border-color: var(--border-strong, #3a3a45);
+}
+.rec-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    background: #222;
+    display: block;
+    transition: transform 0.3s;
+}
+.rec-card:hover img {
+    transform: scale(1.05);
+}
+.rec-card .rec-body {
+    padding: 10px;
+}
+.rec-card .rec-title {
+    font-weight: bold;
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text, #f2f2f5);
+}
+.rec-card .rec-city {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+}
+.rec-card .rec-price {
+    color: #ff5c7a;
+    font-weight: bold;
+    font-size: 16px;
+}
+.rec-card .rec-traffic {
+    font-size: 12px;
+    color: var(--text-muted, #9a9aa5);
+    margin-top: 2px;
 }

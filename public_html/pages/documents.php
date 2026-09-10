@@ -18,15 +18,16 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <link rel="stylesheet" href="/assets/css/style.css">
     <style>
         .docs-container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: #888; text-decoration: none; }
+        .back-link { display: inline-block; margin-bottom: 20px; color: var(--text-muted, #9a9aa5); text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
 
         .doc-card {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 14px;
             padding: 24px 26px;
             margin-bottom: 18px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -34,8 +35,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             flex-wrap: wrap;
         }
         .doc-info .icon { font-size: 32px; margin-bottom: 8px; }
-        .doc-info .title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
-        .doc-info .desc { color: #666; font-size: 14px; line-height: 1.5; max-width: 480px; }
+        .doc-info .title { font-size: 18px; font-weight: bold; margin-bottom: 6px; color: var(--text, #f2f2f5); }
+        .doc-info .desc { color: var(--text-muted, #9a9aa5); font-size: 14px; line-height: 1.5; max-width: 480px; }
         .btn-download {
             background: #e94560;
             color: white;

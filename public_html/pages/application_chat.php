@@ -54,6 +54,15 @@ $stmt->execute([$application_id, $user_id]);
 $is_operator = ($user_id == $application['operator_id']);
 $other_party = $is_operator ? $application['owner_name'] : $application['operator_name'];
 
+// Запрос на закрепление — это отметка на уже открытой заявке/чате
+// (api/operator_assign.php, action=request ставит applications.assignment_requested=1),
+// а не отдельная заявка. Оператор решает сам, когда его отправить, прямо
+// из переписки; владельцу здесь же показываются кнопки "Одобрить"/"Отклонить",
+// пока запрос не рассмотрен.
+$isAssignmentRequest = !empty($application['assignment_requested']);
+$canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator;
+$canRequestAssignment = $is_operator && $application['status'] === 'pending' && !$isAssignmentRequest;
+
 function getInitials($name) {
     $parts = preg_split('/\s+/', trim($name));
     $initials = '';
@@ -78,14 +87,22 @@ $statusLabels = [
     'negotiating' => '🤝 В переговорах',
     'agreed' => '✅ Договорённость',
     'placed' => '📍 Размещено',
-    'cancelled' => '❌ Отменена'
+    'cancelled' => '❌ Отменена',
+    'approved' => '✅ Закрепление подтверждено',
+    'rejected' => '❌ Закрепление отклонено',
 ];
 
-$currentPublicStatus = $application['status']; // pending или cancelled
+$currentPublicStatus = $application['status'];
 $cancelled_by = $application['cancelled_by'];
 $canChangeCancel = ($currentPublicStatus === 'cancelled' && $cancelled_by == $user_id);
 
-$displayStatus = $currentPublicStatus === 'cancelled' ? 'cancelled' : ($my_tag ? $my_tag : 'pending');
+// status хранит и финальные статусы запроса на закрепление (approved/
+// rejected из api/operator_assign.php) — показываем их напрямую, как и
+// cancelled, а не только личный тег ($my_tag), иначе решённый запрос
+// выглядел бы вечно "ожидающим" (см. A19 в owner/operator_applications.php).
+$displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected'], true)
+    ? $currentPublicStatus
+    : ($my_tag ? $my_tag : 'pending');
 
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("
@@ -97,6 +114,17 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$application_id]);
 $current_event = $stmt->fetch();
+
+// Планировать выезд можно только когда за локацией реально закреплён этот
+// оператор (api/installation.php резолвит location_operator_id именно по
+// этой паре) — без этого запрос всегда будет отклонён, поэтому скрываем
+// кнопку и объясняем, чего не хватает, вместо непонятной ошибки при клике.
+$stmt = $pdo->prepare("
+    SELECT id FROM location_operators
+    WHERE location_id = ? AND operator_id = ? AND status = 'active'
+");
+$stmt->execute([$application['location_id'], $application['operator_id']]);
+$hasActiveAssignment = (bool)$stmt->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -111,6 +139,31 @@ $current_event = $stmt->fetch();
         :root {
             --primary: #e94560;
             --primary-dark: #d63852;
+            --text: #f2f2f5;
+            --text-light: #9a9aa5;
+            --border: #2a2a33;
+            --background: #0b0b0f;
+            --white: #16161c;
+            --blue: #5b9bf7;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --yellow: #f5a623;
+            --yellow-bg: rgba(245, 158, 11, 0.15);
+            --green: #2ecc71;
+            --green-bg: rgba(34, 197, 94, 0.15);
+            --red: #ff6b6b;
+            --red-bg: rgba(239, 68, 68, 0.15);
+            --gray: #9a9aa5;
+            --gray-bg: #1c1c24;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
+            --radius: 14px;
+            --sidebar-w: 300px;
+        }
+        /* Светлая тема — переключатель в шапке (includes/header.php)
+           ставит data-theme="light" на <html>; этот блок держит
+           собственную палитру страницы синхронной с общей. */
+        :root[data-theme="light"] {
             --text: #202124;
             --text-light: #6b7280;
             --border: #e5e7eb;
@@ -129,8 +182,6 @@ $current_event = $stmt->fetch();
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
             --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
             --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
-            --radius: 14px;
-            --sidebar-w: 300px;
         }
         body { background: var(--background); }
 
@@ -245,7 +296,7 @@ $current_event = $stmt->fetch();
             width: var(--sidebar-w);
             flex-shrink: 0;
             border-left: 1px solid var(--border);
-            background: #fbfbfd;
+            background: var(--gray-bg);
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -321,11 +372,11 @@ $current_event = $stmt->fetch();
             font-size: 13px;
             font-weight: 700;
         }
-        .status-pending { background: var(--yellow-bg); color: #b45309; }
+        .status-pending { background: #fff3cd; color: #856404; }
         .status-negotiating { background: #fef3c7; color: #92400e; }
-        .status-agreed { background: var(--green-bg); color: #15803d; }
+        .status-agreed { background: #d4edda; color: #155724; }
         .status-placed { background: #dbeafe; color: #1d4ed8; }
-        .status-cancelled { background: var(--red-bg); color: #dc2626; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
         .status-arrow {
             font-size: 13px;
             color: var(--text-light);
@@ -402,7 +453,7 @@ $current_event = $stmt->fetch();
             color: var(--text);
         }
         .event-comment {
-            background: var(--yellow-bg);
+            background: #fffbeb;
             padding: 8px 12px;
             border-radius: 8px;
             font-size: 13px;
@@ -452,10 +503,10 @@ $current_event = $stmt->fetch();
         .sidebar-action-row + .sidebar-action-row { border-top: 1px solid var(--border); }
         .sidebar-action-row.danger-link {
             cursor: pointer;
-            color: #dc2626;
+            color: var(--red);
         }
         .sidebar-action-row.danger-link a {
-            color: #dc2626;
+            color: var(--red);
             text-decoration: none;
             width: 100%;
         }
@@ -497,13 +548,13 @@ $current_event = $stmt->fetch();
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-            background: #fafafa;
+            background: var(--background);
             scroll-behavior: smooth;
         }
         .chat-messages::-webkit-scrollbar { width: 8px; }
         .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background: #d7dae0; border-radius: 10px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background: #b7bcc4; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: var(--gray); }
 
         .date-separator {
             text-align: center;
@@ -568,7 +619,7 @@ $current_event = $stmt->fetch();
         .message .sender .time {
             font-weight: 400;
             font-size: 11px;
-            color: #9ca3af;
+            color: var(--text-light);
             margin-left: 8px;
         }
         .message .text {
@@ -597,9 +648,9 @@ $current_event = $stmt->fetch();
             margin-top: 3px;
             padding: 0 4px;
             font-size: 11px;
-            color: #9ca3af;
+            color: var(--text-light);
         }
-        .read-receipt { font-size: 13px; letter-spacing: -2px; color: #9ca3af; }
+        .read-receipt { font-size: 13px; letter-spacing: -2px; color: var(--text-light); }
         .read-receipt.read { color: var(--blue); letter-spacing: -1px; }
         .chat-empty {
             color: var(--text-light);
@@ -707,7 +758,9 @@ $current_event = $stmt->fetch();
             width: min(520px, 100%);
             max-height: calc(100vh - 40px);
             overflow-y: auto;
-            background: white;
+            background: var(--white);
+            color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 18px;
             padding: 25px;
             box-shadow: var(--shadow-lg);
@@ -765,7 +818,8 @@ $current_event = $stmt->fetch();
             padding: 10px 13px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            background: white;
+            background: var(--gray-bg);
+            color: var(--text);
             font-size: 14px;
             outline: none;
             transition: .2s;
@@ -916,19 +970,19 @@ $current_event = $stmt->fetch();
             align-items: center;
             gap: 8px;
             width: 100%;
-            background: var(--green-bg);
+            background: #d4edda;
             border: 1px solid transparent;
             padding: 10px 12px;
             border-radius: 10px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 700;
-            color: #15803d;
+            color: #155724;
             text-align: left;
             font-family: inherit;
             transition: .15s;
         }
-        .event-summary-pill:hover { background: #dcfce7; }
+        .event-summary-pill:hover { background: #c3e6cb; }
         .event-summary-icon { flex-shrink: 0; }
         .event-summary-text { flex: 1; min-width: 0; }
         .event-summary-chevron { flex-shrink: 0; font-size: 11px; opacity: .7; }
@@ -1050,6 +1104,40 @@ $current_event = $stmt->fetch();
                 </div>
             </div>
 
+            <?php if ($canDecideAssignment): ?>
+            <!-- запрос на закрепление за локацией — решение владельца -->
+            <div class="sidebar-section" id="assignmentRequestBlock">
+                <p class="sidebar-section-title">Запрос на закрепление</p>
+                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                    Оператор просит закрепить его за этой локацией.
+                </p>
+                <div class="modal-buttons">
+                    <button type="button" id="approveAssignmentBtn" class="btn-primary">✅ Одобрить</button>
+                    <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
+                </div>
+                <div id="assignmentRequestStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($canRequestAssignment): ?>
+            <!-- оператор может по своей инициативе запросить закрепление прямо из чата -->
+            <div class="sidebar-section" id="requestAssignmentBlock">
+                <p class="sidebar-section-title">Закрепление за локацией</p>
+                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                    Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
+                </p>
+                <button type="button" id="requestAssignmentBtn" class="btn-primary">📩 Запросить закрепление</button>
+                <div id="requestAssignmentStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+            </div>
+            <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
+            <div class="sidebar-section">
+                <p class="sidebar-section-title">Закрепление за локацией</p>
+                <p style="font-size:13px; color:var(--text-muted, #888);">
+                    ⏳ Запрос на закрепление отправлен, ожидайте решения владельца.
+                </p>
+            </div>
+            <?php endif; ?>
+
             <!-- статус заявки -->
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Статус</p>
@@ -1128,7 +1216,7 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
+                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed' && $hasActiveAssignment): ?>
                     <div class="event-card">
                         <span class="event-icon">📅</span>
                         <div class="event-body">
@@ -1141,6 +1229,8 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
+                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
+                    <div class="event-empty">Планировать выезд можно после того, как владелец закрепит оператора за этой локацией.</div>
                 <?php else: ?>
                     <div class="event-empty">Нет активных событий.</div>
                 <?php endif; ?>
@@ -1253,13 +1343,103 @@ document.addEventListener('DOMContentLoaded', function() {
     // делаем application_id видимым глобально, чтобы notifications.js мог
     // не показывать тост о сообщении, если пользователь уже в этом чате
     window.currentChatApplicationId = applicationId;
+
+    // --- РЕШЕНИЕ ПО ЗАПРОСУ НА ЗАКРЕПЛЕНИЕ ---
+    var approveAssignmentBtn = document.getElementById('approveAssignmentBtn');
+    var rejectAssignmentBtn = document.getElementById('rejectAssignmentBtn');
+    var assignmentRequestStatus = document.getElementById('assignmentRequestStatus');
+
+    function decideAssignmentRequest(action, btn) {
+        var confirmText = action === 'approve' ? 'Одобрить закрепление этого оператора?' : 'Отклонить запрос на закрепление?';
+        if (!confirm(confirmText)) return;
+
+        approveAssignmentBtn.disabled = true;
+        rejectAssignmentBtn.disabled = true;
+        btn.textContent = 'Отправка...';
+        assignmentRequestStatus.textContent = '';
+
+        var formData = new FormData();
+        formData.append('action', action);
+        formData.append('application_id', applicationId);
+
+        fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    assignmentRequestStatus.style.color = '#2ecc71';
+                    assignmentRequestStatus.textContent = '✅ Готово, обновляем страницу...';
+                    setTimeout(function() { location.reload(); }, 700);
+                } else {
+                    assignmentRequestStatus.style.color = '#e74c3c';
+                    assignmentRequestStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                    approveAssignmentBtn.disabled = false;
+                    rejectAssignmentBtn.disabled = false;
+                    approveAssignmentBtn.textContent = '✅ Одобрить';
+                    rejectAssignmentBtn.textContent = '❌ Отклонить';
+                }
+            })
+            .catch(function() {
+                assignmentRequestStatus.style.color = '#e74c3c';
+                assignmentRequestStatus.textContent = '❌ Ошибка соединения';
+                approveAssignmentBtn.disabled = false;
+                rejectAssignmentBtn.disabled = false;
+                approveAssignmentBtn.textContent = '✅ Одобрить';
+                rejectAssignmentBtn.textContent = '❌ Отклонить';
+            });
+    }
+
+    if (approveAssignmentBtn && rejectAssignmentBtn) {
+        approveAssignmentBtn.addEventListener('click', function() { decideAssignmentRequest('approve', approveAssignmentBtn); });
+        rejectAssignmentBtn.addEventListener('click', function() { decideAssignmentRequest('reject', rejectAssignmentBtn); });
+    }
+
+    // --- ОПЕРАТОР ЗАПРАШИВАЕТ ЗАКРЕПЛЕНИЕ ПРЯМО ИЗ ЧАТА ---
+    var requestAssignmentBtn = document.getElementById('requestAssignmentBtn');
+    var requestAssignmentStatus = document.getElementById('requestAssignmentStatus');
+
+    if (requestAssignmentBtn) {
+        requestAssignmentBtn.addEventListener('click', function() {
+            if (!confirm('Отправить владельцу запрос на закрепление за этой локацией?')) return;
+
+            requestAssignmentBtn.disabled = true;
+            requestAssignmentBtn.textContent = 'Отправка...';
+            requestAssignmentStatus.textContent = '';
+
+            var formData = new FormData();
+            formData.append('action', 'request');
+            formData.append('application_id', applicationId);
+
+            fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        requestAssignmentStatus.style.color = '#2ecc71';
+                        requestAssignmentStatus.textContent = '✅ Запрос отправлен, обновляем страницу...';
+                        setTimeout(function() { location.reload(); }, 800);
+                    } else {
+                        requestAssignmentStatus.style.color = '#e74c3c';
+                        requestAssignmentStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                        requestAssignmentBtn.disabled = false;
+                        requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                    }
+                })
+                .catch(function() {
+                    requestAssignmentStatus.style.color = '#e74c3c';
+                    requestAssignmentStatus.textContent = '❌ Ошибка соединения';
+                    requestAssignmentBtn.disabled = false;
+                    requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                });
+        });
+    }
+
     var userId = <?php echo $user_id; ?>;
     var lastMessageId = <?php echo !empty($messages) ? end($messages)['id'] : 0; ?>;
 
     var operatorId = <?php echo $application['operator_id']; ?>;
     // json_encode с HEX-флагами вместо addslashes(): addslashes() экранирует
-    // только кавычки, а не </script> или &, так что имя вида
-    // x</script><script>... вырывалось бы из этого блока и исполнялось.
+    // только кавычки, а не угловые скобки и амперсанд, так что имя с
+    // закрывающим тегом script внутри вырывалось бы из этого блока и
+    // исполнялось как отдельный скрипт.
     var operatorName = <?php echo json_encode($application['operator_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
     var ownerName = <?php echo json_encode($application['owner_name'], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
 
@@ -1423,7 +1603,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentDisplay = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
         options.forEach(function(status) {
             var isActive = (status === currentDisplay);
-            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:#f0f0f0;' : '') + '">' +
+            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:var(--gray-bg);' : '') + '">' +
                         allStatuses[status] +
                     '</div>';
         });

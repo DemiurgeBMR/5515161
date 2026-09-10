@@ -167,6 +167,7 @@ unset($_SESSION['flash']);
     <a href="/pages/documents.php" class="btn-action secondary">📄 Документы</a>
     <a href="/pages/owner_applications.php" class="btn-action secondary">📩 Заявки</a>
     <a href="/pages/owner_operators.php" class="btn-action secondary">👥 Мои операторы</a>
+    <a href="/pages/subscription.php" class="btn-action secondary">💳 Подписка</a>
     <a href="/pages/logout.php" class="btn-action danger">🚪 Выйти</a>
 </div>
         </aside>

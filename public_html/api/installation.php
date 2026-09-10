@@ -195,6 +195,29 @@ switch ($action) {
             echo json_encode(['error' => 'Invalid event type']);
             exit;
         }
+
+        // Из чата заявки (application_chat.php) location_operator_id не передаётся —
+        // там известен только application_id. Резолвим закрепление по паре
+        // (location_id, operator_id) самой заявки: без активного закрепления
+        // назначать реальный выезд физически некому, поэтому явно объясняем
+        // это отдельной ошибкой, а не молчим про "Invalid parameters".
+        if ($location_operator_id <= 0 && $application_id) {
+            $stmt = $pdo->prepare("
+                SELECT lo.id
+                FROM applications a
+                JOIN location_operators lo ON lo.location_id = a.location_id
+                    AND lo.operator_id = a.operator_id AND lo.status = 'active'
+                WHERE a.id = ? AND (a.operator_id = ? OR a.owner_id = ?)
+            ");
+            $stmt->execute([$application_id, $user_id, $user_id]);
+            $location_operator_id = (int)($stmt->fetchColumn() ?: 0);
+
+            if ($location_operator_id <= 0) {
+                echo json_encode(['error' => 'Нельзя запланировать выезд: владелец ещё не закрепил оператора за этой локацией']);
+                exit;
+            }
+        }
+
         if ($location_operator_id <= 0 || empty($datetime)) {
             echo json_encode(['error' => 'Invalid parameters']);
             exit;

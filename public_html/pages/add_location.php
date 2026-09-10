@@ -23,6 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $depth = floatval($_POST['depth'] ?? 0);
     $has_electricity = isset($_POST['has_electricity']) ? 1 : 0;
     $has_wifi = isset($_POST['has_wifi']) ? 1 : 0;
+    $has_water = isset($_POST['has_water']) ? 1 : 0;
     $access_hours = $_POST['access_hours'] ?? '24/7';
     $traffic_rating = intval($_POST['traffic_rating'] ?? 0);
     if ($traffic_rating < 0 || $traffic_rating > 5) $traffic_rating = 0;
@@ -38,10 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // 1. Вставляем локацию (неактивную, непромодерированную)
             $stmt = $pdo->prepare("
-                INSERT INTO locations 
-                (owner_id, title, address, city, description, price_month, width, height, depth, 
-                 has_electricity, has_wifi, access_hours, traffic_rating, space_type, is_moderated, is_active)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
+                INSERT INTO locations
+                (owner_id, title, address, city, description, price_month, width, height, depth,
+                 has_electricity, has_wifi, has_water, access_hours, traffic_rating, space_type, is_moderated, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0)
             ");
             $stmt->execute([
                 $_SESSION['user_id'],
@@ -55,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $depth,
                 $has_electricity,
                 $has_wifi,
+                $has_water,
                 $access_hours,
                 $traffic_rating,
                 $space_type
@@ -73,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'depth'            => $depth,
                 'has_electricity'  => $has_electricity,
                 'has_wifi'         => $has_wifi,
+                'has_water'        => $has_water,
                 'access_hours'     => $access_hours,
                 'traffic_rating'   => $traffic_rating,
                 'space_type'       => $space_type
@@ -304,9 +307,12 @@ if (strpos($mainPhoto, 'new_') === 0) {
                     <label>
                         <input type="checkbox" name="has_wifi"> 📶 Wi-Fi
                     </label>
+                    <label>
+                        <input type="checkbox" name="has_water"> 🚰 Вода
+                    </label>
                 </div>
             </div>
-            
+
             <!-- Загрузка фото -->
             <div class="form-group">
                 <label>Фотографии места (до 5 шт)</label>

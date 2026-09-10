@@ -4,9 +4,10 @@
     max-width: 450px;
     margin: 60px auto;
     padding: 30px;
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
 }
 .register-form h2 {
     text-align: center;

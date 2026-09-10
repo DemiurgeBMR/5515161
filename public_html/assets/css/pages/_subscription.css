@@ -1,0 +1,51 @@
+/* ===== СТРАНИЦА ПОДПИСКИ (заглушка) ===== */
+.subscription-container {
+    max-width: 560px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+.subscription-container h2 {
+    margin: 15px 0 20px;
+}
+.subscription-card {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    padding: 30px;
+}
+.subscription-status {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+.subscription-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+.subscription-status.inactive {
+    background: #f8d7da;
+    color: #721c24;
+}
+.subscription-description {
+    color: var(--text-muted, #9a9aa5);
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+.subscription-benefits {
+    margin: 0 0 25px;
+    padding-left: 20px;
+    color: var(--text, #f2f2f5);
+    line-height: 1.8;
+}
+.btn-danger-outline {
+    background: transparent;
+    color: #e74c3c;
+    border: 2px solid #e74c3c;
+}
+.btn-danger-outline:hover {
+    background: #e74c3c;
+    color: white;
+}

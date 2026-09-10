@@ -24,10 +24,10 @@
 }
 .filters a {
     padding: 6px 16px;
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     border-radius: 20px;
     text-decoration: none;
-    color: #333;
+    color: var(--text, #f2f2f5);
 }
 .filters a.active {
     background: #e94560;
@@ -35,10 +35,12 @@
 }
 
 .admin-table {
-    background: white;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    color: var(--text, #f2f2f5);
 }
 .admin-table table {
     width: 100%;
@@ -46,14 +48,14 @@
     min-width: 700px;
 }
 .admin-table th {
-    background: #f5f7fa;
+    background: var(--bg-elevated-2, #1c1c24);
     text-align: left;
     padding: 12px 15px;
     font-weight: 600;
 }
 .admin-table td {
     padding: 12px 15px;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 
 .status {

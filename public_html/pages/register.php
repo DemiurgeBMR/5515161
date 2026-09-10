@@ -11,6 +11,9 @@ if (isset($_SESSION['user_id'])) {
 $error = '';
 $success = '';
 
+// Позволяет прислать сюда ссылку с уже выбранной ролью (см. how_it_works.php).
+$preselectedRole = ($_GET['role'] ?? '') === 'owner' ? 'owner' : 'operator';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
@@ -54,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $full_name;
                 $_SESSION['user_role'] = $role;
+                $_SESSION['has_subscription'] = 0;
 
                 header('Location: /pages/profile.php');
                 exit;
@@ -86,11 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label>Ваша роль</label>
                 <div class="role-selector">
                     <label>
-                        <input type="radio" name="role" value="operator" checked>
+                        <input type="radio" name="role" value="operator" <?php echo $preselectedRole === 'operator' ? 'checked' : ''; ?>>
                         🤝 Оператор (ищу место)
                     </label>
                     <label>
-                        <input type="radio" name="role" value="owner">
+                        <input type="radio" name="role" value="owner" <?php echo $preselectedRole === 'owner' ? 'checked' : ''; ?>>
                         🏢 Собственник (сдаю место)
                     </label>
                 </div>

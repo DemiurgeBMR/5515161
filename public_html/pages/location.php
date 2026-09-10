@@ -15,24 +15,26 @@ if ($id <= 0) {
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $user_id = $_SESSION['user_id'] ?? 0;
 
+// Имя владельца показываем только подписчикам (см. $hasFullAccess ниже) —
+// сам JOIN безобиден, это просто SELECT, скрытие происходит в шаблоне.
 if ($is_admin) {
     $sql = "
-        SELECT l.*, u.full_name as owner_name, u.phone as owner_phone, u.email as owner_email,
+        SELECT l.*, ow.full_name as owner_name,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
         FROM locations l
-        JOIN users u ON l.owner_id = u.id
+        JOIN users ow ON ow.id = l.owner_id
         WHERE l.id = ?
     ";
     $params = [$id];
 } else {
     // Для обычных пользователей: показываем, если активно ИЛИ если это владелец (даже неактивное)
     $sql = "
-        SELECT l.*, u.full_name as owner_name, u.phone as owner_phone, u.email as owner_email,
+        SELECT l.*, ow.full_name as owner_name,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
         FROM locations l
-        JOIN users u ON l.owner_id = u.id
-        WHERE l.id = ? 
-          AND ( (l.is_active = 1 AND l.is_moderated = 1) 
+        JOIN users ow ON ow.id = l.owner_id
+        WHERE l.id = ?
+          AND ( (l.is_active = 1 AND l.is_moderated = 1)
                 OR (l.owner_id = ? AND (l.is_moderated = 0 OR l.is_active = 0)) )
     ";
     $params = [$id, $user_id];
@@ -55,6 +57,26 @@ if ($location) {
         $is_preview = true;
     }
 }
+
+// ★★★ Точный адрес, имя владельца и возможность написать ему — по подписке
+// (или владельцу/админу своей же локации), без неё — только город
+// (см. pages/subscription.php) ★★★
+$isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
+$hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
+
+// Блок обращения к владельцу показываем гостям (предложим войти) и
+// операторам, которые не владеют этой локацией — самому владельцу и
+// другим владельцам, листающим чужую локацию, писать самому себе/друг
+// другу через аренду незачем.
+$showInquiryBlock = !$is_admin && !$isOwnListing
+    && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator');
+
+// Отметка "прошло модерацию" — то же самое условие, по которому объявление
+// вообще попадает в публичный каталог (см. catalog.php), поэтому в самом
+// каталоге она будет стоять всегда, а здесь корректно пропадёт для
+// черновика/ожидающего модерации объявления, которое видит только его
+// владелец или админ в режиме предпросмотра.
+$isVerified = ($location['is_moderated'] == 1 && $location['is_active'] == 1);
 
 // ★★★ ВЫЧИСЛЯЕМ ПЛОЩАДЬ ★★★
 $area = null;
@@ -182,7 +204,7 @@ if (!$is_preview) {
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <?php if ($is_preview): ?>
-    <div style="background: #fff3cd; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+    <div style="background: #fff3cd; color: #333; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
         <strong>👁️ Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
         <?php if ($location['is_moderated'] == 0): ?>
             <span style="display: inline-block; margin-left: 10px; background: #ffc107; color: #333; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Ожидает модерации</span>
@@ -191,14 +213,18 @@ if (!$is_preview) {
         <?php endif; ?>
     </div>
 <?php endif; ?>
+        <div class="location-layout<?php echo $showInquiryBlock ? ' has-sidebar' : ''; ?>">
         <div class="detail-card">
             <!-- Главное фото -->
+            <?php if ($isVerified): ?>
+                <span class="verified-badge-photo">✓ Верифицировано</span>
+            <?php endif; ?>
             <?php if (!empty($location['main_photo'])): ?>
                 <img src="/<?php echo $location['main_photo']; ?>" alt="<?php echo htmlspecialchars($location['title']); ?>" class="main-photo">
             <?php else: ?>
                 <img src="/assets/images/placeholder.jpg" alt="Нет фото" class="main-photo">
             <?php endif; ?>
-            
+
 <!-- Галерея дополнительных фото -->
 <?php if (count($photos) > 0): ?>
     <div class="gallery">
@@ -214,9 +240,21 @@ if (!$is_preview) {
                     📍 ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
                 </div>
 
-                <div class="title"><?php echo htmlspecialchars($location['title']); ?></div>
+                <div class="title">
+                    <?php echo htmlspecialchars($location['title']); ?>
+                    <?php if ($isVerified): ?>
+                        <span class="verified-pill">✓ Проверено</span>
+                    <?php endif; ?>
+                </div>
                 <div class="price"><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽ / месяц</div>
-                <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
+                <?php if ($hasFullAccess): ?>
+                    <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
+                <?php else: ?>
+                    <div class="address">
+                        📍 <?php echo htmlspecialchars($location['city']); ?>
+                        <a href="/pages/subscription.php" class="address-locked-hint">🔒 точный адрес — по подписке</a>
+                    </div>
+                <?php endif; ?>
 
 <div style="color: #888; font-size: 14px; margin-top: 8px;">
 🗓️ Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
@@ -257,6 +295,9 @@ if (!$is_preview) {
                     <?php endif; ?>
                     <?php if ($location['has_wifi']): ?>
                         <span class="badge badge-wifi">📶 Wi-Fi</span>
+                    <?php endif; ?>
+                    <?php if ($location['has_water']): ?>
+                        <span class="badge badge-water">🚰 Вода</span>
                     <?php endif; ?>
                     <?php if ($location['access_hours'] === '24/7'): ?>
                         <span class="badge badge-24h">🕒 Круглосуточно</span>
@@ -301,27 +342,62 @@ if (!$is_preview) {
                     <?php endif; ?>
                     <div class="spec-item"><span class="label">Просмотров:</span> <span class="value"><?php echo $location['views']; ?></span></div>
                 </div>
+            </div>
+        </div>
 
-                <!-- Вывод рекомендаций в HTML -->
-                 <?php if (count($recommendations) > 0): ?>
+        <?php if ($showInquiryBlock): ?>
+        <aside class="inquiry-sidebar">
+            <div class="inquiry-card">
+                <h3>Заинтересовала локация?</h3>
+                <p class="inquiry-sub">С подпиской можно написать владельцу напрямую в один клик.</p>
+
+                <div class="inquiry-price-row">
+                    <span>Аренда в месяц</span>
+                    <strong><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽</strong>
+                </div>
+
+                <?php if (!isset($_SESSION['user_id'])): ?>
+                    <a href="/pages/login.php" class="btn-contact btn-block">Войдите, чтобы связаться</a>
+                <?php elseif ($hasFullAccess): ?>
+                    <div class="inquiry-owner">
+                        <span>Владелец</span>
+                        <strong><?php echo htmlspecialchars($location['owner_name']); ?></strong>
+                    </div>
+                    <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block">📩 Отправить заявку на аренду</a>
+                <?php else: ?>
+                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe">🔒 Подписка, чтобы связаться</a>
+                <?php endif; ?>
+
+                <ul class="inquiry-points">
+                    <li>💬 RR передаёт ваше обращение владельцу — звонить самому не нужно</li>
+                    <li>🤝 Условия аренды обсуждаются напрямую в чате с владельцем</li>
+                    <li>🔒 Подписка открывает имя и контакт владельца на всех локациях</li>
+                </ul>
+            </div>
+        </aside>
+        <?php endif; ?>
+        </div>
+
+        <!-- Похожие объявления -->
+        <?php if (count($recommendations) > 0): ?>
     <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
         <h3 style="margin-bottom: 15px;">🔍 Похожие объявления</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+        <div class="rec-grid">
             <?php foreach ($recommendations as $rec): ?>
-                <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
-                    <div style="background: #f9f9f9; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); transition: 0.2s; height: 100%;">
+                <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" class="rec-card-link">
+                    <div class="rec-card">
                         <?php if (!empty($rec['main_photo'])): ?>
-                            <img src="/<?php echo $rec['main_photo']; ?>" alt="<?php echo htmlspecialchars($rec['title']); ?>" style="width: 100%; height: 140px; object-fit: cover; background: #eee;">
+                            <img src="/<?php echo $rec['main_photo']; ?>" alt="<?php echo htmlspecialchars($rec['title']); ?>">
                         <?php else: ?>
-                            <img src="/assets/images/placeholder.jpg" alt="Нет фото" style="width: 100%; height: 140px; object-fit: cover; background: #eee;">
+                            <img src="/assets/images/placeholder.jpg" alt="Нет фото">
                         <?php endif; ?>
-                        <div style="padding: 10px;">
-                            <div style="font-weight: bold; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"><?php echo htmlspecialchars($rec['title']); ?></div>
-                            <div style="color: #888; font-size: 13px;"><?php echo htmlspecialchars($rec['city']); ?></div>
-                            <div style="color: #e94560; font-weight: bold; font-size: 16px;"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
+                        <div class="rec-body">
+                            <div class="rec-title"><?php echo htmlspecialchars($rec['title']); ?></div>
+                            <div class="rec-city"><?php echo htmlspecialchars($rec['city']); ?></div>
+                            <div class="rec-price"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
                             <?php if ($rec['traffic_rating'] > 0): ?>
-                                <div style="font-size: 12px; color: #555;">
-                                    🚶 
+                                <div class="rec-traffic">
+                                    🚶
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
                                         <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : '#ddd'; ?>;">★</span>
                                     <?php endfor; ?>
@@ -334,99 +410,8 @@ if (!$is_preview) {
         </div>
     </div>
 <?php endif; ?>
-
-                <!-- Владелец и контакты -->
-<?php
-// Кто может видеть контакты?
-$showContacts = false;
-if ($is_admin || (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'])) {
-    $showContacts = true;
-}
-?>
-
-<div class="owner-block">
-    <div class="owner-info">
-        <strong>👤 <?php echo htmlspecialchars($location['owner_name']); ?></strong>
-        <span style="color: #888; font-size: 14px;">Владелец</span>
-
-        <?php if ($showContacts): ?>
-            <!-- Контакты видны только владельцу и администратору -->
-            <?php if (!empty($location['owner_phone'])): ?>
-                <div style="margin-top: 5px;">📞 <?php echo htmlspecialchars($location['owner_phone']); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($location['owner_email'])): ?>
-                <div>📧 <?php echo htmlspecialchars($location['owner_email']); ?></div>
-            <?php endif; ?>
-        <?php else: ?>
-            <!-- Для остальных – никакой информации о контактах -->
-        <?php endif; ?>
     </div>
 
-    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $location['owner_id'] && $showContacts): ?>
-        <!-- Кнопка "Связаться" показывается только если контакты видны -->
-        <a href="mailto:<?php echo htmlspecialchars($location['owner_email']); ?>" class="btn-contact">✉️ Связаться</a>
-    <?php endif; ?>
-</div>
-
-    <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] != $location['owner_id']): ?>
-        <?php if ($showContacts): ?>
-            <!-- Если контакты видны – ссылка mailto -->
-            <a href="mailto:<?php echo htmlspecialchars($location['owner_email']); ?>" class="btn-contact">✉️ Связаться</a>
-        <?php else: ?>
-            <!-- Если не видны – ссылка на форму (пока заглушка) -->
-            <a href="/pages/contact_owner.php?id=<?php echo $location['id']; ?>" class="btn-contact">✉️ Связаться</a>
-        <?php endif; ?>
-    <?php endif; ?>
-
-<?php if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'operator' && $_SESSION['user_id'] != $location['owner_id']): ?>
-    <div style="margin-top: 20px; text-align: center;">
-        <button id="requestAssignmentBtn" class="btn-contact" style="background: #3498db; border: none; cursor: pointer;">📩 Запросить закрепление</button>
-        <div id="requestStatus" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
-    <script>
-        document.getElementById('requestAssignmentBtn').addEventListener('click', function() {
-            var btn = this;
-            var statusDiv = document.getElementById('requestStatus');
-            btn.disabled = true;
-            btn.textContent = 'Отправка...';
-            statusDiv.textContent = '';
-
-            var formData = new FormData();
-            formData.append('action', 'request');
-            formData.append('location_id', <?php echo $location['id']; ?>);
-
-            fetch('/api/operator_assign.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    statusDiv.style.color = '#2ecc71';
-                    statusDiv.textContent = '✅ Запрос отправлен владельцу! Ожидайте подтверждения.';
-                    btn.style.display = 'none';
-                } else {
-                    statusDiv.style.color = '#e74c3c';
-                    statusDiv.textContent = '❌ ' + (data.error || 'Ошибка отправки запроса');
-                    btn.disabled = false;
-                    btn.textContent = '📩 Запросить закрепление';
-                }
-            })
-            .catch(err => {
-                statusDiv.style.color = '#e74c3c';
-                statusDiv.textContent = '❌ Ошибка соединения';
-                btn.disabled = false;
-                btn.textContent = '📩 Запросить закрепление';
-            });
-        });
-    </script>
-<?php endif; ?>
-</div>
-                <div class="views">👁️ Просмотров: <?php echo $location['views']; ?></div>
-            </div>
-        </div>
-    </div>
-    
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
 <div class="modal-overlay" id="trafficHelpModal">

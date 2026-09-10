@@ -51,6 +51,7 @@ $fieldLabels = [
     'depth' => 'Глубина (м)',
     'has_electricity' => 'Электричество',
     'has_wifi' => 'Wi-Fi',
+    'has_water' => 'Вода',
     'access_hours' => 'Часы доступа',
     'traffic_rating' => 'Рейтинг трафика',
     'space_type' => 'Тип помещения'
@@ -82,7 +83,7 @@ $spaceTypes = [
 
 function formatValue($field, $value, $spaceTypes, $boolValues) {
     if ($value === null || $value === '') return '<span style="color:#999;">(не указано)</span>';
-    if ($field === 'has_electricity' || $field === 'has_wifi') {
+    if ($field === 'has_electricity' || $field === 'has_wifi' || $field === 'has_water') {
         return $boolValues[(int)$value];
     }
     if ($field === 'space_type') {

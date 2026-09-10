@@ -53,15 +53,17 @@ function daysSince($dateString) {
             padding: 0 20px;
         }
         .location-card {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 12px;
             padding: 18px 22px;
             margin-bottom: 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             transition: 0.2s;
         }
         .location-card:hover {
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border-color: var(--border-strong, #3a3a45);
         }
         .top-row {
             display: flex;
@@ -75,13 +77,13 @@ function daysSince($dateString) {
             font-weight: bold;
         }
         .location-info .address {
-            color: #777;
+            color: var(--text-muted, #9a9aa5);
             font-size: 14px;
             margin-top: 4px;
         }
         .location-info .owner {
             font-size: 14px;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
             margin-top: 4px;
         }
         .location-actions {
@@ -108,12 +110,12 @@ function daysSince($dateString) {
         .empty {
             text-align: center;
             padding: 60px 20px;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
         }
         .back-link {
             display: inline-block;
             margin-bottom: 20px;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
             text-decoration: none;
         }
         .back-link:hover {
@@ -134,8 +136,8 @@ function daysSince($dateString) {
             margin-top: 16px;
             padding: 14px 16px;
             border-radius: 10px;
-            background: #f7f8fa;
-            border: 1px solid #eee;
+            background: var(--bg-elevated-2, #1c1c24);
+            border: 1px solid var(--border, #2a2a33);
         }
         .machine-box.empty-machine {
             display: flex;
@@ -151,9 +153,9 @@ function daysSince($dateString) {
             flex-wrap: wrap;
             gap: 6px 18px;
             font-size: 14px;
-            color: #333;
+            color: var(--text, #f2f2f5);
         }
-        .machine-info b { color: #1a1a2e; }
+        .machine-info b { color: var(--text, #f2f2f5); }
 
         .service-badge {
             display: inline-block;
@@ -165,7 +167,7 @@ function daysSince($dateString) {
         }
         .service-ok { background: #d4edda; color: #155724; }
         .service-due { background: #f8d7da; color: #721c24; }
-        .service-unknown { background: #eee; color: #666; }
+        .service-unknown { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
 
         .machine-actions {
             margin-top: 12px;
@@ -175,8 +177,8 @@ function daysSince($dateString) {
         }
         .btn-service { background: #2ecc71; color: white; }
         .btn-service:hover { background: #27ae60; }
-        .btn-edit-machine { background: #eee; color: #333; }
-        .btn-edit-machine:hover { background: #ddd; }
+        .btn-edit-machine { background: var(--bg-elevated-2, #1c1c24); color: var(--text, #f2f2f5); }
+        .btn-edit-machine:hover { background: var(--border, #2a2a33); }
         .btn-add-machine { background: #e94560; color: white; }
         .btn-add-machine:hover { background: #c73652; }
 
@@ -192,12 +194,14 @@ function daysSince($dateString) {
         }
         .modal-overlay.active { display: flex; }
         .modal-box {
-            background: white;
+            background: var(--bg-elevated, #16161c);
+            color: var(--text, #f2f2f5);
+            border: 1px solid var(--border, #2a2a33);
             padding: 30px;
             border-radius: 16px;
             max-width: 460px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
             position: relative;
         }
         .modal-box .close-btn {
@@ -206,7 +210,7 @@ function daysSince($dateString) {
             right: 18px;
             font-size: 28px;
             cursor: pointer;
-            color: #888;
+            color: var(--text-muted, #9a9aa5);
             background: none;
             border: none;
         }
@@ -219,9 +223,11 @@ function daysSince($dateString) {
         .modal-box textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ddd;
+            background: var(--bg-input, #0f0f14);
+            border: 1px solid var(--border, #2a2a33);
             border-radius: 6px;
             font-size: 14px;
+            color: var(--text, #f2f2f5);
             box-sizing: border-box;
         }
         .modal-box .btn-submit {

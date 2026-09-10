@@ -48,6 +48,30 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         :root {
             --primary: #e94560;
             --primary-dark: #d63852;
+            --text: #f2f2f5;
+            --text-light: #9a9aa5;
+            --border: #2a2a33;
+            --background: #0b0b0f;
+            --white: #16161c;
+            --blue: #5b9bf7;
+            --blue-bg: rgba(59, 130, 246, 0.15);
+            --yellow: #f5a623;
+            --yellow-bg: rgba(245, 158, 11, 0.15);
+            --green: #2ecc71;
+            --green-bg: rgba(34, 197, 94, 0.15);
+            --red: #ff6b6b;
+            --red-bg: rgba(239, 68, 68, 0.15);
+            --gray: #9a9aa5;
+            --gray-bg: #1c1c24;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
+            --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
+            --radius: 14px;
+        }
+        /* Светлая тема — переключатель в шапке (includes/header.php)
+           ставит data-theme="light" на <html>; этот блок держит
+           собственную палитру страницы синхронной с общей. */
+        :root[data-theme="light"] {
             --text: #202124;
             --text-light: #6b7280;
             --border: #e5e7eb;
@@ -66,7 +90,6 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
             --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
             --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
-            --radius: 14px;
         }
         body { background: var(--background); }
         .calendar-container {
@@ -131,7 +154,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             transition: background .2s, border .2s, transform .2s, box-shadow .2s;
         }
         .action-btn:hover {
-            border-color: #d1d5db;
+            border-color: var(--border-strong, #3a3a45);
             box-shadow: var(--shadow-sm);
         }
         .action-btn:active { transform: scale(.98); }
@@ -226,6 +249,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             padding: 0 13px 0 38px;
             border: 1px solid var(--border);
             border-radius: 10px;
+            background: var(--gray-bg);
+            color: var(--text);
             font-size: 14px;
             outline: none;
             transition: .2s;
@@ -239,7 +264,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             left: 13px;
             top: 50%;
             transform: translateY(-50%);
-            color: #9ca3af;
+            color: var(--text-light);
             pointer-events: none;
         }
         .filter-select {
@@ -247,7 +272,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 0 35px 0 12px;
-            background: white;
+            background: var(--gray-bg);
+            color: var(--text);
             font-size: 14px;
             cursor: pointer;
             outline: none;
@@ -336,11 +362,11 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             font-size: 11px;
             font-weight: 700;
         }
-        .status-confirmed { background: var(--blue-bg); color: #2563eb; }
-        .status-proposed { background: var(--yellow-bg); color: #b45309; }
-        .status-completed { background: var(--green-bg); color: #15803d; }
+        .status-confirmed { background: #dbeafe; color: #2563eb; }
+        .status-proposed { background: #fffbeb; color: #b45309; }
+        .status-completed { background: #f0fdf4; color: #15803d; }
         .status-cancelled { background: var(--gray-bg); color: var(--gray); }
-        .status-emergency { background: var(--red-bg); color: #dc2626; }
+        .status-emergency { background: #fef2f2; color: #dc2626; }
         /* =========================================================
            CALENDAR BOX
         ========================================================= */
@@ -365,7 +391,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             color: var(--text);
         }
         .fc .fc-button {
-            background: white;
+            background: var(--gray-bg);
             border: 1px solid var(--border);
             color: var(--text);
             box-shadow: none;
@@ -374,8 +400,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             padding: 7px 12px;
         }
         .fc .fc-button:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
+            background: var(--border);
+            border-color: var(--border-strong, #3a3a45);
             color: var(--text);
         }
         .fc .fc-button-primary:not(:disabled).fc-button-active,
@@ -390,7 +416,14 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             color: white;
         }
         .fc .fc-today-button:hover { background: var(--primary-dark); }
-        .fc .fc-col-header-cell { background: #fafafa; }
+        .fc .fc-col-header-cell { background: var(--gray-bg); }
+        .fc, .fc-theme-standard td, .fc-theme-standard th, .fc-theme-standard .fc-scrollgrid {
+            border-color: var(--border);
+        }
+        .fc-daygrid-day, .fc-timegrid-slot-lane { background: var(--white); }
+        .fc .fc-daygrid-day.fc-day-other { background: var(--background); }
+        .fc-timegrid-axis, .fc-timegrid-slot-label { color: var(--text-light); }
+        .fc-scrollgrid-sync-inner { color: var(--text); }
         .fc .fc-col-header-cell-cushion {
             color: var(--text-light);
             font-size: 12px;
@@ -471,7 +504,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .loading-overlay {
             position: absolute;
             inset: 0;
-            background: rgba(255,255,255,0.7);
+            background: rgba(11,11,15,0.7);
             display: none;
             align-items: center;
             justify-content: center;
@@ -509,7 +542,9 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             width: min(520px, 100%);
             max-height: calc(100vh - 40px);
             overflow-y: auto;
-            background: white;
+            background: var(--white);
+            color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 18px;
             padding: 25px;
             box-shadow: var(--shadow-lg);
@@ -539,16 +574,16 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         }
         .close-btn {
             border: 0;
-            background: #f3f4f6;
+            background: var(--gray-bg);
             width: 36px;
             height: 36px;
             border-radius: 9px;
             cursor: pointer;
             font-size: 22px;
-            color: #6b7280;
+            color: var(--text-light);
             flex: 0 0 36px;
         }
-        .close-btn:hover { background: #e5e7eb; }
+        .close-btn:hover { background: var(--border); }
         .form-group { margin-bottom: 17px; }
         .form-label {
             display: block;
@@ -564,7 +599,8 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             padding: 10px 13px;
             border: 1px solid var(--border);
             border-radius: 10px;
-            background: white;
+            background: var(--gray-bg);
+            color: var(--text);
             font-size: 14px;
             outline: none;
             transition: .2s;
@@ -610,10 +646,10 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         }
         .btn-primary:hover { background: var(--primary-dark); }
         .btn-secondary {
-            background: #f3f4f6;
+            background: var(--gray-bg);
             color: var(--text);
         }
-        .btn-secondary:hover { background: #e5e7eb; }
+        .btn-secondary:hover { background: var(--border); }
         .btn-danger {
             background: var(--red);
             color: white;
@@ -630,7 +666,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .detail-item {
             padding: 12px;
             border-radius: 10px;
-            background: #f9fafb;
+            background: var(--gray-bg);
             border: 1px solid var(--border);
         }
         .detail-label {
@@ -650,7 +686,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         .emergency-reason {
             padding: 13px;
             border-radius: 10px;
-            background: var(--red-bg);
+            background: #fef2f2;
             border: 1px solid #fecaca;
             margin-bottom: 18px;
         }
@@ -686,7 +722,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             position: fixed;
             display: none;
             min-width: 210px;
-            background: white;
+            background: var(--white);
             border: 1px solid var(--border);
             border-radius: 11px;
             box-shadow: var(--shadow-lg);
@@ -701,7 +737,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             font-weight: 700;
             color: var(--text);
         }
-        .menu-item:hover { background: #f3f4f6; }
+        .menu-item:hover { background: var(--gray-bg); }
         .menu-item.danger { color: var(--red); }
         .menu-item.danger:hover { background: var(--red-bg); }
         /* =========================================================
@@ -789,11 +825,11 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         }
         /* Принудительные стили для кнопок в модалках */
 .modal-buttons .btn-secondary {
-    background: #f3f4f6 !important;
-    color: #202124 !important;  /* тёмно-серый, как основной текст */
+    background: var(--gray-bg) !important;
+    color: var(--text) !important;
 }
 .modal-buttons .btn-secondary:hover {
-    background: #e5e7eb !important;
+    background: var(--border) !important;
 }
 .modal-buttons .btn-primary {
     background: var(--primary) !important;
@@ -813,7 +849,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             opacity: .8;
             font-style: italic;
         }
-        .status-quicklog { background: #f3f4f6; color: #6b7280; }
+        .status-quicklog { background: var(--gray-bg); color: var(--text-light); }
         .filter-select#operatorFilter { min-width: 170px; }
 
     </style>
