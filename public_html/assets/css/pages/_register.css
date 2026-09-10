@@ -1,24 +1,286 @@
-/* ===== СТРАНИЦА РЕГИСТРАЦИИ ===== */
+/* ===== СТРАНИЦА РЕГИСТРАЦИИ (визард) ===== */
 
-.role-selector {
-    display: flex;
-    gap: 15px;
-    margin: 10px 0;
+.reg-page {
+    padding: 40px 0 60px;
 }
-.role-selector label {
+.reg-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* ---------- Хиро ---------- */
+.reg-hero {
+    text-align: center;
+    margin-bottom: 28px;
+}
+.reg-badge {
+    display: inline-block;
+    background: rgba(233, 69, 96, 0.15);
+    color: #e94560;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+.reg-hero h1 {
+    font-size: 32px;
+    color: var(--text, #f2f2f5);
+    margin-bottom: 10px;
+}
+.reg-subtitle {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+/* ---------- Фичи ---------- */
+.reg-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.reg-feature {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+}
+.reg-feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(233, 69, 96, 0.15);
+    font-size: 16px;
+    margin-bottom: 10px;
+}
+.reg-feature-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text, #f2f2f5);
+    margin-bottom: 3px;
+}
+.reg-feature-text {
+    font-size: 12px;
+    color: var(--text-muted, #9a9aa5);
+    line-height: 1.4;
+}
+
+/* ---------- Выбор роли ---------- */
+.reg-role-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 26px;
+}
+.reg-role-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+    background: var(--bg-elevated, #16161c);
+    border: 2px solid var(--border, #2a2a33);
+    border-radius: 14px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.reg-role-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.reg-role-card.active {
+    border-color: #e94560;
+    background: rgba(233, 69, 96, 0.08);
+}
+.reg-role-icon {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+.reg-role-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text, #f2f2f5);
+}
+.reg-role-text {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+}
+
+/* ---------- Индикатор шагов ---------- */
+.reg-steps {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-weight: normal;
-    cursor: pointer;
-    padding: 10px 20px;
-    border: 2px solid var(--border, #2a2a33);
-    border-radius: 8px;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 22px;
 }
-.role-selector input[type="radio"] {
-    width: auto;
+.reg-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 }
-.role-selector label:has(input:checked) {
+.reg-step-num {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
+    color: var(--text-muted, #9a9aa5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.reg-step.active .reg-step-num {
+    background: #e94560;
     border-color: #e94560;
-    background: var(--accent-soft, rgba(233, 69, 96, 0.15));
+    color: #fff;
+}
+.reg-step.done .reg-step-num {
+    background: rgba(46, 204, 113, 0.15);
+    border-color: #2ecc71;
+    color: #2ecc71;
+}
+.reg-step-label {
+    font-size: 11px;
+    color: var(--text-muted, #9a9aa5);
+    white-space: nowrap;
+}
+.reg-step.active .reg-step-label {
+    color: var(--text, #f2f2f5);
+    font-weight: 700;
+}
+.reg-step-line {
+    width: 40px;
+    height: 2px;
+    background: var(--border, #2a2a33);
+    margin: 0 2px 20px;
+    flex-shrink: 0;
+}
+
+/* ---------- Панели шагов ---------- */
+.reg-panel {
+    display: none;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 14px;
+    padding: 28px;
+}
+.reg-panel.active {
+    display: block;
+}
+.reg-form.show-all .reg-panel {
+    display: block;
+    margin-bottom: 16px;
+}
+.reg-panel h2 {
+    font-size: 20px;
+    color: var(--text, #f2f2f5);
+    margin-bottom: 6px;
+}
+.reg-panel-sub {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+.reg-panel-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 22px;
+}
+.reg-panel-actions .btn-submit {
+    width: auto;
+    padding: 12px 28px;
+}
+.reg-btn-back {
+    background: transparent;
+    border: 1px solid var(--border, #2a2a33);
+    color: var(--text-muted, #9a9aa5);
+    padding: 12px 22px;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+.reg-btn-back:hover {
+    border-color: var(--border-strong, #3a3a45);
+    color: var(--text, #f2f2f5);
+}
+
+/* ---------- Список "что дальше" на последнем шаге ---------- */
+.reg-done-list {
+    list-style: none;
+    margin: 0 0 6px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.reg-done-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+    line-height: 1.5;
+}
+.reg-done-icon {
+    flex-shrink: 0;
+    font-size: 18px;
+}
+
+.reg-login-link {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--text-muted, #9a9aa5);
+    font-size: 14px;
+}
+.reg-login-link a {
+    color: #e94560;
+    text-decoration: none;
+    font-weight: 700;
+}
+.reg-login-link a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- Видимость по роли ---------- */
+.reg-form.role-operator .owner-only {
+    display: none !important;
+}
+.reg-form.role-owner .operator-only {
+    display: none !important;
+}
+
+/* ---------- Адаптив ---------- */
+@media (max-width: 640px) {
+    .reg-features,
+    .reg-role-picker {
+        grid-template-columns: 1fr;
+    }
+    .reg-panel {
+        padding: 20px;
+    }
+    .reg-step-line {
+        width: 20px;
+    }
 }
