@@ -37,6 +37,17 @@ if (!$location) {
 $operator_id = $_SESSION['user_id'];
 $owner_id = $location['owner_id'];
 
+// Локация уже занята — за ней активно закреплён оператор, новую заявку
+// подавать некуда (см. ту же логику скрытия в pages/catalog.php). Страница
+// локации сама покажет статус "занято" — отдельное flash-сообщение здесь
+// не нужно.
+$stmt = $pdo->prepare("SELECT 1 FROM location_operators WHERE location_id = ? AND status = 'active' LIMIT 1");
+$stmt->execute([$location_id]);
+if ($stmt->fetch()) {
+    header('Location: /pages/location.php?id=' . $location_id);
+    exit;
+}
+
 // Проверяем, не отправлял ли оператор уже заявку на эту локацию.
 // 'rejected' исключён из блокирующих статусов так же, как и в
 // api/operator_assign.php ('request') — иначе одна отклонённая заявка

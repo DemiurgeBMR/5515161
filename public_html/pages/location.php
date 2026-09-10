@@ -64,12 +64,30 @@ if ($location) {
 $isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
 $hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
 
-// Блок обращения к владельцу показываем гостям (предложим войти) и
-// операторам, которые не владеют этой локацией — самому владельцу и
-// другим владельцам, листающим чужую локацию, писать самому себе/друг
-// другу через аренду незачем.
-$showInquiryBlock = !$is_admin && !$isOwnListing
+// ★★★ Локация уже занята активно закреплённым оператором? ★★★
+// Как только владелец закрепил оператора за точкой, она перестаёт быть
+// свободной для аренды — каталог/карта/рекомендации её больше не
+// показывают (см. pages/catalog.php, pages/map.php), а здесь, по прямой
+// ссылке, вместо приглашения написать владельцу — статус "занято" для всех,
+// кроме владельца, самого закреплённого оператора и админа.
+$stmt = $pdo->prepare("SELECT operator_id FROM location_operators WHERE location_id = ? AND status = 'active' LIMIT 1");
+$stmt->execute([$id]);
+$assignedOperatorId = $stmt->fetchColumn();
+$isOccupied = $assignedOperatorId !== false;
+$isAssignedOperator = $isOccupied && isset($_SESSION['user_id']) && $_SESSION['user_id'] == $assignedOperatorId;
+
+// Аудитория бокового блока — гости (предложим войти) и операторы, которые
+// не владеют этой локацией: самому владельцу и другим владельцам, листающим
+// чужую локацию, писать самому себе/друг другу через аренду незачем.
+$sidebarAudience = !$is_admin && !$isOwnListing
     && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator');
+
+// Если точка уже занята — этой же аудитории (кроме самого закреплённого
+// оператора) вместо приглашения написать владельцу показываем статус
+// "занято" (см. шаблон ниже); писать по уже занятой точке незачем.
+$showInquiryBlock = $sidebarAudience && (!$isOccupied || $isAssignedOperator);
+$showOccupiedBadge = $sidebarAudience && $isOccupied && !$isAssignedOperator;
+$showInquirySidebar = $showInquiryBlock || $showOccupiedBadge;
 
 // Отметка "прошло модерацию" — то же самое условие, по которому объявление
 // вообще попадает в публичный каталог (см. catalog.php), поэтому в самом
@@ -100,12 +118,13 @@ if ($cached !== null) {
         $current_traffic = $location['traffic_rating'];
 
         $sql_rec = "
-            SELECT l.*, 
+            SELECT l.*,
                 (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
             FROM locations l
             WHERE l.id != ?
-              AND l.is_active = 1 
+              AND l.is_active = 1
               AND l.is_moderated = 1
+              AND NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')
               AND l.city = ?
             ORDER BY 
                 CASE WHEN l.space_type = ? THEN 0 ELSE 1 END,
@@ -128,8 +147,9 @@ if ($cached !== null) {
                         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
                     FROM locations l
                     WHERE l.id != ?
-                      AND l.is_active = 1 
+                      AND l.is_active = 1
                       AND l.is_moderated = 1
+                      AND NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')
                       AND l.city != ?
                     ORDER BY 
                         CASE WHEN l.space_type = ? THEN 0 ELSE 1 END,
@@ -213,7 +233,7 @@ if (!$is_preview) {
         <?php endif; ?>
     </div>
 <?php endif; ?>
-        <div class="location-layout<?php echo $showInquiryBlock ? ' has-sidebar' : ''; ?>">
+        <div class="location-layout<?php echo $showInquirySidebar ? ' has-sidebar' : ''; ?>">
         <div class="detail-card">
             <!-- Главное фото -->
             <?php if ($isVerified): ?>
@@ -244,6 +264,9 @@ if (!$is_preview) {
                     <?php echo htmlspecialchars($location['title']); ?>
                     <?php if ($isVerified): ?>
                         <span class="verified-pill">✓ Проверено</span>
+                    <?php endif; ?>
+                    <?php if ($isOccupied): ?>
+                        <span class="occupied-pill">🔒 Занято</span>
                     <?php endif; ?>
                 </div>
                 <div class="price"><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽ / месяц</div>
@@ -373,6 +396,17 @@ if (!$is_preview) {
                     <li>🤝 Условия аренды обсуждаются напрямую в чате с владельцем</li>
                     <li>🔒 Подписка открывает имя и контакт владельца на всех локациях</li>
                 </ul>
+            </div>
+        </aside>
+        <?php elseif ($showOccupiedBadge): ?>
+        <aside class="inquiry-sidebar">
+            <div class="inquiry-card inquiry-card-occupied">
+                <h3>🔒 Точка уже занята</h3>
+                <p class="inquiry-sub">
+                    За этой локацией уже закреплён другой оператор, поэтому она недоступна для новых
+                    заявок на размещение.
+                </p>
+                <a href="/pages/catalog.php" class="btn-contact btn-block btn-subscribe">🔍 Смотреть другие локации</a>
             </div>
         </aside>
         <?php endif; ?>

@@ -69,9 +69,10 @@ try {
 if ($user_role === 'owner') {
     // Получаем все локации с количеством pending ревизий
     $stmt_all = $pdo->prepare("
-        SELECT l.*, 
+        SELECT l.*,
                (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo,
-               (SELECT COUNT(*) FROM location_revisions WHERE location_id = l.id AND status = 'pending') as pending_revisions_count
+               (SELECT COUNT(*) FROM location_revisions WHERE location_id = l.id AND status = 'pending') as pending_revisions_count,
+               EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active') as is_occupied
         FROM locations l
         WHERE l.owner_id = ?
         ORDER BY l.created_at DESC
@@ -222,6 +223,9 @@ unset($_SESSION['flash']);
     <!-- Сюда попадаем, если is_moderated=0 и ревизий нет (отозвано) -->
     <span class="status-badge status-pending" style="background:#f8d7da; color:#721c24;">📄 Отозвано (черновик)</span>
     <div class="status-hint">Вы отозвали правки, объявление не будет опубликовано</div>
+<?php elseif ($loc['is_occupied']): ?>
+    <span class="status-badge status-occupied">🔒 Занято оператором</span>
+    <div class="status-hint">Скрыто из каталога — за локацией закреплён оператор</div>
 <?php elseif ($loc['is_active']): ?>
     <span class="status-badge status-active">✅ Активно</span>
 <?php else: ?>
