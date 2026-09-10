@@ -10,38 +10,7 @@ if (isset($_SESSION['user_id'])) {
 
 $error = '';
 
-$space_types = [
-    'retail'     => 'Торговый центр / Магазин',
-    'office'     => 'Бизнес-центр / Офис',
-    'gym'        => 'Спортзал / Фитнес-клуб',
-    'hotel'      => 'Отель / Гостиница',
-    'hospital'   => 'Больница / Медицинский центр',
-    'transit'    => 'Вокзал / Аэропорт',
-    'coworking'  => 'Коворкинг',
-    'laundromat' => 'Прачечная / Химчистка',
-    'auto'       => 'Автосалон / СТО',
-    'warehouse'  => 'Склад / Логистика',
-    'factory'    => 'Завод / Производство',
-    'education'  => 'Учебное заведение (школа, вуз)',
-    'cinema'     => 'Кинотеатр / Развлекательный центр',
-    'cafe'       => 'Кафе / Ресторан',
-    'bank'       => 'Банк / Финансовое учреждение',
-    'post'       => 'Почта / Отделение связи',
-    'park'       => 'Парк / Сквер',
-    'stadium'    => 'Стадион / Спорткомплекс',
-    'museum'     => 'Музей / Выставочный центр',
-    'other'      => 'Другое',
-];
-$trafficLabels = [
-    1 => 'Низкая — до 200 чел/день',
-    2 => 'Ниже среднего — 200–500 чел/день',
-    3 => 'Средняя — 500–3 000 чел/день',
-    4 => 'Высокая — 3 000–10 000 чел/день',
-    5 => 'Максимальная — от 10 000 чел/день',
-];
-
-// Значения для повторного заполнения формы после ошибки — прямо на том же
-// шаге, где пользователь остановился, ничего вводить заново не нужно.
+// Значения для повторного заполнения формы после ошибки.
 $full_name = trim($_POST['full_name'] ?? '');
 $email = trim($_POST['email'] ?? '');
 $phone = trim($_POST['phone'] ?? '');
@@ -49,18 +18,6 @@ $role = $_POST['role'] ?? ((($_GET['role'] ?? '') === 'owner') ? 'owner' : 'oper
 if (!in_array($role, ['owner', 'operator'], true)) {
     $role = 'operator';
 }
-
-$loc_title = trim($_POST['loc_title'] ?? '');
-$loc_city = trim($_POST['loc_city'] ?? '');
-$loc_address = trim($_POST['loc_address'] ?? '');
-$loc_space_type = $_POST['loc_space_type'] ?? '';
-$loc_traffic = (int)($_POST['loc_traffic'] ?? 0);
-$loc_price = $_POST['loc_price'] ?? '';
-$loc_description = trim($_POST['loc_description'] ?? '');
-$isResubmit = $_SERVER['REQUEST_METHOD'] === 'POST';
-$loc_electricity = $isResubmit ? isset($_POST['loc_electricity']) : true;
-$loc_wifi = $isResubmit ? isset($_POST['loc_wifi']) : false;
-$loc_water = $isResubmit ? isset($_POST['loc_water']) : false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
@@ -71,8 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Некорректный email адрес';
     } elseif (strlen($password) < 6) {
         $error = 'Пароль должен быть не менее 6 символов';
-    } elseif ($role === 'owner' && (empty($loc_title) || empty($loc_city) || empty($loc_address) || (float)$loc_price <= 0)) {
-        $error = 'Заполните обязательные поля о локации: название, город, адрес и цена';
     } else {
         try {
             $pdo = getDbConnection();
@@ -82,8 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($stmt->fetch()) {
                 $error = 'Этот email уже зарегистрирован';
             } else {
-                $pdo->beginTransaction();
-
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
                     INSERT INTO users (email, password, full_name, phone, role)
@@ -92,57 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$email, $hashed_password, $full_name, $phone, $role]);
                 $user_id = $pdo->lastInsertId();
 
-                if ($role === 'owner') {
-                    $price_month = (float)$loc_price;
-                    $traffic_rating = ($loc_traffic >= 1 && $loc_traffic <= 5) ? $loc_traffic : 0;
-                    $space_type_val = $loc_space_type !== '' && isset($space_types[$loc_space_type]) ? $loc_space_type : null;
-
-                    // Заводим локацию сразу неактивной/непромодерированной — точно
-                    // так же, как это делает pages/add_location.php, чтобы админ
-                    // видел и одобрял её через тот же механизм ревизий.
-                    $stmt = $pdo->prepare("
-                        INSERT INTO locations
-                        (owner_id, title, address, city, description, price_month, width, height, depth,
-                         has_electricity, has_wifi, has_water, access_hours, traffic_rating, space_type, is_moderated, is_active)
-                        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, '24/7', ?, ?, 0, 0)
-                    ");
-                    $stmt->execute([
-                        $user_id, $loc_title, $loc_address, $loc_city, $loc_description, $price_month,
-                        $loc_electricity ? 1 : 0, $loc_wifi ? 1 : 0, $loc_water ? 1 : 0,
-                        $traffic_rating, $space_type_val,
-                    ]);
-                    $location_id = $pdo->lastInsertId();
-
-                    $revisionData = [
-                        'title' => $loc_title,
-                        'address' => $loc_address,
-                        'city' => $loc_city,
-                        'description' => $loc_description,
-                        'price_month' => $price_month,
-                        'width' => 0,
-                        'height' => 0,
-                        'depth' => 0,
-                        'has_electricity' => $loc_electricity ? 1 : 0,
-                        'has_wifi' => $loc_wifi ? 1 : 0,
-                        'has_water' => $loc_water ? 1 : 0,
-                        'access_hours' => '24/7',
-                        'traffic_rating' => $traffic_rating,
-                        'space_type' => $space_type_val,
-                    ];
-                    $geo = geocodeAddress($loc_address, $loc_city);
-                    if ($geo) {
-                        $revisionData['latitude'] = $geo['lat'];
-                        $revisionData['longitude'] = $geo['lng'];
-                    }
-                    $stmt = $pdo->prepare("
-                        INSERT INTO location_revisions (location_id, data, status)
-                        VALUES (?, ?, 'pending')
-                    ");
-                    $stmt->execute([$location_id, json_encode($revisionData)]);
-                }
-
-                $pdo->commit();
-
                 session_regenerate_id(true); // новая сессия для только что созданного пользователя
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $full_name;
@@ -150,16 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['has_subscription'] = 0;
 
                 $_SESSION['flash'] = $role === 'owner'
-                    ? 'Добро пожаловать! Локация отправлена на модерацию — как только её одобрят, она появится в каталоге. Фото и точные размеры можно добавить в любой момент в разделе «Мои локации».'
+                    ? 'Добро пожаловать! Добавьте свою первую локацию, чтобы начать получать заявки от операторов.'
                     : 'Добро пожаловать! Загляните в каталог, чтобы найти подходящую точку для размещения.';
 
                 header('Location: /pages/profile.php');
                 exit;
             }
         } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
             $error = 'Ошибка базы данных: ' . $e->getMessage();
         }
     }
@@ -230,11 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="reg-step-num">1</span>
                         <span class="reg-step-label">Ваши данные</span>
                     </div>
-                    <div class="reg-step-line owner-only"></div>
-                    <div class="reg-step owner-only" data-step="2">
-                        <span class="reg-step-num">2</span>
-                        <span class="reg-step-label">О локации</span>
-                    </div>
                     <div class="reg-step-line"></div>
                     <div class="reg-step" data-step="done">
                         <span class="reg-step-num">✓</span>
@@ -272,77 +166,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
-                <!-- Шаг 2: локация (только владелец) -->
-                <div class="reg-panel owner-only" data-panel="2">
-                    <h2>О локации</h2>
-                    <p class="reg-panel-sub">
-                        Коротко опишите место — фото, точные размеры и другие детали можно добавить
-                        позже в личном кабинете.
-                    </p>
-
-                    <div class="form-group">
-                        <label>Название локации *</label>
-                        <input type="text" name="loc_title" required placeholder="Например: ТЦ Мега, 1 этаж" value="<?php echo htmlspecialchars($loc_title); ?>">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Город *</label>
-                            <input type="text" name="loc_city" required placeholder="Симферополь" value="<?php echo htmlspecialchars($loc_city); ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>Адрес *</label>
-                            <input type="text" name="loc_address" required placeholder="ул. Пушкина, 1" value="<?php echo htmlspecialchars($loc_address); ?>">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Тип помещения</label>
-                            <select name="loc_space_type">
-                                <option value="">Не выбран</option>
-                                <?php foreach ($space_types as $key => $label): ?>
-                                    <option value="<?php echo $key; ?>" <?php echo $loc_space_type === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Проходимость</label>
-                            <select name="loc_traffic">
-                                <option value="0">Не оценивал(а)</option>
-                                <?php foreach ($trafficLabels as $val => $label): ?>
-                                    <option value="<?php echo $val; ?>" <?php echo $loc_traffic === $val ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Цена аренды в месяц (₽) *</label>
-                        <input type="number" name="loc_price" required min="1" step="1" placeholder="5000" value="<?php echo htmlspecialchars($loc_price); ?>">
-                    </div>
-                    <div class="form-group">
-                        <label>Что есть на месте</label>
-                        <div class="checkbox-group">
-                            <label>
-                                <input type="checkbox" name="loc_electricity" <?php echo $loc_electricity ? 'checked' : ''; ?>> ⚡ Электричество
-                            </label>
-                            <label>
-                                <input type="checkbox" name="loc_wifi" <?php echo $loc_wifi ? 'checked' : ''; ?>> 📶 Wi-Fi
-                            </label>
-                            <label>
-                                <input type="checkbox" name="loc_water" <?php echo $loc_water ? 'checked' : ''; ?>> 🚰 Вода
-                            </label>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Описание (необязательно)</label>
-                        <textarea name="loc_description" placeholder="Проходимость, соседи, особенности места..."><?php echo htmlspecialchars($loc_description); ?></textarea>
-                    </div>
-
-                    <div class="reg-panel-actions">
-                        <button type="button" class="reg-btn-back reg-back">← Назад</button>
-                        <button type="button" class="btn-submit reg-next">Продолжить →</button>
-                    </div>
-                </div>
-
                 <!-- Шаг "Готово" -->
                 <div class="reg-panel" data-panel="done">
                     <h2>Готово к регистрации</h2>
@@ -354,8 +177,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </ul>
 
                     <ul class="reg-done-list owner-only">
-                        <li><span class="reg-done-icon">🛡️</span> Локация отправится на модерацию — администратор проверит её перед публикацией в каталоге.</li>
-                        <li><span class="reg-done-icon">📩</span> Заинтересованные операторы будут писать вам прямо в чате на платформе.</li>
+                        <li><span class="reg-done-icon">➕</span> Сразу после регистрации добавьте первую локацию в личном кабинете — фото, адрес, цена аренды и другие детали.</li>
+                        <li><span class="reg-done-icon">🛡️</span> Перед публикацией в каталоге объявление проверит администратор.</li>
                         <li><span class="reg-done-icon">🤝</span> RR пока не принимает оплату за вас — аренда обсуждается и переводится напрямую между вами и оператором. Приём платежей через платформу мы добавим позже.</li>
                     </ul>
 
@@ -376,6 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         var panels = Array.prototype.slice.call(form.querySelectorAll('.reg-panel'));
         var roleCards = Array.prototype.slice.call(form.querySelectorAll('.reg-role-card'));
         var stepEls = Array.prototype.slice.call(form.querySelectorAll('.reg-step'));
+        var order = ['1', 'done'];
 
         function currentRole() {
             var checked = form.querySelector('input[name="role"]:checked');
@@ -395,7 +219,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             panels.forEach(function(p) {
                 p.classList.toggle('active', p.dataset.panel === name);
             });
-            var order = currentRole() === 'owner' ? ['1', '2', 'done'] : ['1', 'done'];
             var currentIndex = order.indexOf(name);
             stepEls.forEach(function(s) {
                 var stepIndex = order.indexOf(s.dataset.step);
@@ -420,7 +243,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 var input = card.querySelector('input[name="role"]');
                 input.checked = true;
                 applyRoleClass();
-                showPanel('1');
             });
         });
 
@@ -428,16 +250,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             btn.addEventListener('click', function() {
                 var panel = btn.closest('.reg-panel');
                 if (!panelIsValid(panel)) return;
-                var next = (panel.dataset.panel === '1' && currentRole() === 'owner') ? '2' : 'done';
-                showPanel(next);
+                showPanel('done');
             });
         });
 
         form.querySelectorAll('.reg-back').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                var panel = btn.closest('.reg-panel');
-                var prev = (panel.dataset.panel === 'done' && currentRole() === 'owner') ? '2' : '1';
-                showPanel(prev);
+                showPanel('1');
             });
         });
 

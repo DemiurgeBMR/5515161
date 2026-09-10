@@ -28,6 +28,8 @@ if (!in_array($role, ['owner', 'operator'])) {
     exit;
 }
 
+try {
+
 switch ($action) {
     // 1. Владелец закрепляет оператора за своей локацией
     case 'assign':
@@ -326,4 +328,17 @@ switch ($action) {
 
     default:
         echo json_encode(['error' => 'Invalid action']);
+}
+
+} catch (Throwable $e) {
+    // Любая необработанная ошибка (например, ещё не применённая миграция
+    // БД) раньше улетала клиенту как сырой PHP-фатал — не валидный JSON,
+    // из-за чего fetch().then(r => r.json()) падал с непонятным "Ошибка
+    // соединения" вместо вменяемого сообщения. Теперь отдаём JSON всегда.
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log('operator_assign.php (' . $action . '): ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Не удалось выполнить запрос, попробуйте ещё раз позже.']);
 }
