@@ -53,10 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_name'] = $full_name;
                 $_SESSION['user_role'] = $role;
                 $_SESSION['has_subscription'] = 0;
+                $_SESSION['is_verified'] = 0;
 
                 $_SESSION['flash'] = $role === 'owner'
                     ? 'Добро пожаловать! Добавьте свою первую локацию, чтобы начать получать заявки от операторов.'
                     : 'Добро пожаловать! Загляните в каталог, чтобы найти подходящую точку для размещения.';
+
+                // Почты пока нет — показываем ссылку подтверждения email прямо на
+                // profile.php один раз, сразу после регистрации.
+                $_SESSION['verify_link'] = rr_issue_verify_link($pdo, $user_id);
 
                 header('Location: /pages/profile.php');
                 exit;

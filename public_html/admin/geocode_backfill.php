@@ -60,6 +60,7 @@ $remaining = (int) $pdo->query("
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
+            <a href="/admin/users.php">👥 Пользователи</a>
             <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
         </div>
 

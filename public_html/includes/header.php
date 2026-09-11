@@ -123,6 +123,30 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
             });
         })();
     </script>
+    <?php if (isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) !== 'admin'): ?>
+        <?php if (!empty($_SESSION['verify_link'])): ?>
+            <!-- Почта пока не настроена — ссылка подтверждения показывается прямо
+                 здесь один раз, сразу после регистрации или запроса новой ссылки. -->
+            <div class="verify-banner verify-banner-link">
+                <div class="container verify-banner-inner">
+                    <span class="verify-banner-icon">📧</span>
+                    <span class="verify-banner-text">
+                        Письма пока не отправляются — вот ссылка для подтверждения email:
+                        <a href="<?php echo htmlspecialchars($_SESSION['verify_link']); ?>"><?php echo htmlspecialchars($_SESSION['verify_link']); ?></a>
+                    </span>
+                </div>
+            </div>
+            <?php unset($_SESSION['verify_link']); ?>
+        <?php elseif (empty($_SESSION['is_verified'])): ?>
+            <div class="verify-banner">
+                <div class="container verify-banner-inner">
+                    <span class="verify-banner-icon">📧</span>
+                    <span class="verify-banner-text">Email ещё не подтверждён.</span>
+                    <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>" class="verify-banner-link-action">Получить ссылку →</a>
+                </div>
+            </div>
+        <?php endif; ?>
+    <?php endif; ?>
     <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'how_it_works.php'): ?>
     <div class="howitworks-banner" id="howItWorksBanner">
         <div class="container howitworks-banner-inner">

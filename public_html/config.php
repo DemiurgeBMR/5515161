@@ -32,6 +32,24 @@ define('LOGIN_LOCKOUT_MINUTES', 15);
 // токена сброса.
 define('PASSWORD_RESET_TTL_MINUTES', 60);
 
+// --- ПОДТВЕРЖДЕНИЕ EMAIL ---
+// Та же временная схема, что и для сброса пароля — почты пока нет, ссылка
+// подтверждения показывается на экране (см. pages/verify_email.php).
+define('VERIFY_EMAIL_TTL_HOURS', 24);
+
+/**
+ * Выпускает новый токен подтверждения email для пользователя и возвращает
+ * готовую ссылку — используется и при регистрации, и при повторной отправке
+ * с profile.php, чтобы не дублировать логику генерации токена.
+ */
+function rr_issue_verify_link(PDO $pdo, $userId) {
+    $token = bin2hex(random_bytes(32));
+    $expires = date('Y-m-d H:i:s', time() + VERIFY_EMAIL_TTL_HOURS * 3600);
+    $pdo->prepare("UPDATE users SET verify_token = ?, verify_token_expires = ? WHERE id = ?")
+        ->execute([$token, $expires, $userId]);
+    return SITE_URL . '/pages/verify_email.php?token=' . $token;
+}
+
 // Путь к файлу водяного знака (PNG с прозрачностью)
 define('WATERMARK_PATH', __DIR__ . '/assets/images/watermark.png');
 
@@ -75,6 +93,22 @@ function currentUserHasSubscription() {
         return true;
     }
     return !empty($_SESSION['has_subscription']);
+}
+
+/**
+ * Куда отправить пользователя сразу после успешного входа — общая точка
+ * правды для pages/login.php и pages/verify_2fa.php (второй нужен, когда
+ * у аккаунта включена двухфакторная аутентификация), чтобы они не могли
+ * разойтись между собой.
+ */
+function rr_login_redirect_url($role) {
+    if ($role === 'admin') {
+        return '/admin/index.php';
+    }
+    if ($role === 'operator') {
+        return '/pages/operator_dashboard.php';
+    }
+    return '/pages/profile.php';
 }
 
 // Единственно допустимые цвета аватара — используется и для валидации при

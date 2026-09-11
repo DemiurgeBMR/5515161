@@ -16,6 +16,7 @@
 @import 'pages/_auth.css';
 @import 'pages/_register.css';
 @import 'pages/_profile.css';
+@import 'pages/_edit_profile.css';
 @import 'pages/_subscription.css';
 @import 'pages/_how_it_works.css';
 @import 'admin/_admin.css';

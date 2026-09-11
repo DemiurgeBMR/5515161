@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $pdo = getDbConnection();
-                $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, has_subscription, failed_login_attempts, locked_until FROM users WHERE email = ?");
+                $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, has_subscription, is_verified, failed_login_attempts, locked_until, is_banned, banned_reason, two_factor_enabled FROM users WHERE email = ?");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
 
@@ -36,20 +36,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $pdo->prepare("UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE id = ?")
                         ->execute([$user['id']]);
 
-                    session_regenerate_id(true); // новый ID сессии при смене уровня доступа
-                    $_SESSION['user_id'] = $user['id'];
-                    $_SESSION['user_name'] = $user['full_name'];
-                    $_SESSION['user_role'] = $user['role'];
-                    $_SESSION['has_subscription'] = (int)$user['has_subscription'];
+                    // Пароль верный, но аккаунт заблокирован админом — дальше не пускаем.
+                    // Проверяем это только после пароля, чтобы не палить статус аккаунта
+                    // тому, кто пароль не знает.
+                    if ($user['is_banned']) {
+                        $error = 'Аккаунт заблокирован администратором.'
+                            . (!empty($user['banned_reason']) ? ' Причина: ' . $user['banned_reason'] : '');
+                    } elseif ($user['two_factor_enabled']) {
+                        // Пароль верный — переходим ко второму фактору, полноценную
+                        // сессию (user_id и т.д.) выставим только после кода.
+                        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                        $expires = date('Y-m-d H:i:s', time() + 10 * 60);
+                        $pdo->prepare("UPDATE users SET two_factor_code = ?, two_factor_code_expires = ? WHERE id = ?")
+                            ->execute([$code, $expires, $user['id']]);
 
-                    if ($user['role'] === 'admin') {
-                        header('Location: /admin/index.php');
-                    } elseif ($user['role'] === 'operator') {
-                        header('Location: /pages/operator_dashboard.php');
+                        session_regenerate_id(true);
+                        $_SESSION['pending_2fa_user_id'] = $user['id'];
+                        unset($_SESSION['tfa_attempts']);
+
+                        header('Location: /pages/verify_2fa.php');
+                        exit;
                     } else {
-                        header('Location: /pages/profile.php');
+                        session_regenerate_id(true); // новый ID сессии при смене уровня доступа
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['user_name'] = $user['full_name'];
+                        $_SESSION['user_role'] = $user['role'];
+                        $_SESSION['has_subscription'] = (int)$user['has_subscription'];
+                        $_SESSION['is_verified'] = (int)$user['is_verified'];
+
+                        header('Location: ' . rr_login_redirect_url($user['role']));
+                        exit;
                     }
-                    exit;
                 } else {
                     // Считаем неудачные попытки только для существующих аккаунтов —
                     // иначе перебор несуществующих email тоже писал бы в базу.

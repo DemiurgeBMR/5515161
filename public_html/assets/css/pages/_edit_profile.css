@@ -1,0 +1,120 @@
+/* ===== РЕДАКТИРОВАНИЕ ПРОФИЛЯ / НАСТРОЙКИ АККАУНТА ===== */
+
+.ep-page {
+    max-width: 640px;
+    margin: 40px auto 60px;
+    padding: 0 20px;
+}
+.ep-title {
+    font-size: 26px;
+    margin: 10px 0 25px;
+}
+
+.ep-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ep-card {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+}
+.ep-card-title {
+    font-size: 17px;
+    margin: 0 0 16px;
+    color: var(--text, #f2f2f5);
+}
+.ep-card-hint {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    margin: -8px 0 16px;
+}
+.ep-card:last-child {
+    margin-bottom: 0;
+}
+
+.ep-field-hint {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 12px;
+}
+.ep-field-hint-ok {
+    color: #1e8449;
+}
+.ep-field-hint-warn {
+    color: #856404;
+}
+.ep-field-hint-warn a {
+    color: #856404;
+    font-weight: 600;
+}
+
+/* Переключатель 2FA — тот же смысл, что checkbox, но заметнее в списке
+   настроек безопасности, где легко потерять обычный маленький чекбокс. */
+.ep-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+.ep-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.ep-toggle-track {
+    flex-shrink: 0;
+    width: 42px;
+    height: 24px;
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.15s;
+    margin-top: 2px;
+}
+.ep-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--text-muted, #9a9aa5);
+    transition: transform 0.15s, background 0.15s;
+}
+.ep-toggle input:checked + .ep-toggle-track {
+    background: #6c5ce7;
+    border-color: #6c5ce7;
+}
+.ep-toggle input:checked + .ep-toggle-track .ep-toggle-thumb {
+    transform: translateX(18px);
+    background: #fff;
+}
+.ep-toggle-label {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--text, #f2f2f5);
+}
+.ep-toggle-label small {
+    display: block;
+    font-weight: normal;
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    margin-top: 3px;
+}
+
+.ep-card-confirm {
+    background: var(--bg-elevated-2, #1c1c24);
+}
+
+@media (max-width: 560px) {
+    .ep-card {
+        padding: 18px;
+    }
+}
