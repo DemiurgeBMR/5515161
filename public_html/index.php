@@ -1,16 +1,20 @@
 <?php
-session_start();
+require_once 'includes/session_bootstrap.php';
+rr_session_start();
 require_once 'config.php';
 
 $pdo = getDbConnection();
 
-// Последние 6 активных и прошедших модерацию локаций
+// Последние 6 активных и прошедших модерацию локаций — уже занятые
+// (за ними активно закреплён оператор) сюда не попадают, они больше не
+// свободны для аренды (см. ту же логику в pages/catalog.php).
 $stmt = $pdo->query("
     SELECT l.*, u.full_name as owner_name,
     (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
     FROM locations l
     JOIN users u ON l.owner_id = u.id
     WHERE l.is_active = 1 AND l.is_moderated = 1
+      AND NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')
     ORDER BY l.created_at DESC
     LIMIT 6
 ");

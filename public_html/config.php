@@ -19,6 +19,19 @@ define('SITE_URL', 'http://riveg-rent.local');
 // true = показывать ошибки, false = скрывать (для продакшена)
 define('DEBUG_MODE', true);
 
+// --- ЗАЩИТА ВХОДА ОТ ПОДБОРА ПАРОЛЯ ---
+// После LOGIN_MAX_ATTEMPTS неудачных попыток подряд аккаунт временно
+// блокируется на LOGIN_LOCKOUT_MINUTES минут (см. pages/login.php).
+define('LOGIN_MAX_ATTEMPTS', 5);
+define('LOGIN_LOCKOUT_MINUTES', 15);
+
+// --- ВОССТАНОВЛЕНИЕ ПАРОЛЯ ---
+// Пока нет настроенной отправки почты (проект на локалке) — ссылка для
+// сброса пароля просто показывается на экране вместо письма (см.
+// pages/forgot_password.php). PASSWORD_RESET_TTL_MINUTES — срок жизни
+// токена сброса.
+define('PASSWORD_RESET_TTL_MINUTES', 60);
+
 // Путь к файлу водяного знака (PNG с прозрачностью)
 define('WATERMARK_PATH', __DIR__ . '/assets/images/watermark.png');
 

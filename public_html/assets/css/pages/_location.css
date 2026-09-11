@@ -95,6 +95,20 @@
     line-height: 1.4;
 }
 
+/* Карточка "точка уже занята" — та же оболочка .inquiry-card, но без
+   акцента на призыв к действию: приглушённая рамка вместо цветной кнопки. */
+.inquiry-card-occupied h3 {
+    color: #6a4bd1;
+}
+.inquiry-card-occupied .btn-subscribe {
+    background: var(--bg-elevated-2, #1c1c24);
+    color: var(--text, #f2f2f5);
+    border: 1px solid var(--border, #2a2a33);
+}
+.inquiry-card-occupied .btn-subscribe:hover {
+    background: var(--border, #2a2a33);
+}
+
 @media (max-width: 960px) {
     .location-layout.has-sidebar {
         display: block;
@@ -144,6 +158,18 @@
     gap: 4px;
     background: #eaf1ff;
     color: #2f6fed;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    vertical-align: middle;
+}
+.occupied-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #e2d9f3;
+    color: #4a2e8a;
     font-size: 13px;
     font-weight: 600;
     padding: 4px 12px;

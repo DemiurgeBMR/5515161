@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session_bootstrap.php';
+rr_session_start();
 require_once __DIR__ . '/../config.php';
 
 $pdo = getDbConnection();
@@ -7,11 +8,16 @@ $pdo = getDbConnection();
 $city = trim($_GET['city'] ?? '');
 $hasSubscription = currentUserHasSubscription();
 
+// Локация с активным закреплением оператора больше не свободна — как и в
+// каталоге (pages/catalog.php), не показываем её на карте другим операторам.
+$notOccupiedSql = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = locations.id AND lo.status = 'active')";
+$notOccupiedSqlL = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')";
+
 if (!$hasSubscription) {
     // Без подписки — ни точек, ни координат, только агрегированный список
     // "город → сколько локаций". Полная интерактивная карта — только для
     // подписчиков (см. pages/subscription.php).
-    $sql = "SELECT city, COUNT(*) as cnt FROM locations WHERE is_active = 1 AND is_moderated = 1";
+    $sql = "SELECT city, COUNT(*) as cnt FROM locations WHERE is_active = 1 AND is_moderated = 1 AND $notOccupiedSql";
     $params = [];
     if ($city !== '') {
         $sql .= " AND city LIKE ?";
@@ -26,7 +32,7 @@ if (!$hasSubscription) {
     $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
             (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
             FROM locations l
-            WHERE l.is_active = 1 AND l.is_moderated = 1
+            WHERE l.is_active = 1 AND l.is_moderated = 1 AND $notOccupiedSqlL
               AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL";
     $params = [];
     if ($city !== '') {
@@ -42,7 +48,7 @@ if (!$hasSubscription) {
     // Считаем опубликованные локации без координат — чтобы честно показать,
     // что они существуют, просто ещё не попали на карту (геокодер не смог найти адрес).
     $sql_no_geo = "SELECT COUNT(*) FROM locations
-                   WHERE is_active = 1 AND is_moderated = 1
+                   WHERE is_active = 1 AND is_moderated = 1 AND $notOccupiedSql
                      AND (latitude IS NULL OR longitude IS NULL)";
     $params_no_geo = [];
     if ($city !== '') {

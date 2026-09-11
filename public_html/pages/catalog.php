@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session_bootstrap.php';
+rr_session_start();
 require_once __DIR__ . '/../config.php';
 
 // ========== ПОИСКОВЫЙ ЗАПРОС ==========
@@ -51,13 +52,20 @@ $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $per_page = 9;
 $offset = ($page - 1) * $per_page;
 
+// Локация, за которой уже реально закреплён (активно) оператор, больше не
+// свободна — её незачем показывать в публичном каталоге/на карте другим
+// операторам, которые пришли бы с заявкой на уже занятое место. Как только
+// владелец открепляет оператора, условие само перестаёт выполняться и
+// локация возвращается в каталог — отдельный флаг для этого не нужен.
+$notOccupiedSql = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')";
+
 // ---------- Города для строки быстрых фильтров: топ-12 по числу активных
 // локаций (независимо от остальных фильтров — это витрина, а не результат
 // текущего поиска) ----------
 $cityCounts = $pdo->query("
     SELECT city, COUNT(*) as cnt
-    FROM locations
-    WHERE is_active = 1 AND is_moderated = 1
+    FROM locations l
+    WHERE is_active = 1 AND is_moderated = 1 AND $notOccupiedSql
     GROUP BY city
     ORDER BY cnt DESC, city ASC
     LIMIT 12
@@ -65,7 +73,7 @@ $cityCounts = $pdo->query("
 
 // ---------- Строим условия WHERE один раз — и для подсчёта, и для выборки,
 // чтобы они не могли разъехаться между собой (было именно так раньше). ----------
-$where = ['l.is_active = 1', 'l.is_moderated = 1'];
+$where = ['l.is_active = 1', 'l.is_moderated = 1', $notOccupiedSql];
 $params = [];
 
 // Поиск: запрос вида "RR-123" / "RR123" — точный поиск по ID (см. бывший
