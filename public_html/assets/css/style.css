@@ -19,6 +19,7 @@
 @import 'pages/_edit_profile.css';
 @import 'pages/_subscription.css';
 @import 'pages/_how_it_works.css';
+@import 'pages/_notifications.css';
 @import 'admin/_admin.css';
 @import 'admin/_admin-locations.css'; 
 @import 'admin/_admin-preview-revision.css';
@@ -337,23 +338,6 @@ a {
 }
 .toast-notification .toast-close:hover {
     color: var(--text);
-}
-
-/* ===== ТОСТЫ ДЛЯ СИСТЕМНЫХ УВЕДОМЛЕНИЙ ===== */
-.toast-notification.notification-toast {
-    border-left-color: #3498db; /* синий вместо красного */
-}
-
-.toast-notification.notification-toast .toast-header .toast-avatar {
-    background: #3498db; /* синий фон для иконки */
-}
-
-/* Если хотите добавить иконку-колокольчик вместо аватара, можно переопределить */
-.toast-notification.notification-toast .toast-header .toast-avatar {
-    content: "🔔";
-    background: transparent;
-    font-size: 22px;
-    color: #3498db;
 }
 
 /* Адаптив для маленьких экранов */

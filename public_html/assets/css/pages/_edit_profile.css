@@ -67,6 +67,14 @@
     width: 0;
     height: 0;
 }
+.ep-toggle-compact {
+    align-items: center;
+    margin-bottom: 14px;
+}
+.ep-toggle-compact .ep-toggle-label {
+    font-weight: 500;
+    font-size: 14px;
+}
 .ep-toggle-track {
     flex-shrink: 0;
     width: 42px;

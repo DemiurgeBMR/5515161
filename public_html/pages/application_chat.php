@@ -52,6 +52,7 @@ $stmt->execute([$application_id]);
 $messages = $stmt->fetchAll();
 $stmt = $pdo->prepare("UPDATE messages SET is_read = 1 WHERE application_id = ? AND receiver_id = ? AND is_read = 0");
 $stmt->execute([$application_id, $user_id]);
+notify_mark_link_read($pdo, $user_id, '/pages/application_chat.php?application_id=' . $application_id);
 $is_operator = ($user_id == $application['operator_id']);
 $other_party = $is_operator ? $application['owner_name'] : $application['operator_name'];
 

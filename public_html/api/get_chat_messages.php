@@ -41,6 +41,7 @@ $stmt = $pdo->prepare("
     WHERE application_id = ? AND receiver_id = ? AND is_read = 0
 ");
 $stmt->execute([$application_id, $user_id]);
+notify_mark_link_read($pdo, $user_id, '/pages/application_chat.php?application_id=' . $application_id);
 
 // Забираем всё новое после last_id (is_read уже актуален после апдейта выше)
 $stmt = $pdo->prepare("

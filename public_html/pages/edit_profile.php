@@ -25,8 +25,48 @@ if (!$user) {
     exit;
 }
 
+// Отсутствие строки = категория включена (значение по умолчанию) — см.
+// database/migrations/2026_09_11_notifications_redesign.sql.
+$categoryEnabled = array_fill_keys(array_keys(NOTIFICATION_CATEGORIES), true);
+$stmt = $pdo->prepare("SELECT category, enabled FROM notification_preferences WHERE user_id = ?");
+$stmt->execute([$user_id]);
+foreach ($stmt->fetchAll() as $row) {
+    $categoryEnabled[$row['category']] = (bool) $row['enabled'];
+}
+
+$notifSuccess = '';
+$notifError = '';
+
+// Настройки уведомлений — отдельная форма и обработчик: это не критичная для
+// безопасности аккаунта настройка вроде пароля/email, требовать текущий
+// пароль для галочки "не присылать про визиты" было бы лишним трением.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_notification_prefs'])) {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $notifError = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } else {
+        $writes = [];
+        foreach (array_keys(NOTIFICATION_CATEGORIES) as $catKey) {
+            $writes[] = [
+                'op' => 'set',
+                'enabled' => isset($_POST['notif_cat_' . $catKey]) ? 1 : 0,
+                'category' => $catKey,
+            ];
+        }
+        $stmt = $pdo->prepare("
+            INSERT INTO notification_preferences (user_id, category, enabled)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)
+        ");
+        foreach ($writes as $w) {
+            $stmt->execute([$user_id, $w['category'], $w['enabled']]);
+            $categoryEnabled[$w['category']] = (bool) $w['enabled'];
+        }
+        $notifSuccess = 'Настройки уведомлений сохранены.';
+    }
+}
+
 // Обработка отправки формы
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_prefs'])) {
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -201,6 +241,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="password" name="current_password" required placeholder="Введите текущий пароль, чтобы сохранить изменения">
                 </div>
                 <button type="submit" class="btn-submit">💾 Сохранить изменения</button>
+            </div>
+        </form>
+
+        <?php if ($notifError): ?>
+            <div class="error"><?php echo htmlspecialchars($notifError); ?></div>
+        <?php endif; ?>
+        <?php if ($notifSuccess): ?>
+            <div class="success"><?php echo htmlspecialchars($notifSuccess); ?></div>
+        <?php endif; ?>
+
+        <form method="POST" class="ep-form">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="update_notification_prefs" value="1">
+            <div class="ep-card">
+                <h2 class="ep-card-title">🔔 Уведомления</h2>
+                <p class="ep-card-hint">Какие уведомления присылать — не влияет на пароль, менять можно без его ввода.</p>
+                <?php foreach (NOTIFICATION_CATEGORIES as $catKey => $catMeta): ?>
+                    <label class="ep-toggle ep-toggle-compact">
+                        <input type="checkbox" name="notif_cat_<?php echo htmlspecialchars($catKey); ?>" <?php echo $categoryEnabled[$catKey] ? 'checked' : ''; ?>>
+                        <span class="ep-toggle-track"><span class="ep-toggle-thumb"></span></span>
+                        <span class="ep-toggle-label"><?php echo $catMeta['icon']; ?> <?php echo htmlspecialchars($catMeta['label']); ?></span>
+                    </label>
+                <?php endforeach; ?>
+                <button type="submit" class="btn-submit">💾 Сохранить настройки уведомлений</button>
             </div>
         </form>
     </div>

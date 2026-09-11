@@ -433,11 +433,100 @@ function csrf_verify_request() {
 
 function formatDateRu($date) {
     if (empty($date)) return '';
-    $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
+    $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
                'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
     $timestamp = strtotime($date);
     $day = date('j', $timestamp);
     $month = $months[date('n', $timestamp) - 1];
     $year = date('Y', $timestamp);
     return $day . ' ' . $month . ' ' . $year;
+}
+
+// --- УВЕДОМЛЕНИЯ ---
+// Единая точка правды для типов уведомлений: категория (для фильтров и
+// настроек), иконка и подпись (для UI) — раньше эмодзи вручную вписывались
+// в текст сообщения при создании и жили в 3 разных файлах, из-за чего часть
+// типов не имела иконки вообще. Добавляя новый тип уведомления — сначала
+// впиши его сюда, notify() откажет на неизвестном типе.
+const NOTIFICATION_CATEGORIES = [
+    'chat'        => ['icon' => '💬', 'label' => 'Сообщения'],
+    'visits'      => ['icon' => '📅', 'label' => 'Визиты и обслуживание'],
+    'assignment'  => ['icon' => '🤝', 'label' => 'Заявки и закрепления'],
+    'maintenance' => ['icon' => '🔧', 'label' => 'Обслуживание точек'],
+    'moderation'  => ['icon' => '🛡️', 'label' => 'Модерация'],
+    'system'      => ['icon' => 'ℹ️', 'label' => 'Системные'],
+];
+
+const NOTIFICATION_META = [
+    'new_message'          => ['category' => 'chat',        'icon' => '💬'],
+    'event_requested'      => ['category' => 'visits',      'icon' => '📅'],
+    'emergency_event'      => ['category' => 'visits',      'icon' => '🚨'],
+    'event_confirmed'      => ['category' => 'visits',      'icon' => '✅'],
+    'event_rescheduled'    => ['category' => 'visits',      'icon' => '🔄'],
+    'event_cancelled'      => ['category' => 'visits',      'icon' => '❌'],
+    'event_completed'      => ['category' => 'visits',      'icon' => '🏁'],
+    'quick_service'        => ['category' => 'maintenance', 'icon' => '🔧'],
+    'maintenance_due'      => ['category' => 'maintenance', 'icon' => '⚠️'],
+    'maintenance_due_owner'=> ['category' => 'maintenance', 'icon' => 'ℹ️'],
+    'operator_assigned'    => ['category' => 'assignment',  'icon' => '🤝'],
+    'assignment_request'   => ['category' => 'assignment',  'icon' => '📨'],
+    'assignment_approved'  => ['category' => 'assignment',  'icon' => '✅'],
+    'assignment_rejected'  => ['category' => 'assignment',  'icon' => '❌'],
+    'revision_approved'    => ['category' => 'moderation',  'icon' => '✅'],
+    'revision_rejected'    => ['category' => 'moderation',  'icon' => '📄'],
+];
+
+/**
+ * true, если пользователь не отключал уведомления этой категории —
+ * отсутствие строки в notification_preferences значит "включено" (значение
+ * по умолчанию), поэтому явно выключать нужно только то, что не нужно.
+ */
+function notify_category_enabled(PDO $pdo, $userId, $category) {
+    $stmt = $pdo->prepare("SELECT enabled FROM notification_preferences WHERE user_id = ? AND category = ?");
+    $stmt->execute([$userId, $category]);
+    $val = $stmt->fetchColumn();
+    return $val === false ? true : (bool)$val;
+}
+
+/**
+ * Единая точка создания уведомления — раньше INSERT INTO notifications был
+ * скопипащен в трёх файлах напрямую. Молча ничего не делает (не бросает и не
+ * пишет), если пользователь отключил уведомления этой категории — вызывающему
+ * коду не нужно знать о настройках, чтобы решить, создавать запись или нет.
+ *
+ * @param array|null $data Структурированные метаданные (например
+ *        ['application_id' => 5]) — используются, чтобы позже можно было
+ *        точечно погасить связанные уведомления (см. notify_mark_link_read()).
+ */
+function notify(PDO $pdo, $userId, $type, $message, $link = null, $data = null) {
+    if (!isset(NOTIFICATION_META[$type])) {
+        throw new InvalidArgumentException("Unknown notification type: $type");
+    }
+    $category = NOTIFICATION_META[$type]['category'];
+    if (!notify_category_enabled($pdo, $userId, $category)) {
+        return;
+    }
+    $stmt = $pdo->prepare("
+        INSERT INTO notifications (user_id, type, category, message, link, data)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([
+        $userId,
+        $type,
+        $category,
+        $message,
+        $link,
+        $data !== null ? json_encode($data, JSON_UNESCAPED_UNICODE) : null,
+    ]);
+}
+
+/**
+ * Гасит (read_at = NOW()) непрочитанные уведомления пользователя с заданной
+ * ссылкой — используется, когда пользователь открывает конкретный чат/заявку
+ * напрямую (не через сам список уведомлений), чтобы бейдж не копился за то,
+ * что человек и так только что увидел на странице.
+ */
+function notify_mark_link_read(PDO $pdo, $userId, $link) {
+    $pdo->prepare("UPDATE notifications SET read_at = NOW() WHERE user_id = ? AND link = ? AND read_at IS NULL")
+        ->execute([$userId, $link]);
 }

@@ -89,8 +89,7 @@ switch ($action) {
         $locTitle = $stmt->fetchColumn();
         $link = '/pages/location.php?id=' . $location_id;
         $message = 'Вас закрепили за локацией ' . $locTitle;
-        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'operator_assigned', ?, ?)");
-        $stmt->execute([$operator_id, $message, $link]);
+        notify($pdo, $operator_id, 'operator_assigned', $message, $link, ['location_id' => $location_id]);
 
         echo json_encode(['success' => true, 'message' => 'Operator assigned successfully']);
         break;
@@ -141,8 +140,7 @@ switch ($action) {
         // Уведомление владельцу
         $link = '/pages/application_chat.php?application_id=' . $application_id;
         $message = 'Оператор запросил закрепление за локацией ' . $app['location_title'];
-        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'assignment_request', ?, ?)");
-        $stmt->execute([$app['owner_id'], $message, $link]);
+        notify($pdo, $app['owner_id'], 'assignment_request', $message, $link, ['application_id' => $application_id]);
 
         echo json_encode(['success' => true, 'application_id' => $application_id]);
         break;
@@ -181,8 +179,7 @@ switch ($action) {
         // Уведомление оператору
         $link = '/pages/location.php?id=' . $app['location_id'];
         $message = 'Владелец подтвердил ваше закрепление за локацией ' . $app['location_title'];
-        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'assignment_approved', ?, ?)");
-        $stmt->execute([$app['operator_id'], $message, $link]);
+        notify($pdo, $app['operator_id'], 'assignment_approved', $message, $link, ['application_id' => $application_id]);
 
         echo json_encode(['success' => true, 'message' => 'Assignment approved']);
         break;
@@ -215,8 +212,7 @@ switch ($action) {
         // Уведомление оператору
         $link = '/pages/catalog.php';
         $message = 'Владелец отклонил ваше закрепление за локацией ' . $app['location_title'];
-        $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, 'assignment_rejected', ?, ?)");
-        $stmt->execute([$app['operator_id'], $message, $link]);
+        notify($pdo, $app['operator_id'], 'assignment_rejected', $message, $link, ['application_id' => $application_id]);
 
         echo json_encode(['success' => true, 'message' => 'Assignment rejected']);
         break;

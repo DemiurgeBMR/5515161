@@ -25,29 +25,9 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/ru.js"></script>
     <script>
-    // Переменная, указывающая, авторизован ли пользователь
+    // Авторизован ли пользователь — единый поллер (assets/js/notifications.js)
+    // сам решает, запускаться ли, а бейдж/тосты для гостя ему не нужны.
     window.userLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
-    function updateNotificationCount() {
-        if (!window.userLoggedIn) return;
-        fetch('/api/get_notifications.php?action=count')
-            .then(response => response.json())
-            .then(data => {
-                var badge = document.getElementById('notificationBadge');
-                if (badge) {
-                    if (data.count > 0) {
-                        badge.textContent = data.count;
-                        badge.style.display = 'block';
-                    } else {
-                        badge.style.display = 'none';
-                    }
-                }
-            })
-            .catch(err => console.error('Ошибка получения уведомлений', err));
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        updateNotificationCount();
-        setInterval(updateNotificationCount, 30000);
-    });
     </script>
 </head>
 <body>
@@ -61,11 +41,23 @@
                 <a href="/pages/how_it_works.php">Как это работает</a>
 
 <?php if (isset($_SESSION['user_id'])): ?>
-    <!-- Уведомления -->
-    <a href="/pages/notifications.php" class="notification-bell" style="position:relative; color:var(--text, #f2f2f5); text-decoration:none; margin-right:15px; font-size:20px;">
-        🔔
-        <span id="notificationBadge" style="position:absolute; top:-8px; right:-8px; background:#e94560; color:white; border-radius:50%; padding:0 6px; font-size:11px; line-height:18px; min-width:18px; text-align:center; display:none;">0</span>
-    </a>
+    <!-- Уведомления: колокольчик открывает превью последних, полная лента — на pages/notifications.php -->
+    <div class="notification-bell-wrap">
+        <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="Уведомления">
+            🔔
+            <span id="notificationBadge" class="notification-badge">0</span>
+        </button>
+        <div id="notificationDropdown" class="notif-dropdown">
+            <div class="notif-dd-header">
+                <span>Уведомления</span>
+                <a href="#" id="notifDdMarkAll">Прочитать всё</a>
+            </div>
+            <div id="notificationDropdownList" class="notif-dd-list">
+                <div class="notif-dd-empty">Загрузка…</div>
+            </div>
+            <a href="/pages/notifications.php" class="notif-dd-footer">Смотреть все →</a>
+        </div>
+    </div>
 
     <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
         <!-- Админ -->

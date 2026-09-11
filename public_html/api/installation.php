@@ -20,14 +20,6 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
 
-// ========== ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ ==========
-function createNotification($user_id, $type, $message, $link = null) {
-    global $pdo;
-    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$user_id, $type, $message, $link]);
-}
-// =============================================
-
 // ========== ФОТО-ПОДТВЕРЖДЕНИЯ (service_photos) ==========
 // Принимает массив файлов из $_FILES['photos'] (input type="file" multiple),
 // сжимает через compressImage() из config.php, сохраняет в /uploads/service/,
@@ -287,7 +279,7 @@ switch ($action) {
         $message = $is_emergency
             ? '🚨 Срочный выезд запрошен для точки ' . $lo['location_title']
             : '📅 Запрошен визит (' . ($eventTypeLabels[$event_type] ?? $event_type) . ') для точки ' . $lo['location_title'];
-        createNotification($receiver_id, $type, $message, $link);
+        notify($pdo, $receiver_id, $type, $message, $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true, 'event_id' => $event_id]);
@@ -339,7 +331,7 @@ switch ($action) {
         $link = $event['application_id']
             ? '/pages/application_chat.php?application_id=' . $event['application_id']
             : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link);
+        notify($pdo, $receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -464,11 +456,13 @@ switch ($action) {
             $link = $event['application_id']
                 ? '/pages/application_chat.php?application_id=' . $event['application_id']
                 : '/pages/location.php?id=' . $event['location_id'];
-            createNotification(
+            notify(
+                $pdo,
                 $receiver_id,
                 'event_rescheduled',
                 '🔄 Дата выезда изменена',
-                $link
+                $link,
+                ['event_id' => $event_id]
             );
 
             echo json_encode([
@@ -521,7 +515,7 @@ switch ($action) {
         $link = $event['application_id']
             ? '/pages/application_chat.php?application_id=' . $event['application_id']
             : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_cancelled', '❌ Выезд отменён', $link);
+        notify($pdo, $receiver_id, 'event_cancelled', '❌ Выезд отменён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -563,7 +557,7 @@ switch ($action) {
         $link = $event['application_id']
             ? '/pages/application_chat.php?application_id=' . $event['application_id']
             : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_completed', '✅ Выезд завершён', $link);
+        notify($pdo, $receiver_id, 'event_completed', '✅ Выезд завершён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
@@ -728,7 +722,7 @@ switch ($action) {
             $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
             $message = '🔧 Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
-            createNotification($lo['owner_id'], 'quick_service', $message, $link);
+            notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);
 
             echo json_encode(['success' => true, 'log_id' => $log_id, 'machine_id' => $machine_id, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
         } catch (Throwable $e) {

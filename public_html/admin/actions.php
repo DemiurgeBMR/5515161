@@ -200,6 +200,26 @@ function rejectRevision($pdo, $revision) {
     $stmt->execute([$_SESSION['user_id'], $revision['id']]);
 }
 
+/**
+ * Уведомляет владельца локации об итоге модерации его правок — раньше
+ * владелец узнавал об одобрении/отклонении только зайдя в профиль и увидев
+ * сменившийся статус, никакого сигнала ему не приходило.
+ */
+function notifyLocationModeration($pdo, $locationId, $approved) {
+    $stmt = $pdo->prepare("SELECT owner_id, title FROM locations WHERE id = ?");
+    $stmt->execute([$locationId]);
+    $loc = $stmt->fetch();
+    if (!$loc) {
+        return;
+    }
+    $link = '/pages/location.php?id=' . $locationId;
+    if ($approved) {
+        notify($pdo, $loc['owner_id'], 'revision_approved', '✅ Правки для «' . $loc['title'] . '» одобрены и опубликованы', $link, ['location_id' => $locationId]);
+    } else {
+        notify($pdo, $loc['owner_id'], 'revision_rejected', '📄 Правки для «' . $loc['title'] . '» отклонены модератором', $link, ['location_id' => $locationId]);
+    }
+}
+
 // ===== ОБРАБОТКА ДЕЙСТВИЙ =====
 
 try {
@@ -223,6 +243,7 @@ try {
     $stmt->execute([$revision['location_id']]);
 
             clearCache('rec_' . $revision['location_id']);
+            notifyLocationModeration($pdo, $revision['location_id'], true);
             $_SESSION['flash'] = 'Ревизия одобрена, изменения применены.';
         } else {
             $_SESSION['flash'] = 'Ошибка при применении ревизии.';
@@ -239,6 +260,7 @@ try {
             exit;
         }
         rejectRevision($pdo, $revision);
+        notifyLocationModeration($pdo, $revision['location_id'], false);
         $_SESSION['flash'] = 'Ревизия отклонена.';
     }
     elseif ($action === 'approve_pending' && $id > 0) {
@@ -270,6 +292,7 @@ try {
         $stmt->execute([$id]);
 
         clearCache('rec_' . $id);
+        notifyLocationModeration($pdo, $id, $allApplied);
         $_SESSION['flash'] = $allApplied
             ? 'Все правки применены по порядку и одобрены.'
             : 'Часть правок не удалось применить — проверьте локацию.';
@@ -285,6 +308,7 @@ try {
             foreach ($revisions as $rev) {
                 rejectRevision($pdo, $rev);
             }
+            notifyLocationModeration($pdo, $id, false);
             $_SESSION['flash'] = 'Все правки отклонены.';
         }
     }
@@ -340,8 +364,11 @@ try {
     else {
         $_SESSION['flash'] = 'Неизвестное действие или недостаточно параметров.';
     }
-} catch (PDOException $e) {
-    $_SESSION['flash'] = 'Ошибка БД: ' . $e->getMessage();
+} catch (Throwable $e) {
+    // Throwable, а не только PDOException — notifyLocationModeration() зовёт
+    // notify(), которая бросает InvalidArgumentException на неизвестном типе
+    // уведомления, а не PDO-исключение.
+    $_SESSION['flash'] = 'Ошибка: ' . $e->getMessage();
 }
 
 header('Location: /admin/index.php');
