@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once 'includes/session_bootstrap.php';
+rr_session_start();
 require_once 'config.php';
 
 $pdo = getDbConnection();

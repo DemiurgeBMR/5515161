@@ -1,5 +1,6 @@
 <?php
-session_start(); // ДОЛЖНО БЫТЬ ПЕРВОЙ СТРОКОЙ ПОСЛЕ ОТКРЫВАЮЩЕГО ТЕГА!
+require_once __DIR__ . '/../includes/session_bootstrap.php';
+rr_session_start();
 require_once '../config.php';
 
 // Если пользователь уже авторизован — перенаправляем
@@ -22,7 +23,9 @@ if (!in_array($role, ['owner', 'operator'], true)) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
-    if (empty($full_name) || empty($email) || empty($password)) {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } elseif (empty($full_name) || empty($email) || empty($password)) {
         $error = 'Пожалуйста, заполните все обязательные поля';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Некорректный email адрес';
@@ -109,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form method="POST" id="registerForm" class="reg-form role-<?php echo $role; ?>" novalidate>
+                <?php echo csrf_field(); ?>
                 <div class="reg-role-picker">
                     <label class="reg-role-card<?php echo $role === 'operator' ? ' active' : ''; ?>" data-role="operator">
                         <input type="radio" name="role" value="operator" <?php echo $role === 'operator' ? 'checked' : ''; ?>>

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/../includes/session_bootstrap.php';
+rr_session_start();
 require_once __DIR__ . '/../config.php';
 
 header('Content-Type: application/json');
