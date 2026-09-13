@@ -45,70 +45,16 @@ $operators = $stmt->fetchAll();
     <meta charset="UTF-8">
     <title>Мои операторы — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
-    <style>
-        .container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: var(--text-muted, #9a9aa5); text-decoration: none; }
-        .back-link:hover { text-decoration: underline; }
-        .assignments-table { background: var(--bg-elevated, #16161c); border: 1px solid var(--border, #2a2a33); border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.3); color: var(--text, #f2f2f5); }
-        .assignments-table table { width: 100%; border-collapse: collapse; }
-        .assignments-table th { background: var(--bg-elevated-2, #1c1c24); text-align: left; padding: 12px 15px; font-weight: 600; }
-        .assignments-table td { padding: 12px 15px; border-top: 1px solid var(--border, #2a2a33); }
-        .btn-unassign { background: #e74c3c; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; }
-        .btn-unassign:hover { background: #c0392b; }
-        .btn-add { background: #e94560; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 20px; }
-        .btn-add:hover { background: #c73652; }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 9999;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: var(--bg-elevated, #16161c);
-            color: var(--text, #f2f2f5);
-            border: 1px solid var(--border, #2a2a33);
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-            position: relative;
-        }
-        .modal-box .close-btn {
-            position: absolute;
-            top: 12px;
-            right: 18px;
-            font-size: 28px;
-            cursor: pointer;
-            color: var(--text-muted, #9a9aa5);
-            background: none;
-            border: none;
-        }
-        .modal-box h3 { margin-top: 0; }
-        .modal-box .form-group { margin-bottom: 15px; }
-        .modal-box label { display: block; font-weight: 600; margin-bottom: 5px; }
-        .modal-box select { width: 100%; padding: 10px; background: var(--bg-input, #0f0f14); border: 1px solid var(--border, #2a2a33); border-radius: 6px; color: var(--text, #f2f2f5); }
-        .modal-box .btn-submit { width: 100%; padding: 12px; background: #e94560; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .modal-box .btn-submit:hover { background: #c73652; }
-        .empty { text-align: center; padding: 40px; color: var(--text-muted, #9a9aa5); }
-        .flash { padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; }
-        .flash-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .flash-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    </style>
 </head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
-<div class="container">
+<div class="oo-container">
     <a href="/pages/profile.php" class="back-link">← Назад</a>
     <h2>👥 Мои операторы</h2>
     <p style="color: var(--text-muted); margin-bottom: 20px;">Операторы, закреплённые за вашими локациями.</p>
 
     <?php if (isset($_SESSION['flash'])): ?>
-        <div class="flash flash-<?php echo strpos($_SESSION['flash'], '✅') !== false ? 'success' : 'error'; ?>">
+        <div class="flash-message<?php echo strpos($_SESSION['flash'], '✅') !== false ? '' : ' flash-error'; ?>">
             <?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?>
         </div>
     <?php endif; ?>

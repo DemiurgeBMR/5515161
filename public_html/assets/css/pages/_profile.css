@@ -372,13 +372,23 @@
     font-weight: bold;
 }
 
+/* Общий баннер флеш-сообщения (используется на profile.php, admin/*, заявках
+   и т.д.) — цвета те же "стикеры", что и .error/.success в _forms.css, чтобы
+   успех/ошибка выглядели одинаково независимо от того, где именно на сайте
+   показано сообщение. По умолчанию — успех; .flash-error переключает на
+   вариант ошибки для страниц, которые умеют различать (см. owner_operators.php). */
 .flash-message {
     padding: 12px 20px;
     border-radius: 8px;
     margin-bottom: 20px;
-    background: #d4edda;
-    color: #155724;
+    background: #e8f8ed;
+    color: #1e8449;
     border: 1px solid #c3e6cb;
+}
+.flash-message.flash-error {
+    background: #fde8ec;
+    color: #e94560;
+    border-color: #f5c6cb;
 }
 
 /* ===== МОДАЛКА ВЫБОРА ЦВЕТА ===== */

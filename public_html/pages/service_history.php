@@ -45,95 +45,6 @@ $exportQuery = http_build_query(array_filter($filters));
     <meta charset="UTF-8">
     <title>История обслуживания — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
-    <style>
-        .history-container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
-        .back-link { display: inline-block; margin-bottom: 20px; color: var(--text-muted, #9a9aa5); text-decoration: none; }
-        .back-link:hover { text-decoration: underline; }
-
-        .filters-bar {
-            background: var(--bg-elevated, #16161c);
-            border: 1px solid var(--border, #2a2a33);
-            border-radius: 12px;
-            padding: 16px 18px;
-            margin-bottom: 18px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-group label { font-size: 12px; color: var(--text-muted, #9a9aa5); font-weight: 600; }
-        .filter-group input, .filter-group select {
-            padding: 8px 10px;
-            background: var(--bg-input, #0f0f14);
-            border: 1px solid var(--border, #2a2a33);
-            border-radius: 6px;
-            font-size: 13px;
-            color: var(--text, #f2f2f5);
-        }
-        .btn-filter {
-            background: #e94560;
-            color: white;
-            border: none;
-            padding: 9px 18px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            height: 36px;
-        }
-        .btn-filter:hover { background: #c73652; }
-
-        .export-bar { display: flex; gap: 10px; margin-bottom: 18px; }
-        .btn-export {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--bg-elevated, #16161c);
-            border: 1px solid var(--border, #2a2a33);
-            padding: 9px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            color: var(--text, #f2f2f5);
-            font-weight: 600;
-            font-size: 13px;
-        }
-        .btn-export:hover { border-color: #e94560; color: #e94560; }
-
-        .history-table {
-            background: var(--bg-elevated, #16161c);
-            border: 1px solid var(--border, #2a2a33);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            color: var(--text, #f2f2f5);
-        }
-        .history-table table { width: 100%; border-collapse: collapse; }
-        .history-table th {
-            background: var(--bg-elevated-2, #1c1c24);
-            text-align: left;
-            padding: 12px 15px;
-            font-weight: 600;
-            font-size: 13px;
-        }
-        .history-table td {
-            padding: 12px 15px;
-            border-top: 1px solid var(--border, #2a2a33);
-            font-size: 14px;
-        }
-        .source-badge {
-            display: inline-block;
-            padding: 2px 9px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .source-log { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
-        .source-event { background: #d4edda; color: #155724; }
-        .emergency-tag { color: var(--danger, #e74c3c); font-weight: 700; }
-        .empty { text-align: center; padding: 60px 20px; color: var(--text-muted, #9a9aa5); }
-        .summary-line { color: var(--text-muted, #9a9aa5); font-size: 13px; margin-bottom: 14px; }
-    </style>
 </head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
@@ -180,7 +91,7 @@ $exportQuery = http_build_query(array_filter($filters));
                 <option value="log" <?php echo $filters['source'] === 'log' ? 'selected' : ''; ?>>Постфактум-отметки</option>
             </select>
         </div>
-        <button type="submit" class="btn-filter">Применить</button>
+        <button type="submit" class="sh-btn-filter">Применить</button>
     </form>
 
     <div class="export-bar">

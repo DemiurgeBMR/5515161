@@ -20,6 +20,10 @@
 @import 'pages/_subscription.css';
 @import 'pages/_how_it_works.css';
 @import 'pages/_notifications.css';
+@import 'pages/_documents.css';
+@import 'pages/_owner_operators.css';
+@import 'pages/_service_history.css';
+@import 'pages/_index.css';
 @import 'admin/_admin.css';
 @import 'admin/_admin-locations.css'; 
 @import 'admin/_admin-preview-revision.css';
@@ -109,63 +113,12 @@ a {
     padding: 0 20px;
 }
 
-/* ===== ГЛАВНЫЙ БАННЕР ===== */
-.hero {
-    text-align: center;
-    padding: 80px 20px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: white;
-}
-
-.hero h1 {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.hero p {
-    font-size: 20px;
-    opacity: 0.8;
-    margin-bottom: 30px;
-}
-
-.cta-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 14px 40px;
-    border-radius: 30px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 18px;
-    transition: all 0.3s;
-}
-
-.btn-primary {
-    background: #e94560;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #c73652;
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background: transparent;
-    color: white;
-    border: 2px solid white;
-}
-
-.btn-secondary:hover {
-    background: white;
-    color: #1a1a2e;
-}
-
-/* ===== ЛОКАЦИИ (для главной страницы) ===== */
+/* ===== ЛОКАЦИИ (для главной страницы) =====
+   .hero/.btn*/.cta-buttons для homepage переехали в pages/_index.css под
+   .home-* именами — эти классы больше нигде bare не использовались (каждый
+   из 3 файлов, где встречались .btn-primary/.btn-secondary, уже полностью
+   переопределял их в своём собственном <style>), так что здесь удалены,
+   а не оставлены как мёртвый код. */
 .locations-preview {
     padding: 60px 20px;
     background: var(--bg);
