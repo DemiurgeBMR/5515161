@@ -275,11 +275,11 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 </label>
                 <div class="star-rating" style="display: flex; gap: 10px; font-size: 30px; cursor: pointer;">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <span data-value="<?php echo $i; ?>" style="color: #ddd; transition: 0.2s;">★</span>
+                        <span data-value="<?php echo $i; ?>" style="color: var(--border-strong); transition: 0.2s;">★</span>
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="0">
-                <div style="font-size: 14px; color: #888; margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
+                <div style="font-size: 14px; color: var(--text-muted); margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
             <!-- Габариты -->
@@ -325,7 +325,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
                     </div>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
-                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: #555;"></div>
+                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: var(--text-muted);"></div>
                 <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;"></div>
             </div>
 
@@ -338,7 +338,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
         <div class="modal-box">
             <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
             <h3>🚶 Как оценить проходимость места?</h3>
-            <p style="color:#555; margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+            <p style="color:var(--text-muted); margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -380,7 +380,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <strong>💡 Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p style="text-align: right; margin-top: 15px; color:#888; font-size:13px;">Подсказка всегда доступна по ❓</p>
+            <p style="text-align: right; margin-top: 15px; color:var(--text-muted); font-size:13px;">Подсказка всегда доступна по ❓</p>
         </div>
     </div>
     
@@ -550,7 +550,7 @@ fileInput.addEventListener('change', function(e) {
                 document.getElementById('traffic_rating').value = value;
                 
                 document.querySelectorAll('.star-rating span').forEach(function(s, idx) {
-                    s.style.color = (idx < value) ? '#f1c40f' : '#ddd';
+                    s.style.color = (idx < value) ? '#f1c40f' : 'var(--border-strong)';
                 });
             });
         });

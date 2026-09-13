@@ -230,7 +230,7 @@ $exportQuery = http_build_query(array_filter($filters));
                                         </a>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <span style="color:#ccc;">—</span>
+                                    <span style="color:var(--text-faint);">—</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

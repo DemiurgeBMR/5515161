@@ -67,7 +67,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 <div class="docs-container">
     <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>
     <h2>📄 Документы</h2>
-    <p style="color: #888; margin-bottom: 20px;">Шаблоны документов, которые могут понадобиться при работе с точками.</p>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Шаблоны документов, которые могут понадобиться при работе с точками.</p>
 
     <div class="warning-box">
         <b>⚠ Это черновики-шаблоны, а не готовые юридические документы</b>

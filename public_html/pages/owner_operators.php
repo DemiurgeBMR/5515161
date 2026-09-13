@@ -105,7 +105,7 @@ $operators = $stmt->fetchAll();
 <div class="container">
     <a href="/pages/profile.php" class="back-link">← Назад</a>
     <h2>👥 Мои операторы</h2>
-    <p style="color: #888; margin-bottom: 20px;">Операторы, закреплённые за вашими локациями.</p>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Операторы, закреплённые за вашими локациями.</p>
 
     <?php if (isset($_SESSION['flash'])): ?>
         <div class="flash flash-<?php echo strpos($_SESSION['flash'], '✅') !== false ? 'success' : 'error'; ?>">

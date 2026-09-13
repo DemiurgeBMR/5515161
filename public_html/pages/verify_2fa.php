@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="register-form">
         <h2>🔐 Подтверждение входа</h2>
-        <p style="color: #888; margin-bottom: 15px;">
+        <p style="color: var(--text-muted); margin-bottom: 15px;">
             На аккаунте включена двухфакторная аутентификация — введите код, чтобы завершить вход.
         </p>
 

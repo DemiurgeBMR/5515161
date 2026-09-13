@@ -232,7 +232,7 @@ $latest_locations = $stmt->fetchAll();
                                             </span>
                                         <?php endif; ?>
                                     </div>
-                                                                        <div style="color: #888; font-size: 13px; margin-top: 4px;">
+                                                                        <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
                                         🗓️ <?php echo formatDateRu($loc['updated_at']); ?>
                                     </div>
                                     

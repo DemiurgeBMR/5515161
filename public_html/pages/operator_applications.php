@@ -106,7 +106,7 @@ $statusLabels = [
                 </table>
             </div>
         <?php else: ?>
-            <p style="color: #888;">Вы ещё не отправляли заявки. <a href="/pages/catalog.php" style="color:#e94560;">Найдите локации</a></p>
+            <p style="color: var(--text-muted);">Вы ещё не отправляли заявки. <a href="/pages/catalog.php" style="color:#e94560;">Найдите локации</a></p>
         <?php endif; ?>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>

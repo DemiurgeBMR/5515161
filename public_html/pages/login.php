@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p style="text-align: center; margin-top: 12px; font-size: 14px;">
             <a href="/pages/forgot_password.php" style="color: #e94560;">Забыли пароль?</a>
         </p>
-        <p style="text-align: center; margin-top: 8px; font-size: 14px; color: #888;">
+        <p style="text-align: center; margin-top: 8px; font-size: 14px; color: var(--text-muted);">
             Нет аккаунта? <a href="/pages/register.php" style="color: #e94560;">Зарегистрироваться</a>
         </p>
     </div>

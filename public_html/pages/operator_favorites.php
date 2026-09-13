@@ -20,7 +20,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
     <div style="max-width: 900px; margin: 40px auto; padding: 0 20px;">
         <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
         <h2>❤️ Избранные локации</h2>
-        <p style="color: #888;">Функция в разработке. Здесь будут отображаться локации, которые вы добавили в избранное.</p>
+        <p style="color: var(--text-muted);">Функция в разработке. Здесь будут отображаться локации, которые вы добавили в избранное.</p>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

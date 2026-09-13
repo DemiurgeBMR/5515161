@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p style="margin: 15px 0; word-break: break-all;">
                 <a href="<?php echo htmlspecialchars($resetLink); ?>"><?php echo htmlspecialchars($resetLink); ?></a>
             </p>
-            <p style="color: #888; font-size: 13px;">
+            <p style="color: var(--text-muted); font-size: 13px;">
                 Ссылка действует <?php echo PASSWORD_RESET_TTL_MINUTES; ?> минут и может быть использована один раз.
             </p>
         <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error): ?>
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 сброса пароля.
             </div>
         <?php else: ?>
-            <p style="color: #888; margin-bottom: 15px;">
+            <p style="color: var(--text-muted); margin-bottom: 15px;">
                 Укажите email, указанный при регистрации — мы поможем восстановить доступ к аккаунту.
             </p>
             <form method="POST">

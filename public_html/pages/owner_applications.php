@@ -106,7 +106,7 @@ $statusLabels = [
                 </table>
             </div>
         <?php else: ?>
-            <p style="color: #888;">Пока нет заявок на ваши локации.</p>
+            <p style="color: var(--text-muted);">Пока нет заявок на ваши локации.</p>
         <?php endif; ?>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>

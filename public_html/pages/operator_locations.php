@@ -255,7 +255,7 @@ function daysSince($dateString) {
 <div class="locations-container">
     <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
     <h2>📍 Мои закреплённые точки</h2>
-    <p style="color: #888; margin-bottom: 20px;">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
 
     <?php if (count($locations) > 0): ?>
         <?php foreach ($locations as $loc):
@@ -311,7 +311,7 @@ function daysSince($dateString) {
                     </div>
                 <?php else: ?>
                     <div class="machine-box empty-machine">
-                        <span style="color:#888; font-size: 14px;">Вендинг на этой точке ещё не указан.</span>
+                        <span style="color:var(--text-muted); font-size: 14px;">Вендинг на этой точке ещё не указан.</span>
                         <button class="btn-action btn-add-machine" data-lo-id="<?php echo $loc['id']; ?>" onclick="openMachineModal(this)">➕ Указать вендинг</button>
                     </div>
                 <?php endif; ?>
@@ -383,13 +383,13 @@ function daysSince($dateString) {
             <div class="form-group">
                 <label for="servicePhotos">Фото подтверждения</label>
                 <input type="file" id="servicePhotos" accept="image/*" multiple>
-                <div style="color:#888; font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
+                <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
             </div>
             <div id="serviceProgressWrap" style="display:none; margin-bottom:14px;">
                 <div style="background:#eee; border-radius:20px; overflow:hidden; height:8px;">
                     <div id="serviceProgressBar" style="background:#2ecc71; height:100%; width:0%; transition:width .15s;"></div>
                 </div>
-                <div id="serviceProgressText" style="color:#888; font-size:12px; margin-top:4px;">0%</div>
+                <div id="serviceProgressText" style="color:var(--text-muted); font-size:12px; margin-top:4px;">0%</div>
             </div>
             <div class="modal-error" id="serviceError"></div>
             <button type="submit" class="btn-submit" id="serviceSubmitBtn">Отметить</button>

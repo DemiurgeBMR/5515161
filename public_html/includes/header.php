@@ -61,8 +61,8 @@
 
     <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
         <!-- Админ -->
-        <a href="/admin/index.php" style="color: #ffd700; margin-right: 15px; text-decoration: none;">⚙️ Админка</a>
-        <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
+        <a href="/admin/index.php" style="color: var(--warning); margin-right: 15px; text-decoration: none;">⚙️ Админка</a>
+        <a href="/pages/logout.php" style="color: var(--danger); text-decoration: none;">Выйти</a>
     <?php else: ?>
         <!-- Обычный пользователь (оператор или собственник) -->
 <?php
@@ -80,7 +80,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
             <a href="/pages/add_location.php" style="color: #e94560; margin-right: 15px; text-decoration: none;">➕ Добавить место</a>
         <?php endif; ?>
         <a href="/pages/subscription.php" style="color: <?php echo currentUserHasSubscription() ? '#2ecc71' : 'var(--text, #f2f2f5)'; ?>; margin-right: 15px; text-decoration: none;">💳 Подписка</a>
-        <a href="/pages/logout.php" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
+        <a href="/pages/logout.php" style="color: var(--danger); text-decoration: none;">Выйти</a>
     <?php endif; ?>
 <?php else: ?>
     <!-- Гость -->

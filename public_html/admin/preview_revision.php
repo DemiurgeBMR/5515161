@@ -83,7 +83,7 @@ $spaceTypes = [
 ];
 
 function formatValue($field, $value, $spaceTypes, $boolValues) {
-    if ($value === null || $value === '') return '<span style="color:#999;">(не указано)</span>';
+    if ($value === null || $value === '') return '<span style="color:var(--text-muted);">(не указано)</span>';
     if ($field === 'has_electricity' || $field === 'has_wifi' || $field === 'has_water') {
         return $boolValues[(int)$value];
     }
@@ -115,7 +115,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
         
         <div class="changes-card">
             <h2>📋 Ревизия #<?php echo $revision['id']; ?> для объявления #<?php echo $location['id']; ?></h2>
-            <p style="color: #888; margin-bottom: 20px;">
+            <p style="color: var(--text-muted); margin-bottom: 20px;">
                 Объявление: <strong><?php echo htmlspecialchars($location['title']); ?></strong><br>
                 Создана: <?php echo date('d.m.Y H:i', strtotime($revision['created_at'])); ?>
             </p>
@@ -143,7 +143,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                         <?php else: ?>
                             <div class="change-same">
                                 <?php echo formatValue($field, $oldValue, $spaceTypes, $boolValues); ?>
-                                <span style="font-size:12px; color:#999;">(без изменений)</span>
+                                <span style="font-size:12px; color:var(--text-muted);">(без изменений)</span>
                             </div>
                         <?php endif; ?>
                     </div>

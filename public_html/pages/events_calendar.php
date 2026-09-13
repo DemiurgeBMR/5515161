@@ -1074,13 +1074,13 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <div class="form-group">
                 <label class="form-label" for="completePhotos">Фото подтверждения</label>
                 <input type="file" id="completePhotos" class="form-control" accept="image/*" multiple>
-                <div style="color:#888; font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
+                <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
             </div>
             <div id="completeProgressWrap" style="display:none; margin-bottom:14px;">
                 <div style="background:#f3f4f6; border-radius:20px; overflow:hidden; height:8px;">
                     <div id="completeProgressBar" style="background:var(--primary); height:100%; width:0%; transition:width .15s;"></div>
                 </div>
-                <div id="completeProgressText" style="color:#888; font-size:12px; margin-top:4px;">0%</div>
+                <div id="completeProgressText" style="color:var(--text-muted); font-size:12px; margin-top:4px;">0%</div>
             </div>
             <div id="completeError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:700;"></div>
             <div class="modal-buttons">

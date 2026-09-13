@@ -257,7 +257,7 @@ if (!$is_preview) {
             
             <div class="info">
                 <!-- ★★★ ID локации ★★★ -->
-                <div style="color: #888; font-size: 14px; margin-bottom: 10px;">
+                <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;">
                     📍 ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
                 </div>
 
@@ -280,7 +280,7 @@ if (!$is_preview) {
                     </div>
                 <?php endif; ?>
 
-<div style="color: #888; font-size: 14px; margin-top: 8px;">
+<div style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">
 🗓️ Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
 </div>
                 
@@ -349,7 +349,7 @@ if (!$is_preview) {
                             endforeach;
                         ?>
                     <?php else: ?>
-                        <p style="color: #888;">Описание отсутствует.</p>
+                        <p style="color: var(--text-muted);">Описание отсутствует.</p>
                     <?php endif; ?>
                 </div>
                 
@@ -434,7 +434,7 @@ if (!$is_preview) {
                                 <div class="rec-traffic">
                                     🚶
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : '#ddd'; ?>;">★</span>
+                                        <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : 'var(--border-strong)'; ?>;">★</span>
                                     <?php endfor; ?>
                                 </div>
                             <?php endif; ?>
@@ -453,7 +453,7 @@ if (!$is_preview) {
     <div class="modal-box">
         <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
         <h3>🚶 Как оценить проходимость места?</h3>
-        <p style="color:#555; margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+        <p style="color:var(--text-muted); margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
         <table>
             <thead>
                 <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -495,7 +495,7 @@ if (!$is_preview) {
             <strong>💡 Важно!</strong>
             Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
         </div>
-        <p style="text-align: right; margin-top: 15px; color:#888; font-size:13px;">Подсказка всегда доступна по ❓</p>
+        <p style="text-align: right; margin-top: 15px; color:var(--text-muted); font-size:13px;">Подсказка всегда доступна по ❓</p>
     </div>
 </div>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПРОСМОТРА ФОТО ★★★ -->
