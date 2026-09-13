@@ -24,6 +24,10 @@
 @import 'pages/_owner_operators.css';
 @import 'pages/_service_history.css';
 @import 'pages/_index.css';
+@import 'pages/_operator_locations.css';
+@import 'pages/_operator_dashboard.css';
+@import 'pages/_application_chat.css';
+@import 'pages/_events_calendar.css';
 @import 'admin/_admin.css';
 @import 'admin/_admin-locations.css'; 
 @import 'admin/_admin-preview-revision.css';
