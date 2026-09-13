@@ -46,7 +46,17 @@
     --info: #5dade2;
     --info-soft: rgba(52, 152, 219, 0.15);
     --danger: #ff6b6b;
-    --shadow: rgba(0, 0, 0, 0.5);
+    --danger-soft: rgba(255, 107, 107, 0.15);
+    /* Единая шкала теней — раньше почти каждый файл придумывал свой
+       box-shadow с фиксированной непрозрачностью, которая на светлой теме
+       выглядела тяжёлой (чёрная тень с alpha 0.3–0.6 поверх белого фона).
+       Три уровня — карточка / поднятый элемент (модалка, дропдаун) / самый
+       заметный (полноэкранный оверлей) — покрывают почти все случаи;
+       ориентир взят из pages/events_calendar.php, где это уже было сделано правильно. */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+    --radius: 14px;
 }
 
 /* Светлая тема — переключается через data-theme="light" на <html>
@@ -72,7 +82,10 @@
     --info: #3498db;
     --info-soft: #d6eaf8;
     --danger: #e74c3c;
-    --shadow: rgba(0, 0, 0, 0.1);
+    --danger-soft: #fdecea;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 * {
@@ -177,12 +190,12 @@ a {
     border-radius: 12px;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-sm);
 }
 
 .location-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 30px var(--shadow);
+    box-shadow: var(--shadow-md);
     border-color: var(--border-strong);
 }
 
@@ -250,7 +263,7 @@ a {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-md);
     border-left: 4px solid #e94560;
     transform: translateX(110%);
     opacity: 0;

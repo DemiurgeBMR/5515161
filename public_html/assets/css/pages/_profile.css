@@ -15,7 +15,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 16px;
     padding: 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
     text-align: center;
     align-self: start;
 }
@@ -158,7 +158,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 16px;
     padding: 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
 }
 .profile-main h2 {
     margin-top: 0;
@@ -213,7 +213,7 @@
     background: var(--bg-elevated, #16161c);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
     display: flex;
     flex-direction: column;
@@ -222,7 +222,7 @@
 }
 .location-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-md);
     border-color: var(--border-strong, #3a3a45);
 }
 .location-link {
@@ -403,7 +403,7 @@
     padding: 30px;
     max-width: 500px;
     width: 90%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow-lg);
     animation: slideUp 0.3s;
 }
 .modal-overlay .modal h3 {

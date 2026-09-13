@@ -39,7 +39,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: auto;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
     color: var(--text, #f2f2f5);
 }
 .admin-table table {

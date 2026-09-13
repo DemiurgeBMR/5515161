@@ -21,7 +21,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     padding: 24px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-md);
 }
 .ep-card-title {
     font-size: 17px;

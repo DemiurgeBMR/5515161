@@ -93,7 +93,12 @@
     border-radius: 14px;
     padding: 20px 16px;
     cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.reg-role-card:hover {
+    border-color: var(--border-strong, #3a3a45);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
 }
 .reg-role-card input {
     position: absolute;
@@ -103,6 +108,10 @@
 .reg-role-card.active {
     border-color: #e94560;
     background: rgba(233, 69, 96, 0.08);
+}
+.reg-role-card.active:hover {
+    transform: none;
+    box-shadow: none;
 }
 .reg-role-icon {
     font-size: 26px;

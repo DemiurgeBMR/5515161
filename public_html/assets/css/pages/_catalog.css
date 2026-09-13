@@ -178,7 +178,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(140px, 1fr));
     gap: 12px;
-    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
+    box-shadow: var(--shadow-md);
     min-width: 320px;
 }
 .more-filters-field {
@@ -256,7 +256,7 @@
 }
 .catalog-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
+    box-shadow: var(--shadow-md);
     border-color: var(--border-strong, #3a3a45);
 }
 .catalog-card-link {

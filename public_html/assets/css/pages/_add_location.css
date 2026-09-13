@@ -6,7 +6,7 @@
     background: var(--bg-elevated, #16161c);
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-md);
 }
 .add-form h2 {
     text-align: center;
@@ -57,7 +57,7 @@
     overflow-y: auto;
     display: none;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-sm);
 }
 .city-suggestions .suggestion-item {
     padding: 10px 15px;

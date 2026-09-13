@@ -40,7 +40,7 @@
     height: 65vh;
     min-height: 420px;
     border-radius: 12px;
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-sm);
     z-index: 1;
 }
 
@@ -93,7 +93,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     padding: 40px 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 25px;
 }
 .map-paywall-icon {
@@ -113,7 +113,7 @@
     background: var(--bg-elevated, #16161c);
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
     padding: 10px 25px;
 }
 .city-counts-table {
