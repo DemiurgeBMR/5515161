@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Вход в RR</h2>
         
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         
         <form method="POST">

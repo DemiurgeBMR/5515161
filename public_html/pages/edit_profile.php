@@ -174,10 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
         <h1 class="ep-title">✏️ Настройки аккаунта</h1>
 
         <?php if ($error): ?>
-            <div class="error"><?php echo $error; ?></div>
+            <div class="error" role="alert"><?php echo $error; ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
 
         <form method="POST" class="ep-form">
@@ -245,10 +245,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
         </form>
 
         <?php if ($notifError): ?>
-            <div class="error"><?php echo htmlspecialchars($notifError); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($notifError); ?></div>
         <?php endif; ?>
         <?php if ($notifSuccess): ?>
-            <div class="success"><?php echo htmlspecialchars($notifSuccess); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($notifSuccess); ?></div>
         <?php endif; ?>
 
         <form method="POST" class="ep-form">

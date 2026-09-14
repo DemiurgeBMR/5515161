@@ -36,14 +36,14 @@ if ($user) {
         <h2>📧 Подтверждение email</h2>
 
         <?php if ($success): ?>
-            <div class="success">Email подтверждён, спасибо!</div>
+            <div class="success" role="status">Email подтверждён, спасибо!</div>
             <p class="auth-link-paragraph">
                 <a href="<?php echo isset($_SESSION['user_id']) ? '/pages/profile.php' : '/pages/login.php'; ?>">
                     <?php echo isset($_SESSION['user_id']) ? 'Вернуться в профиль →' : 'Войти →'; ?>
                 </a>
             </p>
         <?php else: ?>
-            <div class="error">Ссылка недействительна, уже использована или срок её действия истёк.</div>
+            <div class="error" role="alert">Ссылка недействительна, уже использована или срок её действия истёк.</div>
             <?php if (isset($_SESSION['user_id'])): ?>
                 <p class="auth-link-paragraph"><a href="/pages/profile.php">Запросить новую ссылку в профиле →</a></p>
             <?php endif; ?>

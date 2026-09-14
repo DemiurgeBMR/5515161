@@ -161,7 +161,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <h3 class="cal-modal-title" id="modalTitle">Новый выезд</h3>
                 <p class="cal-modal-subtitle" id="modalSub">Выберите точку и укажите время</p>
             </div>
-            <button type="button" class="cal-close-btn" onclick="closeModal()">×</button>
+            <button type="button" class="cal-close-btn" onclick="closeModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="eventForm">
             <div class="cal-form-group">
@@ -204,7 +204,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <label class="cal-form-label" for="emergencyComment">Причина срочности *</label>
                 <textarea id="emergencyComment" class="cal-form-control" rows="3" placeholder="Опишите проблему или причину срочного выезда..."></textarea>
             </div>
-            <div id="formError" class="form-error-box"></div>
+            <div id="formError" class="form-error-box" role="alert"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="modalSubmitBtn">Запросить визит</button>
@@ -221,7 +221,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <h3 class="cal-modal-title" id="detailsTitle">Выезд</h3>
                 <p class="cal-modal-subtitle" id="detailsSubtitle">—</p>
             </div>
-            <button type="button" class="cal-close-btn" onclick="closeDetailsModal()">×</button>
+            <button type="button" class="cal-close-btn" onclick="closeDetailsModal()" aria-label="Закрыть">×</button>
         </div>
         <div id="detailsContent"></div>
     </div>
@@ -235,14 +235,14 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <h3 class="cal-modal-title">✏️ Изменить время</h3>
                 <p class="cal-modal-subtitle">Выберите новую дату и время</p>
             </div>
-            <button type="button" class="cal-close-btn" onclick="closeRescheduleModal()">×</button>
+            <button type="button" class="cal-close-btn" onclick="closeRescheduleModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="rescheduleForm">
             <div class="cal-form-group">
                 <label class="cal-form-label" for="rescheduleDatetime">Новая дата и время *</label>
                 <input type="datetime-local" id="rescheduleDatetime" class="cal-form-control" required>
             </div>
-            <div id="rescheduleError" class="form-error-box"></div>
+            <div id="rescheduleError" class="form-error-box" role="alert"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeRescheduleModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="rescheduleSubmitBtn">Сохранить</button>
@@ -259,7 +259,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <h3 class="cal-modal-title">✔️ Завершить выезд</h3>
                 <p class="cal-modal-subtitle">Можно приложить фото подтверждения</p>
             </div>
-            <button type="button" class="cal-close-btn" onclick="closeCompleteModal()">×</button>
+            <button type="button" class="cal-close-btn" onclick="closeCompleteModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="completeForm">
             <div class="cal-form-group">
@@ -273,7 +273,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 </div>
                 <div id="completeProgressText" class="progress-text">0%</div>
             </div>
-            <div id="completeError" class="form-error-box"></div>
+            <div id="completeError" class="form-error-box" role="alert"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeCompleteModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="completeSubmitBtn">Завершить</button>
@@ -284,10 +284,10 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 
 <!-- ===== ЛАЙТБОКС ФОТО ===== -->
 <div class="cal-modal-overlay photo-lightbox-overlay" id="photoLightbox">
-    <button type="button" id="lightboxClose" class="lightbox-close-btn">×</button>
-    <button type="button" id="lightboxPrev" class="lightbox-nav-btn">‹</button>
+    <button type="button" id="lightboxClose" class="lightbox-close-btn" aria-label="Закрыть">×</button>
+    <button type="button" id="lightboxPrev" class="lightbox-nav-btn" aria-label="Предыдущее фото">‹</button>
     <img id="lightboxImg" src="" alt="Фото подтверждения" class="lightbox-img">
-    <button type="button" id="lightboxNext" class="lightbox-nav-btn">›</button>
+    <button type="button" id="lightboxNext" class="lightbox-nav-btn" aria-label="Следующее фото">›</button>
     <div id="lightboxCounter" class="lightbox-counter"></div>
 </div>
 
@@ -300,7 +300,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 </div>
 
 <!-- ===== TOAST ===== -->
-<div class="cal-toast-container" id="toastContainer"></div>
+<div class="cal-toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <script>
 const ROLE = <?php echo json_encode($role); ?>;

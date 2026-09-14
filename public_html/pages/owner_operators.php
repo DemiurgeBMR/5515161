@@ -98,7 +98,7 @@ $operators = $stmt->fetchAll();
 <!-- Модалка добавления -->
 <div class="modal-overlay" id="addModal">
     <div class="modal-box">
-        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <button class="close-btn" onclick="closeModal()" aria-label="Закрыть">&times;</button>
         <h3>➕ Закрепить оператора</h3>
         <form id="addForm">
             <div class="form-group">
@@ -119,7 +119,7 @@ $operators = $stmt->fetchAll();
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div id="addError" class="modal-error"></div>
+            <div id="addError" class="modal-error" role="alert"></div>
             <button type="submit" class="btn-submit">Закрепить</button>
         </form>
     </div>

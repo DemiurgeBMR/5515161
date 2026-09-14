@@ -233,10 +233,10 @@ if (strpos($mainPhoto, 'existing_') === 0) {
         <h2>✏️ Редактировать локацию</h2>
         
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         
         <form method="POST" enctype="multipart/form-data">
@@ -462,7 +462,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
     <div class="modal-overlay" id="trafficHelpModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
+            <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
             <h3>🚶 Как оценить проходимость места?</h3>
             <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
@@ -534,7 +534,7 @@ fileInput.addEventListener('change', function(e) {
                 const div = document.createElement('div');
                 div.className = 'photo-preview-item';
                 div.innerHTML = `
-                    <img src="${ev.target.result}" class="photo-preview-thumb">
+                    <img src="${ev.target.result}" class="photo-preview-thumb" alt="Предпросмотр фото">
                     <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
                         Главное

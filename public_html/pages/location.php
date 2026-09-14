@@ -451,7 +451,7 @@ if (!$is_preview) {
 <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
 <div class="modal-overlay" id="trafficHelpModal">
     <div class="modal-box">
-        <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
+        <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
         <h3>🚶 Как оценить проходимость места?</h3>
         <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
         <table>
@@ -501,9 +501,9 @@ if (!$is_preview) {
 <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПРОСМОТРА ФОТО ★★★ -->
 <div class="photo-modal" id="photoModal">
     <div class="photo-modal-content">
-        <button class="photo-modal-close" onclick="closePhotoModal()">&times;</button>
-        <button class="photo-modal-prev" onclick="prevPhoto()">&#10094;</button>
-        <button class="photo-modal-next" onclick="nextPhoto()">&#10095;</button>
+        <button class="photo-modal-close" onclick="closePhotoModal()" aria-label="Закрыть">&times;</button>
+        <button class="photo-modal-prev" onclick="prevPhoto()" aria-label="Предыдущее фото">&#10094;</button>
+        <button class="photo-modal-next" onclick="nextPhoto()" aria-label="Следующее фото">&#10095;</button>
         <img id="modalPhoto" src="" alt="Фото">
         <div class="photo-modal-counter" id="photoCounter"></div>
     </div>

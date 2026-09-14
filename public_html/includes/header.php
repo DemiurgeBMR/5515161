@@ -31,6 +31,7 @@
     </script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Перейти к содержимому</a>
     <header class="header">
         <div class="container">
             <a href="/" class="logo">RR</a>
@@ -171,4 +172,4 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
         })();
     </script>
     <?php endif; ?>
-    <main>
+    <main id="main-content">

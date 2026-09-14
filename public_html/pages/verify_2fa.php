@@ -93,11 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </p>
 
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <?php if (!$codeExpired): ?>
-            <div class="success">
+            <div class="success" role="status">
                 Отправка писем на сайте пока не настроена, поэтому код показан прямо здесь
                 (временно, до подключения почты): <strong class="auth-code-display"><?php echo htmlspecialchars($user['two_factor_code']); ?></strong>
             </div>

@@ -60,11 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>🔑 Восстановление пароля</h2>
 
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <?php if ($resetLink): ?>
-            <div class="success">
+            <div class="success" role="status">
                 Отправка писем на сайте пока не настроена, поэтому ссылка для сброса пароля
                 показана прямо здесь (только на этот раз):
             </div>
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Ссылка действует <?php echo PASSWORD_RESET_TTL_MINUTES; ?> минут и может быть использована один раз.
             </p>
         <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error): ?>
-            <div class="success">
+            <div class="success" role="status">
                 Если такой email зарегистрирован, для него можно было бы получить ссылку для
                 сброса пароля.
             </div>

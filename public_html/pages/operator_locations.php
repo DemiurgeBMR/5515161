@@ -127,7 +127,7 @@ function daysSince($dateString) {
 <!-- ===== Модалка: карточка вендинга (добавить/изменить) ===== -->
 <div class="modal-overlay" id="machineModal">
     <div class="modal-box">
-        <button class="close-btn" onclick="closeMachineModal()">&times;</button>
+        <button class="close-btn" onclick="closeMachineModal()" aria-label="Закрыть">&times;</button>
         <h3 id="machineModalTitle">➕ Указать вендинг</h3>
         <form id="machineForm">
             <input type="hidden" id="machineLoId">
@@ -154,7 +154,7 @@ function daysSince($dateString) {
                 <label for="machineInstalledAt">Дата установки</label>
                 <input type="date" id="machineInstalledAt">
             </div>
-            <div class="ol-modal-error" id="machineError"></div>
+            <div class="ol-modal-error" id="machineError" role="alert"></div>
             <button type="submit" class="btn-submit">Сохранить</button>
         </form>
     </div>
@@ -163,7 +163,7 @@ function daysSince($dateString) {
 <!-- ===== Модалка: отметить обслуживание ===== -->
 <div class="modal-overlay" id="serviceModal">
     <div class="modal-box">
-        <button class="close-btn" onclick="closeServiceModal()">&times;</button>
+        <button class="close-btn" onclick="closeServiceModal()" aria-label="Закрыть">&times;</button>
         <h3>🔧 Отметить обслуживание</h3>
         <form id="serviceForm">
             <input type="hidden" id="serviceLoId">
@@ -190,7 +190,7 @@ function daysSince($dateString) {
                 </div>
                 <div id="serviceProgressText" class="ol-progress-text">0%</div>
             </div>
-            <div class="ol-modal-error" id="serviceError"></div>
+            <div class="ol-modal-error" id="serviceError" role="alert"></div>
             <button type="submit" class="btn-submit" id="serviceSubmitBtn">Отметить</button>
         </form>
     </div>

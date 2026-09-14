@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
         </p>
 
         <?php if (isset($error)): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <form method="POST">

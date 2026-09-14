@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <?php if ($error): ?>
-                <div class="error"><?php echo htmlspecialchars($error); ?></div>
+                <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
 
             <form method="POST" id="registerForm" class="reg-form role-<?php echo $role; ?>" novalidate>

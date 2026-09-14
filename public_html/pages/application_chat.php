@@ -233,7 +233,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- заголовок панели, только на мобилке -->
             <div class="sidebar-header">
                 <span class="sidebar-header-title">Детали заявки</span>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn">×</button>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Закрыть">×</button>
             </div>
 
             <!-- профиль собеседника -->
@@ -263,7 +263,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                     <button type="button" id="approveAssignmentBtn" class="chat-btn-primary">✅ Одобрить</button>
                     <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
                 </div>
-                <div id="assignmentRequestStatus" class="status-message"></div>
+                <div id="assignmentRequestStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <?php endif; ?>
 
@@ -275,7 +275,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                     Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
                 </p>
                 <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">📩 Запросить закрепление</button>
-                <div id="requestAssignmentStatus" class="status-message"></div>
+                <div id="requestAssignmentStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
             <div class="sidebar-section">
@@ -410,7 +410,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 <h3 class="modal-title" id="modalTitle">📅 Выберите дату и время</h3>
                 <p class="modal-subtitle">Укажите время выезда</p>
             </div>
-            <button class="close-btn" onclick="closeDateModal()">×</button>
+            <button class="close-btn" onclick="closeDateModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="dateForm">
             <div class="chat-form-group">
@@ -432,7 +432,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
 </div>
 
 <!-- TOAST-контейнер -->
-<div class="chat-toast-container" id="toastContainer"></div>
+<div class="chat-toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>

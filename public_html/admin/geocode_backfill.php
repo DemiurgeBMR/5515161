@@ -69,7 +69,7 @@ $remaining = (int) $pdo->query("
            (новые локации получают координаты автоматически при добавлении/редактировании).</p>
 
         <?php if ($batchResult): ?>
-            <div class="success"><?php echo htmlspecialchars($batchResult); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($batchResult); ?></div>
         <?php endif; ?>
 
         <p>Локаций без координат: <strong><?php echo $remaining; ?></strong></p>

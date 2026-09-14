@@ -4,7 +4,7 @@ $(document).ready(function () {
     var lastNotificationId = 0;
     var notificationsEnabled = true;
 
-    var container = $('<div class="toast-container"></div>').appendTo('body');
+    var container = $('<div class="toast-container" role="status" aria-live="polite"></div>').appendTo('body');
     var badge = document.getElementById('notificationBadge');
     var dropdown = document.getElementById('notificationDropdown');
     var dropdownList = document.getElementById('notificationDropdownList');

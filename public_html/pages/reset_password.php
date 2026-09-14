@@ -58,14 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
         <h2>🔑 Новый пароль</h2>
 
         <?php if (!$tokenValid): ?>
-            <div class="error">Ссылка недействительна или срок её действия истёк.</div>
+            <div class="error" role="alert">Ссылка недействительна или срок её действия истёк.</div>
             <p class="auth-link-paragraph"><a href="/pages/forgot_password.php">Запросить новую ссылку →</a></p>
         <?php elseif ($success): ?>
-            <div class="success">Пароль успешно изменён.</div>
+            <div class="success" role="status">Пароль успешно изменён.</div>
             <p class="auth-link-paragraph"><a href="/pages/login.php">Войти с новым паролем →</a></p>
         <?php else: ?>
             <?php if ($error): ?>
-                <div class="error"><?php echo htmlspecialchars($error); ?></div>
+                <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
             <form method="POST">
                 <?php echo csrf_field(); ?>
