@@ -12,6 +12,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Избранное — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>

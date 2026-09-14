@@ -221,6 +221,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Редактировать локацию — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
