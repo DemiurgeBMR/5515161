@@ -47,7 +47,7 @@ $statusLabels = [
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <div style="max-width: 1000px; margin: 40px auto; padding: 0 20px;">
+    <div class="page-container-1000">
         <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
         <h2>📋 Мои заявки на аренду</h2>
 
@@ -86,7 +86,7 @@ $statusLabels = [
                             <tr>
                                 <td>#<?php echo $app['id']; ?></td>
                                 <td>
-                                    <a href="/pages/location.php?id=<?php echo $app['location_id']; ?>" style="color: #e94560; text-decoration: none;">
+                                    <a href="/pages/location.php?id=<?php echo $app['location_id']; ?>" class="accent-link no-underline">
                                         <?php echo htmlspecialchars($app['location_title']); ?>
                                     </a>
                                 </td>
@@ -107,7 +107,7 @@ $statusLabels = [
                 </table>
             </div>
         <?php else: ?>
-            <p style="color: var(--text-muted);">Вы ещё не отправляли заявки. <a href="/pages/catalog.php" style="color:#e94560;">Найдите локации</a></p>
+            <p class="page-intro">Вы ещё не отправляли заявки. <a href="/pages/catalog.php" class="accent-link">Найдите локации</a></p>
         <?php endif; ?>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>

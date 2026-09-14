@@ -85,6 +85,19 @@
 .map-popup-link:hover {
     text-decoration: underline;
 }
+/* Попап Leaflet рендерится с фиксированным белым фоном независимо от
+   темы сайта (см. .map-popup) — поэтому цвета звёзд здесь тоже
+   фиксированные, а не через var(--...), намеренно. */
+.map-popup-traffic .popup-star {
+    color: #ddd;
+}
+.map-popup-traffic .popup-star.filled {
+    color: #f1c40f;
+}
+
+.empty.spaced {
+    margin-top: 20px;
+}
 
 /* ===== ПЕЙВОЛЛ КАРТЫ (без подписки) ===== */
 .map-paywall {

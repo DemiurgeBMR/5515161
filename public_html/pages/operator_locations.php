@@ -54,7 +54,7 @@ function daysSince($dateString) {
 <div class="locations-container">
     <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
     <h2>📍 Мои закреплённые точки</h2>
-    <p class="page-intro">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
+    <p class="page-intro spaced">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
 
     <?php if (count($locations) > 0): ?>
         <?php foreach ($locations as $loc):
@@ -154,7 +154,7 @@ function daysSince($dateString) {
                 <label for="machineInstalledAt">Дата установки</label>
                 <input type="date" id="machineInstalledAt">
             </div>
-            <div class="modal-error" id="machineError"></div>
+            <div class="ol-modal-error" id="machineError"></div>
             <button type="submit" class="btn-submit">Сохранить</button>
         </form>
     </div>
@@ -190,7 +190,7 @@ function daysSince($dateString) {
                 </div>
                 <div id="serviceProgressText" class="ol-progress-text">0%</div>
             </div>
-            <div class="modal-error" id="serviceError"></div>
+            <div class="ol-modal-error" id="serviceError"></div>
             <button type="submit" class="btn-submit" id="serviceSubmitBtn">Отметить</button>
         </form>
     </div>

@@ -13,3 +13,46 @@
     text-align: center;
     margin-bottom: 25px;
 }
+
+/* ===== Общие мелкие блоки под формой (все auth-страницы) =====
+   Раньше на каждой странице (login/forgot_password/reset_password/
+   verify_2fa/verify_email) одна и та же разметка задавалась инлайн-стилем. */
+.auth-footer-line {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 8px;
+}
+.auth-footer-line:first-of-type {
+    margin-top: 12px;
+}
+.auth-footer-line.muted {
+    color: var(--text-muted, #9a9aa5);
+}
+.auth-note {
+    color: var(--text-muted, #9a9aa5);
+    margin-bottom: 15px;
+}
+.auth-link-paragraph {
+    margin-top: 15px;
+}
+.auth-link-paragraph.wide {
+    margin-top: 20px;
+}
+.auth-link-paragraph.break {
+    word-break: break-all;
+}
+.auth-note-small {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+}
+.auth-link-break {
+    margin: 15px 0;
+    word-break: break-all;
+}
+.auth-code-display {
+    font-size: 20px;
+    letter-spacing: 2px;
+}
+.auth-secondary-form {
+    margin-top: 10px;
+}

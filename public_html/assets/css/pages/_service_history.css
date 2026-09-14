@@ -85,3 +85,5 @@
 .emergency-tag { color: var(--danger, #e74c3c); font-weight: 700; }
 .empty { text-align: center; padding: 60px 20px; color: var(--text-muted, #9a9aa5); }
 .summary-line { color: var(--text-muted, #9a9aa5); font-size: 13px; margin-bottom: 14px; }
+.history-photo-thumb { width: 36px; height: 36px; object-fit: cover; border-radius: 5px; margin-right: 3px; }
+.no-photo-dash { color: var(--text-faint, #6f6f7a); }

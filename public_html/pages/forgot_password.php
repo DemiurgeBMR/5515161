@@ -68,10 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Отправка писем на сайте пока не настроена, поэтому ссылка для сброса пароля
                 показана прямо здесь (только на этот раз):
             </div>
-            <p style="margin: 15px 0; word-break: break-all;">
+            <p class="auth-link-break">
                 <a href="<?php echo htmlspecialchars($resetLink); ?>"><?php echo htmlspecialchars($resetLink); ?></a>
             </p>
-            <p style="color: var(--text-muted); font-size: 13px;">
+            <p class="auth-note-small">
                 Ссылка действует <?php echo PASSWORD_RESET_TTL_MINUTES; ?> минут и может быть использована один раз.
             </p>
         <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error): ?>
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 сброса пароля.
             </div>
         <?php else: ?>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">
+            <p class="auth-note">
                 Укажите email, указанный при регистрации — мы поможем восстановить доступ к аккаунту.
             </p>
             <form method="POST">

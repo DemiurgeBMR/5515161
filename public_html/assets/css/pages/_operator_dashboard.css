@@ -72,6 +72,10 @@
     width: 24px;
     text-align: center;
 }
+.dashboard-nav a.logout-link {
+    color: var(--danger, #e74c3c);
+    margin-top: 12px;
+}
 .dashboard-main {
     background: var(--bg-elevated, #16161c);
     border: 1px solid var(--border, #2a2a33);

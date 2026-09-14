@@ -158,3 +158,12 @@
     background: #e2d9f3;
     color: #4a2e8a;
 }
+
+/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
+.admin-link-paragraph {
+    margin-top: 20px;
+}
+.you-note {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+}

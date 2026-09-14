@@ -131,24 +131,18 @@
 .btn-add-machine { background: #e94560; color: white; }
 .btn-add-machine:hover { background: #c73652; }
 
-.modal-error {
+.ol-modal-error {
     color: var(--danger, #e74c3c);
     margin-bottom: 10px;
     display: none;
     font-size: 13px;
 }
 
-/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
-.page-intro {
-    color: var(--text-muted, #9a9aa5);
-    margin-bottom: 20px;
-}
+/* ===== Прочие инлайн-стили, вынесенные в классы =====
+   .page-intro/.accent-link — общие utils/_common.css (без дублирования). */
 .empty-machine-note {
     color: var(--text-muted, #9a9aa5);
     font-size: 14px;
-}
-.accent-link {
-    color: #e94560;
 }
 .photo-upload-hint {
     color: var(--text-muted, #9a9aa5);

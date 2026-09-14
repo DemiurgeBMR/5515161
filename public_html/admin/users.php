@@ -150,7 +150,7 @@ unset($_SESSION['flash']);
                                 <td><?php echo formatDate($u['created_at']); ?></td>
                                 <td class="actions">
                                     <?php if ($u['id'] == $_SESSION['user_id']): ?>
-                                        <span style="color: var(--text-muted, #9a9aa5); font-size: 13px;">Это вы</span>
+                                        <span class="you-note">Это вы</span>
                                     <?php else: ?>
                                         <?php if ($u['is_banned']): ?>
                                             <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Разблокировать пользователя?')">✅ Разблокировать</a>

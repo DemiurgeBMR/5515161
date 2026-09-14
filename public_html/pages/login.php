@@ -126,11 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn-submit">Войти</button>
         </form>
 
-        <p style="text-align: center; margin-top: 12px; font-size: 14px;">
-            <a href="/pages/forgot_password.php" style="color: #e94560;">Забыли пароль?</a>
+        <p class="auth-footer-line">
+            <a href="/pages/forgot_password.php" class="accent-link">Забыли пароль?</a>
         </p>
-        <p style="text-align: center; margin-top: 8px; font-size: 14px; color: var(--text-muted);">
-            Нет аккаунта? <a href="/pages/register.php" style="color: #e94560;">Зарегистрироваться</a>
+        <p class="auth-footer-line muted">
+            Нет аккаунта? <a href="/pages/register.php" class="accent-link">Зарегистрироваться</a>
         </p>
     </div>
     

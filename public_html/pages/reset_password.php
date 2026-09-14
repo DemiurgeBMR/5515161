@@ -59,10 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
 
         <?php if (!$tokenValid): ?>
             <div class="error">Ссылка недействительна или срок её действия истёк.</div>
-            <p style="margin-top: 15px;"><a href="/pages/forgot_password.php">Запросить новую ссылку →</a></p>
+            <p class="auth-link-paragraph"><a href="/pages/forgot_password.php">Запросить новую ссылку →</a></p>
         <?php elseif ($success): ?>
             <div class="success">Пароль успешно изменён.</div>
-            <p style="margin-top: 15px;"><a href="/pages/login.php">Войти с новым паролем →</a></p>
+            <p class="auth-link-paragraph"><a href="/pages/login.php">Войти с новым паролем →</a></p>
         <?php else: ?>
             <?php if ($error): ?>
                 <div class="error"><?php echo htmlspecialchars($error); ?></div>

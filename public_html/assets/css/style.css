@@ -8,6 +8,7 @@
 @import 'components/_modals.css';
 @import 'components/_star-rating.css';
 @import 'utils/_back-link.css';
+@import 'utils/_common.css';
 @import 'pages/_add_location.css';
 @import 'pages/_catalog.css';
 @import 'pages/_map.css';

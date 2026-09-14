@@ -37,7 +37,7 @@ if ($user) {
 
         <?php if ($success): ?>
             <div class="success">Email подтверждён, спасибо!</div>
-            <p style="margin-top: 15px;">
+            <p class="auth-link-paragraph">
                 <a href="<?php echo isset($_SESSION['user_id']) ? '/pages/profile.php' : '/pages/login.php'; ?>">
                     <?php echo isset($_SESSION['user_id']) ? 'Вернуться в профиль →' : 'Войти →'; ?>
                 </a>
@@ -45,7 +45,7 @@ if ($user) {
         <?php else: ?>
             <div class="error">Ссылка недействительна, уже использована или срок её действия истёк.</div>
             <?php if (isset($_SESSION['user_id'])): ?>
-                <p style="margin-top: 15px;"><a href="/pages/profile.php">Запросить новую ссылку в профиле →</a></p>
+                <p class="auth-link-paragraph"><a href="/pages/profile.php">Запросить новую ссылку в профиле →</a></p>
             <?php endif; ?>
         <?php endif; ?>
     </div>

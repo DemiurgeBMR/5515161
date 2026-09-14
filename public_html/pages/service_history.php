@@ -138,11 +138,11 @@ $exportQuery = http_build_query(array_filter($filters));
                                 <?php if (!empty($row['photos'])): ?>
                                     <?php foreach ($row['photos'] as $photo): ?>
                                         <a href="/<?php echo htmlspecialchars($photo); ?>" target="_blank">
-                                            <img src="/<?php echo htmlspecialchars($photo); ?>" style="width:36px; height:36px; object-fit:cover; border-radius:5px; margin-right:3px;" alt="Фото">
+                                            <img src="/<?php echo htmlspecialchars($photo); ?>" class="history-photo-thumb" alt="Фото">
                                         </a>
                                     <?php endforeach; ?>
                                 <?php else: ?>
-                                    <span style="color:var(--text-faint);">—</span>
+                                    <span class="no-photo-dash">—</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

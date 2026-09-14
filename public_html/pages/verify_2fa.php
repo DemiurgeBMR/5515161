@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="register-form">
         <h2>🔐 Подтверждение входа</h2>
-        <p style="color: var(--text-muted); margin-bottom: 15px;">
+        <p class="auth-note">
             На аккаунте включена двухфакторная аутентификация — введите код, чтобы завершить вход.
         </p>
 
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if (!$codeExpired): ?>
             <div class="success">
                 Отправка писем на сайте пока не настроена, поэтому код показан прямо здесь
-                (временно, до подключения почты): <strong style="font-size: 20px; letter-spacing: 2px;"><?php echo htmlspecialchars($user['two_factor_code']); ?></strong>
+                (временно, до подключения почты): <strong class="auth-code-display"><?php echo htmlspecialchars($user['two_factor_code']); ?></strong>
             </div>
         <?php endif; ?>
 
@@ -112,9 +112,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn-submit">Подтвердить</button>
         </form>
 
-        <form method="POST" style="margin-top: 10px;">
+        <form method="POST" class="auth-secondary-form">
             <?php echo csrf_field(); ?>
-            <button type="submit" name="resend" value="1" class="btn-action secondary" style="width: 100%;">Прислать новый код</button>
+            <button type="submit" name="resend" value="1" class="btn-action secondary block">Прислать новый код</button>
         </form>
     </div>
 

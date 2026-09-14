@@ -52,7 +52,7 @@ $operators = $stmt->fetchAll();
 <div class="oo-container">
     <a href="/pages/profile.php" class="back-link">← Назад</a>
     <h2>👥 Мои операторы</h2>
-    <p style="color: var(--text-muted); margin-bottom: 20px;">Операторы, закреплённые за вашими локациями.</p>
+    <p class="page-intro spaced">Операторы, закреплённые за вашими локациями.</p>
 
     <?php if (isset($_SESSION['flash'])): ?>
         <div class="flash-message<?php echo strpos($_SESSION['flash'], '✅') !== false ? '' : ' flash-error'; ?>">
@@ -119,7 +119,7 @@ $operators = $stmt->fetchAll();
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div id="addError" style="color: #e74c3c; margin-bottom: 10px; display: none;"></div>
+            <div id="addError" class="modal-error"></div>
             <button type="submit" class="btn-submit">Закрепить</button>
         </form>
     </div>
@@ -157,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Закрытие модалки
     window.closeModal = function() {
         document.getElementById('addModal').classList.remove('active');
-        document.getElementById('addError').style.display = 'none';
+        document.getElementById('addError').classList.remove('show');
     };
     document.getElementById('addModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
@@ -172,11 +172,11 @@ document.addEventListener('DOMContentLoaded', function() {
         var locationId = document.getElementById('locationSelect').value;
         var operatorId = document.getElementById('operatorSelect').value;
         var errorEl = document.getElementById('addError');
-        errorEl.style.display = 'none';
+        errorEl.classList.remove('show');
 
         if (!locationId || !operatorId) {
             errorEl.textContent = 'Выберите локацию и оператора';
-            errorEl.style.display = 'block';
+            errorEl.classList.add('show');
             return;
         }
 
@@ -193,12 +193,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     location.reload();
                 } else {
                     errorEl.textContent = data.error || 'Ошибка';
-                    errorEl.style.display = 'block';
+                    errorEl.classList.add('show');
                 }
             })
             .catch(err => {
                 errorEl.textContent = 'Ошибка соединения';
-                errorEl.style.display = 'block';
+                errorEl.classList.add('show');
             });
     });
 });

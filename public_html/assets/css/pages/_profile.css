@@ -106,6 +106,9 @@
     font-weight: bold;
     color: var(--text, #f2f2f5);
 }
+.stat-item .number.warning {
+    color: #f39c12;
+}
 .stat-item .label {
     font-size: 12px;
     color: var(--text-muted, #9a9aa5);
@@ -324,6 +327,9 @@
     padding: 4px 12px;
     font-size: 12px;
     border-radius: 6px;
+}
+.btn-action.block {
+    width: 100%;
 }
 .btn-edit {
     background: #3498db;

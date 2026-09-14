@@ -85,7 +85,7 @@ $remaining = (int) $pdo->query("
             <p>🎉 Все локации с адресом уже имеют координаты.</p>
         <?php endif; ?>
 
-        <p style="margin-top: 20px;"><a href="/admin/index.php">← В админку</a></p>
+        <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>

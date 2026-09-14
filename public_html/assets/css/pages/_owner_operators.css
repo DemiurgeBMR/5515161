@@ -24,3 +24,12 @@
 .btn-add:hover { background: #c73652; }
 
 .empty { text-align: center; padding: 40px; color: var(--text-muted, #9a9aa5); }
+
+.modal-error {
+    color: var(--danger, #e74c3c);
+    margin-bottom: 10px;
+    display: none;
+}
+.modal-error.show {
+    display: block;
+}

@@ -174,7 +174,7 @@ $eventTypeLabels = [
                 <a href="/pages/edit_profile.php">
                     <i>⚙️</i> Настройки
                 </a>
-                <a href="/pages/logout.php" style="color: #e74c3c; margin-top: 12px;">
+                <a href="/pages/logout.php" class="logout-link">
                     <i>🚪</i> Выйти
                 </a>
             </nav>

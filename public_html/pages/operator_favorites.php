@@ -18,10 +18,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    <div style="max-width: 900px; margin: 40px auto; padding: 0 20px;">
+    <div class="page-container-900">
         <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
         <h2>❤️ Избранные локации</h2>
-        <p style="color: var(--text-muted);">Функция в разработке. Здесь будут отображаться локации, которые вы добавили в избранное.</p>
+        <p class="page-intro">Функция в разработке. Здесь будут отображаться локации, которые вы добавили в избранное.</p>
     </div>
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

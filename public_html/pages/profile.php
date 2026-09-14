@@ -154,7 +154,7 @@ unset($_SESSION['flash']);
                     <div class="label">Активных</div>
                 </div>
                 <div class="stat-item">
-                    <div class="number" style="color: #f39c12;"><?php echo $total_pending ?? 0; ?></div>
+                    <div class="number warning"><?php echo $total_pending ?? 0; ?></div>
                     <div class="label">На модерации</div>
                 </div>
             </div>
@@ -223,7 +223,7 @@ unset($_SESSION['flash']);
     <?php endif; ?>
 <?php elseif (!$loc['is_moderated']): ?>
     <!-- Сюда попадаем, если is_moderated=0 и ревизий нет (отозвано) -->
-    <span class="status-badge status-pending" style="background:#f8d7da; color:#721c24;">📄 Отозвано (черновик)</span>
+    <span class="status-badge status-hidden">📄 Отозвано (черновик)</span>
     <div class="status-hint">Вы отозвали правки, объявление не будет опубликовано</div>
 <?php elseif ($loc['is_occupied']): ?>
     <span class="status-badge status-occupied">🔒 Занято оператором</span>

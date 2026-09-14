@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
     <div class="register-form">
         <a href="/pages/location.php?id=<?php echo $location_id; ?>" class="back-link">← Назад к локации</a>
         <h2>📩 Отправить заявку на аренду</h2>
-        <p style="color: var(--text-muted); margin-bottom: 15px;">
+        <p class="page-intro spaced-tight">
             Локация: <strong><?php echo htmlspecialchars($location['title']); ?></strong>
         </p>
 

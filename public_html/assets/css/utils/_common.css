@@ -1,0 +1,32 @@
+/* ===== МЕЛКИЕ ПЕРЕИСПОЛЬЗУЕМЫЕ КЛАССЫ =====
+   Заменяют часто повторявшиеся инлайн-стили на простых страницах без
+   собственного CSS-партиала (operator_applications.php, owner_applications.php,
+   operator_favorites.php и т.п.). */
+
+.page-container-900 {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+.page-container-1000 {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.page-intro {
+    color: var(--text-muted, #9a9aa5);
+}
+.page-intro.spaced {
+    margin-bottom: 20px;
+}
+.page-intro.spaced-tight {
+    margin-bottom: 15px;
+}
+
+.accent-link {
+    color: #e94560;
+}
+.accent-link.no-underline {
+    text-decoration: none;
+}
