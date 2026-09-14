@@ -862,3 +862,21 @@ textarea.form-control { resize: vertical; }
 .event-summary-icon { flex-shrink: 0; }
 .event-summary-text { flex: 1; min-width: 0; }
 .event-summary-chevron { flex-shrink: 0; font-size: 11px; opacity: .7; }
+
+/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
+.sidebar-note {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-bottom: 10px;
+}
+.status-message {
+    margin-top: 8px;
+    font-weight: bold;
+    font-size: 13px;
+}
+.dropdown-item.active { background: var(--gray-bg); }
+
+/* .chat-hidden — определён последним в файле, чтобы гарантированно
+   перебивать display:flex у .event-card и т.п. при равной специфичности. */
+.avatar.avatar-hidden { visibility: hidden; }
+.chat-hidden { display: none; }

@@ -137,3 +137,40 @@
     display: none;
     font-size: 13px;
 }
+
+/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
+.page-intro {
+    color: var(--text-muted, #9a9aa5);
+    margin-bottom: 20px;
+}
+.empty-machine-note {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 14px;
+}
+.accent-link {
+    color: #e94560;
+}
+.photo-upload-hint {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 12px;
+    margin-top: 4px;
+}
+.ol-hidden { display: none; }
+.ol-progress-wrap { margin-bottom: 14px; }
+.ol-progress-track {
+    background: #eee;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 8px;
+}
+.ol-progress-bar-fill {
+    background: #2ecc71;
+    height: 100%;
+    width: 0%;
+    transition: width .15s;
+}
+.ol-progress-text {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 12px;
+    margin-top: 4px;
+}

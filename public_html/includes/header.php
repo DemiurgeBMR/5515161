@@ -61,8 +61,8 @@
 
     <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
         <!-- Админ -->
-        <a href="/admin/index.php" style="color: var(--warning); margin-right: 15px; text-decoration: none;">⚙️ Админка</a>
-        <a href="/pages/logout.php" style="color: var(--danger); text-decoration: none;">Выйти</a>
+        <a href="/admin/index.php" class="nav-link-spaced warning">⚙️ Админка</a>
+        <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
     <?php else: ?>
         <!-- Обычный пользователь (оператор или собственник) -->
 <?php
@@ -73,19 +73,19 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
     $profileLink = '/admin/index.php';
 }
 ?>
-<a href="<?php echo $profileLink; ?>" style="color: var(--text, #f2f2f5); text-decoration: none; margin-right: 15px;">
+<a href="<?php echo $profileLink; ?>" class="nav-link-spaced">
     👋 <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
 </a>
         <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
-            <a href="/pages/add_location.php" style="color: #e94560; margin-right: 15px; text-decoration: none;">➕ Добавить место</a>
+            <a href="/pages/add_location.php" class="nav-link-spaced accent">➕ Добавить место</a>
         <?php endif; ?>
-        <a href="/pages/subscription.php" style="color: <?php echo currentUserHasSubscription() ? '#2ecc71' : 'var(--text, #f2f2f5)'; ?>; margin-right: 15px; text-decoration: none;">💳 Подписка</a>
-        <a href="/pages/logout.php" style="color: var(--danger); text-decoration: none;">Выйти</a>
+        <a href="/pages/subscription.php" class="nav-link-spaced<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>">💳 Подписка</a>
+        <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
     <?php endif; ?>
 <?php else: ?>
     <!-- Гость -->
-    <a href="/pages/login.php" style="color: var(--text, #f2f2f5); margin-right: 15px; text-decoration: none;">Вход</a>
-    <a href="/pages/register.php" style="background: #e94560; padding: 8px 20px; border-radius: 6px; color: white; text-decoration: none;">Регистрация</a>
+    <a href="/pages/login.php" class="nav-link-spaced">Вход</a>
+    <a href="/pages/register.php" class="btn-nav">Регистрация</a>
 <?php endif; ?>
                 <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему">🌙</button>
             </nav>

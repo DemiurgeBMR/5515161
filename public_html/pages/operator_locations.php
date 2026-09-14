@@ -54,7 +54,7 @@ function daysSince($dateString) {
 <div class="locations-container">
     <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
     <h2>📍 Мои закреплённые точки</h2>
-    <p style="color: var(--text-muted); margin-bottom: 20px;">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
+    <p class="page-intro">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
 
     <?php if (count($locations) > 0): ?>
         <?php foreach ($locations as $loc):
@@ -110,7 +110,7 @@ function daysSince($dateString) {
                     </div>
                 <?php else: ?>
                     <div class="machine-box empty-machine">
-                        <span style="color:var(--text-muted); font-size: 14px;">Вендинг на этой точке ещё не указан.</span>
+                        <span class="empty-machine-note">Вендинг на этой точке ещё не указан.</span>
                         <button class="ol-btn-action btn-add-machine" data-lo-id="<?php echo $loc['id']; ?>" onclick="openMachineModal(this)">➕ Указать вендинг</button>
                     </div>
                 <?php endif; ?>
@@ -119,7 +119,7 @@ function daysSince($dateString) {
     <?php else: ?>
         <div class="empty">
             <p>Вы пока не закреплены ни за одной локацией.</p>
-            <p><a href="/pages/catalog.php" style="color: #e94560;">Найдите локацию и запросите закрепление</a></p>
+            <p><a href="/pages/catalog.php" class="accent-link">Найдите локацию и запросите закрепление</a></p>
         </div>
     <?php endif; ?>
 </div>
@@ -182,13 +182,13 @@ function daysSince($dateString) {
             <div class="form-group">
                 <label for="servicePhotos">Фото подтверждения</label>
                 <input type="file" id="servicePhotos" accept="image/*" multiple>
-                <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
+                <div class="photo-upload-hint">Необязательно, можно выбрать несколько фото</div>
             </div>
-            <div id="serviceProgressWrap" style="display:none; margin-bottom:14px;">
-                <div style="background:#eee; border-radius:20px; overflow:hidden; height:8px;">
-                    <div id="serviceProgressBar" style="background:#2ecc71; height:100%; width:0%; transition:width .15s;"></div>
+            <div id="serviceProgressWrap" class="ol-progress-wrap ol-hidden">
+                <div class="ol-progress-track">
+                    <div id="serviceProgressBar" class="ol-progress-bar-fill"></div>
                 </div>
-                <div id="serviceProgressText" style="color:var(--text-muted); font-size:12px; margin-top:4px;">0%</div>
+                <div id="serviceProgressText" class="ol-progress-text">0%</div>
             </div>
             <div class="modal-error" id="serviceError"></div>
             <button type="submit" class="btn-submit" id="serviceSubmitBtn">Отметить</button>
@@ -218,7 +218,7 @@ function openServiceModal(btn) {
     document.getElementById('serviceType').value = 'maintenance';
     document.getElementById('servicePhotos').value = '';
     document.getElementById('serviceError').style.display = 'none';
-    document.getElementById('serviceProgressWrap').style.display = 'none';
+    document.getElementById('serviceProgressWrap').classList.add('ol-hidden');
     document.getElementById('serviceProgressBar').style.width = '0%';
     document.getElementById('serviceModal').classList.add('active');
 }
@@ -280,7 +280,7 @@ document.getElementById('serviceForm').addEventListener('submit', function(e) {
     const progressWrap = document.getElementById('serviceProgressWrap');
     const progressBar = document.getElementById('serviceProgressBar');
     const progressText = document.getElementById('serviceProgressText');
-    progressWrap.style.display = 'block';
+    progressWrap.classList.remove('ol-hidden');
     progressBar.style.width = '0%';
     progressText.textContent = '0%';
 
@@ -298,7 +298,7 @@ document.getElementById('serviceForm').addEventListener('submit', function(e) {
     function resetButton() {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Отметить';
-        progressWrap.style.display = 'none';
+        progressWrap.classList.add('ol-hidden');
     }
 
     const xhr = new XMLHttpRequest();

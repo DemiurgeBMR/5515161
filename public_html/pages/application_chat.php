@@ -180,7 +180,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         <?php endif; ?>
                         <div class="message <?php echo $isOwn ? 'own' : ''; ?> <?php echo $isGrouped ? 'grouped' : ''; ?>">
                             <?php if (!$isOwn): ?>
-                                <div class="avatar" style="<?php echo $isGrouped ? 'visibility:hidden;' : ''; ?>"><?php echo htmlspecialchars(getInitials($senderFullName)); ?></div>
+                                <div class="avatar<?php echo $isGrouped ? ' avatar-hidden' : ''; ?>"><?php echo htmlspecialchars(getInitials($senderFullName)); ?></div>
                             <?php endif; ?>
                             <div class="message-body">
                                 <?php if (!$isGrouped): ?>
@@ -256,14 +256,14 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- запрос на закрепление за локацией — решение владельца -->
             <div class="sidebar-section" id="assignmentRequestBlock">
                 <p class="sidebar-section-title">Запрос на закрепление</p>
-                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                <p class="sidebar-note">
                     Оператор просит закрепить его за этой локацией.
                 </p>
                 <div class="modal-buttons">
                     <button type="button" id="approveAssignmentBtn" class="chat-btn-primary">✅ Одобрить</button>
                     <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
                 </div>
-                <div id="assignmentRequestStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+                <div id="assignmentRequestStatus" class="status-message"></div>
             </div>
             <?php endif; ?>
 
@@ -271,16 +271,16 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- оператор может по своей инициативе запросить закрепление прямо из чата -->
             <div class="sidebar-section" id="requestAssignmentBlock">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
-                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                <p class="sidebar-note">
                     Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
                 </p>
                 <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">📩 Запросить закрепление</button>
-                <div id="requestAssignmentStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+                <div id="requestAssignmentStatus" class="status-message"></div>
             </div>
             <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
-                <p style="font-size:13px; color:var(--text-muted, #888);">
+                <p class="sidebar-note">
                     ⏳ Запрос на закрепление отправлен, ожидайте решения владельца.
                 </p>
             </div>
@@ -294,7 +294,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         <span class="chat-status-badge status-<?php echo $displayStatus; ?>" id="currentStatusBadge">
                             <?php echo $statusLabels[$displayStatus] ?? '⏳ Ожидает'; ?>
                         </span>
-                        <span class="status-arrow" id="statusArrow" <?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? 'style="display:none;"' : ''; ?>>▼</span>
+                        <span class="status-arrow<?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? ' chat-hidden' : ''; ?>" id="statusArrow">▼</span>
                     </div>
                     <div class="status-dropdown" id="statusDropdown"></div>
                 </div>
@@ -318,7 +318,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                             <span class="event-summary-chevron" id="eventSummaryChevron">▾</span>
                         </button>
                     <?php endif; ?>
-                    <div class="event-card" id="eventCardBody" <?php echo $isCollapsible ? 'style="display:none;"' : ''; ?>>
+                    <div class="event-card<?php echo $isCollapsible ? ' chat-hidden' : ''; ?>" id="eventCardBody">
                         <span class="event-icon"><?php echo $current_event['is_emergency'] ? '🚨' : '📅'; ?></span>
                         <div class="event-body">
                             <div class="event-header">
@@ -417,7 +417,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 <label class="form-label" for="eventDatetime">Дата и время</label>
                 <input type="datetime-local" id="eventDatetime" class="form-control" required>
             </div>
-            <div id="emergencyCommentGroup" style="display: none;" class="chat-form-group">
+            <div id="emergencyCommentGroup" class="chat-form-group chat-hidden">
                 <label class="form-label" for="emergencyComment">Комментарий (причина срочного выезда)</label>
                 <textarea id="emergencyComment" class="form-control" rows="3" placeholder="Опишите проблему..."></textarea>
             </div>
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statusSelector.dataset.active = isActive ? '1' : '0';
         statusSelector.classList.toggle('inactive', !isActive);
         if (statusArrow) {
-            statusArrow.style.display = isActive ? 'inline' : 'none';
+            statusArrow.classList.toggle('chat-hidden', !isActive);
         }
         if (newStatus === 'cancelled') {
             var chatInput = document.querySelector('.chat-input form');
@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentDisplay = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
         options.forEach(function(status) {
             var isActive = (status === currentDisplay);
-            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:var(--gray-bg);' : '') + '">' +
+            html += '<div class="dropdown-item status-option' + (isActive ? ' active' : '') + '" data-status="' + status + '">' +
                         allStatuses[status] +
                     '</div>';
         });
@@ -826,8 +826,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventSummaryChevron = document.getElementById('eventSummaryChevron');
     if (eventSummaryToggle && eventCardBody) {
         eventSummaryToggle.addEventListener('click', function() {
-            var isHidden = eventCardBody.style.display === 'none';
-            eventCardBody.style.display = isHidden ? 'flex' : 'none';
+            var isHidden = eventCardBody.classList.contains('chat-hidden');
+            eventCardBody.classList.toggle('chat-hidden', !isHidden);
             if (eventSummaryChevron) eventSummaryChevron.textContent = isHidden ? '▴' : '▾';
         });
     }
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTitle').textContent = '📅 Предложить дату выезда';
         document.getElementById('modalAction').value = 'propose';
         document.getElementById('modalEventId').value = 0;
-        document.getElementById('emergencyCommentGroup').style.display = 'none';
+        document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');
         document.getElementById('dateModal').classList.add('active');
     });
 
@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTitle').textContent = '🚨 Срочный выезд';
         document.getElementById('modalAction').value = 'emergency';
         document.getElementById('modalEventId').value = 0;
-        document.getElementById('emergencyCommentGroup').style.display = 'block';
+        document.getElementById('emergencyCommentGroup').classList.remove('chat-hidden');
         document.getElementById('dateModal').classList.add('active');
     });
 
@@ -865,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalTitle').textContent = '✏️ Предложить другое время';
             document.getElementById('modalAction').value = 'reschedule';
             document.getElementById('modalEventId').value = eventId;
-            document.getElementById('emergencyCommentGroup').style.display = 'none';
+            document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');
             document.getElementById('dateModal').classList.add('active');
         });
     });

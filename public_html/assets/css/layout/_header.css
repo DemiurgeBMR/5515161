@@ -41,9 +41,16 @@
 .btn-nav {
     background: #e94560;
     padding: 8px 20px;
-    border-radius: 25px;
+    border-radius: 6px;
     color: white !important;
 }
+
+/* ===== Прочие инлайн-стили шапки, вынесенные в классы ===== */
+.nav-link-spaced { margin-right: 15px; }
+.nav-link-spaced.accent { color: #e94560; }
+.nav-link-spaced.warning { color: var(--warning); }
+.nav-link-spaced.subscribed { color: #2ecc71; }
+.nav-danger-link { color: var(--danger); }
 
 .btn-nav:hover {
     background: #c73652;
