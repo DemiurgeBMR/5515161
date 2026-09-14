@@ -225,12 +225,12 @@ if (!$is_preview) {
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <?php if ($is_preview): ?>
-    <div style="background: #fff3cd; color: #333; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
+    <div class="preview-notice">
         <strong>👁️ Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
         <?php if ($location['is_moderated'] == 0): ?>
-            <span style="display: inline-block; margin-left: 10px; background: #ffc107; color: #333; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Ожидает модерации</span>
+            <span class="preview-pill pending">Ожидает модерации</span>
         <?php else: ?>
-            <span style="display: inline-block; margin-left: 10px; background: #6c5ce7; color: white; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Черновик</span>
+            <span class="preview-pill draft">Черновик</span>
         <?php endif; ?>
     </div>
 <?php endif; ?>
@@ -257,7 +257,7 @@ if (!$is_preview) {
             
             <div class="info">
                 <!-- ★★★ ID локации ★★★ -->
-                <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;">
+                <div class="location-id-line">
                     📍 ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
                 </div>
 
@@ -280,7 +280,7 @@ if (!$is_preview) {
                     </div>
                 <?php endif; ?>
 
-<div style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">
+<div class="location-added-line">
 🗓️ Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
 </div>
                 
@@ -297,23 +297,23 @@ if (!$is_preview) {
         <span class="tag">📐 <?php echo $area; ?> м²</span>
     <?php endif; ?>
     <?php if ($location['traffic_rating'] > 0): ?>
-        <span class="tag" style="display: inline-flex; align-items: center; gap: 6px;">
+        <span class="tag traffic-tag">
             🚶 Трафик: 
             <?php for ($i = 1; $i <= 5; $i++): ?>
                 <span class="star <?php echo ($i <= $location['traffic_rating']) ? 'filled' : ''; ?>">★</span>
             <?php endfor; ?>
-            <span style="font-size: 16px; cursor: pointer; color: #e94560; margin-left: 4px;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+            <span class="traffic-help-icon-sm" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
         </span>
     <?php else: ?>
         <span class="tag">
             🚶 Трафик не указан
-            <span style="font-size: 16px; cursor: pointer; color: #e94560; margin-left: 4px;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+            <span class="traffic-help-icon-sm" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
         </span>
     <?php endif; ?>
 </div>
                 
                 <!-- Бейджики -->
-                <div style="margin: 10px 0;">
+                <div class="badges-row">
                     <?php if ($location['has_electricity']): ?>
                         <span class="badge badge-electricity">⚡ Электричество</span>
                     <?php endif; ?>
@@ -326,14 +326,14 @@ if (!$is_preview) {
                     <?php if ($location['access_hours'] === '24/7'): ?>
                         <span class="badge badge-24h">🕒 Круглосуточно</span>
                     <?php else: ?>
-                        <span class="badge badge-24h" style="background:#e8e8e8;color:#333;">🕒 <?php echo htmlspecialchars($location['access_hours']); ?></span>
+                        <span class="badge badge-24h custom-hours">🕒 <?php echo htmlspecialchars($location['access_hours']); ?></span>
                     <?php endif; ?>
                 </div>
                 
                 <!-- ★★★ Структурированное описание ★★★ -->
                 <div class="description">
                     <?php if (!empty($location['description'])): ?>
-                        <h4 style="margin-top: 15px; margin-bottom: 5px;">📌 Описание места</h4>
+                        <h4 class="description-heading">📌 Описание места</h4>
                         <?php 
                             // Разбиваем описание на абзацы по двойным переносам строк
                             $paragraphs = preg_split('/\n\s*\n/', $location['description']);
@@ -349,7 +349,7 @@ if (!$is_preview) {
                             endforeach;
                         ?>
                     <?php else: ?>
-                        <p style="color: var(--text-muted);">Описание отсутствует.</p>
+                        <p class="description-empty">Описание отсутствует.</p>
                     <?php endif; ?>
                 </div>
                 
@@ -415,8 +415,8 @@ if (!$is_preview) {
 
         <!-- Похожие объявления -->
         <?php if (count($recommendations) > 0): ?>
-    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-        <h3 style="margin-bottom: 15px;">🔍 Похожие объявления</h3>
+    <div class="similar-listings-section">
+        <h3 class="similar-listings-title">🔍 Похожие объявления</h3>
         <div class="rec-grid">
             <?php foreach ($recommendations as $rec): ?>
                 <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" class="rec-card-link">
@@ -434,7 +434,7 @@ if (!$is_preview) {
                                 <div class="rec-traffic">
                                     🚶
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : 'var(--border-strong)'; ?>;">★</span>
+                                        <span class="star <?php echo ($i <= $rec['traffic_rating']) ? 'filled' : ''; ?>">★</span>
                                     <?php endfor; ?>
                                 </div>
                             <?php endif; ?>
@@ -453,7 +453,7 @@ if (!$is_preview) {
     <div class="modal-box">
         <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
         <h3>🚶 Как оценить проходимость места?</h3>
-        <p style="color:var(--text-muted); margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+        <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
         <table>
             <thead>
                 <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -495,7 +495,7 @@ if (!$is_preview) {
             <strong>💡 Важно!</strong>
             Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
         </div>
-        <p style="text-align: right; margin-top: 15px; color:var(--text-muted); font-size:13px;">Подсказка всегда доступна по ❓</p>
+        <p class="traffic-modal-footnote">Подсказка всегда доступна по ❓</p>
     </div>
 </div>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПРОСМОТРА ФОТО ★★★ -->

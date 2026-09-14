@@ -308,17 +308,17 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 
             <!-- ★★★ БЛОК ЗВЁЗД ПРОХОДИМОСТИ (с уже закрашенными) ★★★ -->
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px;">
+                <label class="traffic-rating-label">
                     Проходимость места
-                    <span style="font-size: 20px; cursor: pointer; color: #e94560;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
                 </label>
-                <div class="star-rating" style="display: flex; gap: 10px; font-size: 30px; cursor: pointer;">
+                <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <span data-value="<?php echo $i; ?>" style="color: <?php echo ($i <= $traffic_rating) ? '#f1c40f' : 'var(--border-strong)'; ?>; transition: 0.2s;">★</span>
+                        <span data-value="<?php echo $i; ?>" class="<?php echo ($i <= $traffic_rating) ? 'filled' : ''; ?>">★</span>
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="<?php echo $traffic_rating; ?>">
-                <div style="font-size: 14px; color: var(--text-muted); margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
+                <div class="traffic-rating-hint">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
             <!-- Габариты -->
@@ -392,9 +392,9 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 $isPendingAdd = ($photo['is_pending'] == 1 && $photo['pending_action'] == 'add');
                 $isMain = ($photo['is_main'] == 1);
             ?>
-<div class="photo-item" style="<?php echo $isPendingAdd ? 'opacity: 0.6; border: 2px dashed #3498db;' : ''; ?>">
+<div class="photo-item<?php echo $isPendingAdd ? ' pending-add' : ''; ?>">
     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
-    <div style="font-size: 11px; color: var(--text-muted); text-align: center;">
+    <div class="photo-pending-note">
         <?php if ($isPendingAdd): ?>
             ⏳ Добавится после модерации
         <?php elseif ($isMain): ?>
@@ -402,7 +402,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
         <?php endif; ?>
     </div>
     <?php if (!$isPendingAdd): ?>
-        <label style="display:block; margin-top:4px;">
+        <label class="radio-label-block">
             <input type="radio" name="main_photo" value="existing_<?php echo $photo['id']; ?>" <?php echo $isMain ? 'checked' : ''; ?>>
             Главное
         </label>
@@ -410,27 +410,27 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             <input type="checkbox" name="delete_photos[]" value="<?php echo $photo['id']; ?>"> Удалить
         </label>
     <?php else: ?>
-        <span style="color: var(--text-muted); font-size: 11px;">Ожидает добавления</span>
+        <span class="photo-pending-note">Ожидает добавления</span>
     <?php endif; ?>
 </div>
             <?php endforeach; ?>
             
             <?php foreach ($pending_delete_photos as $photo): ?>
-                <div class="photo-item" style="opacity: 0.4; border: 2px solid #e74c3c; position: relative;">
+                <div class="photo-item pending-delete">
                     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
-                    <div style="font-size: 11px; color: #e74c3c; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px;">
+                    <div class="photo-delete-overlay">
                         🗑️ Будет удалено
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
         <?php if (count($pending_delete_photos) > 0): ?>
-            <div style="font-size: 12px; color: #e74c3c; margin-top: 5px;">
+            <div class="photo-notice danger">
                 ⚠️ Отмеченные фото будут удалены после модерации
             </div>
         <?php endif; ?>
         <?php if (count($pending_add_photos) > 0): ?>
-            <div style="font-size: 12px; color: #3498db; margin-top: 5px;">
+            <div class="photo-notice info">
                 📷 Новые фото появятся после модерации
             </div>
         <?php endif; ?>
@@ -448,13 +448,13 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                     </div>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
-                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: var(--text-muted);"></div>
-                <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;"></div>
+                <div id="fileNames" class="file-names-hint"></div>
+                <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
             
-            <div style="display: flex; gap: 15px;">
+            <div class="form-actions-row">
                 <button type="submit" class="btn-submit">💾 Сохранить изменения</button>
-                <a href="/pages/profile.php" class="btn-submit secondary" style="text-align: center; text-decoration: none;">Отмена</a>
+                <a href="/pages/profile.php" class="btn-submit secondary">Отмена</a>
             </div>
         </form>
     </div>
@@ -464,7 +464,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
         <div class="modal-box">
             <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
             <h3>🚶 Как оценить проходимость места?</h3>
-            <p style="color:var(--text-muted); margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+            <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -506,7 +506,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 <strong>💡 Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p style="text-align: right; margin-top: 15px; color:var(--text-muted); font-size:13px;">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по ❓</p>
         </div>
     </div>
     
@@ -532,14 +532,10 @@ fileInput.addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const div = document.createElement('div');
-                div.style.position = 'relative';
-                div.style.width = '120px';
-                div.style.border = '1px solid #ddd';
-                div.style.borderRadius = '6px';
-                div.style.padding = '5px';
+                div.className = 'photo-preview-item';
                 div.innerHTML = `
-                    <img src="${ev.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:4px;">
-                    <label style="display:block; text-align:center; margin-top:4px; font-size:13px;">
+                    <img src="${ev.target.result}" class="photo-preview-thumb">
+                    <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
                         Главное
                     </label>
@@ -552,10 +548,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div style="color: #2ecc71;">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok">✅ ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div style="color: #e74c3c;">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;
@@ -572,7 +568,7 @@ fileInput.addEventListener('change', function(e) {
                 document.getElementById('traffic_rating').value = value;
 
                 document.querySelectorAll('.star-rating span').forEach(function(s, idx) {
-                    s.style.color = (idx < value) ? '#f1c40f' : 'var(--border-strong)';
+                    s.classList.toggle('filled', idx < value);
                 });
             });
         });

@@ -486,3 +486,82 @@
     color: var(--text-muted, #9a9aa5);
     margin-top: 2px;
 }
+.rec-card .rec-traffic .star {
+    color: var(--border-strong, #3a3a45);
+}
+.rec-card .rec-traffic .star.filled {
+    color: #f1c40f;
+}
+
+/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
+.preview-notice {
+    background: #fff3cd;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #f39c12;
+}
+.preview-pill {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+.preview-pill.pending { background: #ffc107; color: #333; }
+.preview-pill.draft { background: #6c5ce7; color: white; }
+
+.location-id-line {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+.location-added-line {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 14px;
+    margin-top: 8px;
+}
+.tag.traffic-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.traffic-help-icon-sm {
+    font-size: 16px;
+    cursor: pointer;
+    color: #e94560;
+    margin-left: 4px;
+}
+.badges-row {
+    margin: 10px 0;
+}
+.badge-24h.custom-hours {
+    background: #e8e8e8;
+    color: #333;
+}
+.description-heading {
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+.description-empty {
+    color: var(--text-muted, #9a9aa5);
+}
+.similar-listings-section {
+    margin-top: 30px;
+    border-top: 1px solid var(--border, #2a2a33);
+    padding-top: 20px;
+}
+.similar-listings-title {
+    margin-bottom: 15px;
+}
+.traffic-modal-subtitle {
+    color: var(--text-muted, #9a9aa5);
+    margin-top: -5px;
+}
+.traffic-modal-footnote {
+    text-align: right;
+    margin-top: 15px;
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+}

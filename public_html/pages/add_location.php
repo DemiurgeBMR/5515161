@@ -210,7 +210,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <input type="text" name="city_display" id="cityInput" required placeholder="Начните вводить город..." autocomplete="off">
                 <input type="hidden" name="city" id="cityHidden" value="">
                 <div class="city-suggestions" id="citySuggestions"></div>
-                <div id="cityStatus" style="font-size: 13px; margin-top: 5px;"></div>
+                <div id="cityStatus"></div>
             </div>
             
             <div class="form-group">
@@ -270,17 +270,17 @@ if (strpos($mainPhoto, 'new_') === 0) {
 
             <!-- ★★★ БЛОК ЗВЁЗД ПРОХОДИМОСТИ (с памяткой) ★★★ -->
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px;">
+                <label class="traffic-rating-label">
                     Проходимость места
-                    <span style="font-size: 20px; cursor: pointer; color: #e94560;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
                 </label>
-                <div class="star-rating" style="display: flex; gap: 10px; font-size: 30px; cursor: pointer;">
+                <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <span data-value="<?php echo $i; ?>" style="color: var(--border-strong); transition: 0.2s;">★</span>
+                        <span data-value="<?php echo $i; ?>">★</span>
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="0">
-                <div style="font-size: 14px; color: var(--text-muted); margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
+                <div class="traffic-rating-hint">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
             <!-- Габариты -->
@@ -326,8 +326,8 @@ if (strpos($mainPhoto, 'new_') === 0) {
                     </div>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
-                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: var(--text-muted);"></div>
-                <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;"></div>
+                <div id="fileNames" class="file-names-hint"></div>
+                <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
 
             <button type="submit" class="btn-submit">Опубликовать локацию</button>
@@ -339,7 +339,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
         <div class="modal-box">
             <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
             <h3>🚶 Как оценить проходимость места?</h3>
-            <p style="color:var(--text-muted); margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+            <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -381,7 +381,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <strong>💡 Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p style="text-align: right; margin-top: 15px; color:var(--text-muted); font-size:13px;">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по ❓</p>
         </div>
     </div>
     
@@ -408,14 +408,10 @@ fileInput.addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const div = document.createElement('div');
-                div.style.position = 'relative';
-                div.style.width = '120px';
-                div.style.border = '1px solid #ddd';
-                div.style.borderRadius = '6px';
-                div.style.padding = '5px';
+                div.className = 'photo-preview-item';
                 div.innerHTML = `
-                    <img src="${ev.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:4px;">
-                    <label style="display:block; text-align:center; margin-top:4px; font-size:13px;">
+                    <img src="${ev.target.result}" class="photo-preview-thumb">
+                    <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
                         Главное
                     </label>
@@ -428,10 +424,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div style="color: #2ecc71;">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok">✅ ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div style="color: #e74c3c;">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;
@@ -459,7 +455,7 @@ fileInput.addEventListener('change', function(e) {
                 selectedCity = '';
                 hidden.value = '';
                 status.innerHTML = '';
-                status.style.color = '';
+                status.classList.remove('status-ok', 'status-error');
             }
             
             if (query.length < 2) {
@@ -474,7 +470,7 @@ fileInput.addEventListener('change', function(e) {
                         if (data.length === 0 || data.error) {
                             suggestions.style.display = 'none';
                             status.innerHTML = '⚠️ Город не найден. Уточните запрос.';
-                            status.style.color = '#e94560';
+                            status.classList.add('status-error'); status.classList.remove('status-ok');
                             return;
                         }
                         suggestions.innerHTML = data.map(item => 
@@ -490,7 +486,7 @@ fileInput.addEventListener('change', function(e) {
                                 selectedCity = cityName;
                                 suggestions.style.display = 'none';
                                 status.innerHTML = '✅ Выбран город: ' + cityName;
-                                status.style.color = '#2ecc71';
+                                status.classList.add('status-ok'); status.classList.remove('status-error');
                                 input.setCustomValidity('');
                             });
                         });
@@ -507,7 +503,7 @@ fileInput.addEventListener('change', function(e) {
                     const val = input.value.trim();
                     if (val.length > 0) {
                         status.innerHTML = '⚠️ Выберите город из списка!';
-                        status.style.color = '#e94560';
+                        status.classList.add('status-error'); status.classList.remove('status-ok');
                         input.setCustomValidity('Пожалуйста, выберите город из списка');
                     }
                 }
@@ -533,7 +529,7 @@ fileInput.addEventListener('change', function(e) {
                 if (!hidden.value || hidden.value.trim() === '') {
                     e.preventDefault();
                     status.innerHTML = '❌ Выберите город из списка перед отправкой!';
-                    status.style.color = '#e94560';
+                    status.classList.add('status-error'); status.classList.remove('status-ok');
                     input.focus();
                     return false;
                 }
@@ -551,7 +547,7 @@ fileInput.addEventListener('change', function(e) {
                 document.getElementById('traffic_rating').value = value;
                 
                 document.querySelectorAll('.star-rating span').forEach(function(s, idx) {
-                    s.style.color = (idx < value) ? '#f1c40f' : 'var(--border-strong)';
+                    s.classList.toggle('filled', idx < value);
                 });
             });
         });

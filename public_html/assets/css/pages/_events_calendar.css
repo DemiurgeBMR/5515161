@@ -815,3 +815,127 @@ textarea.cal-form-control { resize: vertical; }
 .status-quicklog { background: var(--gray-bg); color: var(--text-light); }
 .filter-select#operatorFilter { min-width: 170px; }
 
+/* =========================================================
+   ПРОЧИЕ ИНЛАЙН-СТИЛИ, ВЫНЕСЕННЫЕ В КЛАССЫ
+========================================================= */
+.cal-hidden { display: none; }
+
+.no-locations-hint {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 7px;
+}
+
+/* Общий блок ошибки формы для всех трёх модалок (запрос/перенос/завершение
+   визита) — показывается/скрывается через showFormError()/hideFormError()
+   переключением класса .show, а не style.display напрямую. */
+.form-error-box {
+    display: none;
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+}
+.form-error-box.show { display: block; }
+
+.photo-upload-hint {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.progress-wrap { margin-bottom: 14px; }
+.progress-track {
+    background: #f3f4f6;
+    border-radius: 20px;
+    overflow: hidden;
+    height: 8px;
+}
+.progress-bar-fill {
+    background: var(--primary);
+    height: 100%;
+    width: 0%;
+    transition: width .15s;
+}
+.progress-text {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Лайтбокс фото подтверждения */
+.photo-lightbox-overlay {
+    background: rgba(17,24,39,.9);
+    z-index: 30000;
+}
+.lightbox-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    background: rgba(255,255,255,.12);
+    border: 0;
+    color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    font-size: 24px;
+    cursor: pointer;
+}
+.lightbox-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,.12);
+    border: 0;
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+}
+#lightboxPrev.lightbox-nav-btn { left: 16px; }
+#lightboxNext.lightbox-nav-btn { right: 16px; }
+.lightbox-img {
+    max-width: 85vw;
+    max-height: 82vh;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.lightbox-counter {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    background: rgba(255,255,255,.12);
+    padding: 6px 14px;
+    border-radius: 20px;
+}
+
+/* Превью фото подтверждения в деталях события (генерируется в JS) */
+.detail-photo-thumb-btn {
+    display: inline-block;
+    width: 70px;
+    height: 70px;
+    margin: 4px;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    cursor: pointer;
+    background: none;
+}
+.detail-photo-thumb-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.detail-item.spaced { margin-bottom: 18px; }
+

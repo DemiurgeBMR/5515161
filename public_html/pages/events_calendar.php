@@ -175,7 +175,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                     <?php endforeach; ?>
                 </select>
                 <?php if (empty($myLocationOperators)): ?>
-                    <div style="color:#dc2626; font-size:13px; margin-top:7px;">
+                    <div class="no-locations-hint">
                         Нет закреплённых точек, для которых можно запросить визит.
                     </div>
                 <?php endif; ?>
@@ -200,11 +200,11 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                     <span>🚨 Срочный выезд</span>
                 </label>
             </div>
-            <div class="cal-form-group" id="emergencyGroup" style="display:none;">
+            <div class="cal-form-group cal-hidden" id="emergencyGroup">
                 <label class="cal-form-label" for="emergencyComment">Причина срочности *</label>
                 <textarea id="emergencyComment" class="cal-form-control" rows="3" placeholder="Опишите проблему или причину срочного выезда..."></textarea>
             </div>
-            <div id="formError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:700;"></div>
+            <div id="formError" class="form-error-box"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="modalSubmitBtn">Запросить визит</button>
@@ -242,7 +242,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                 <label class="cal-form-label" for="rescheduleDatetime">Новая дата и время *</label>
                 <input type="datetime-local" id="rescheduleDatetime" class="cal-form-control" required>
             </div>
-            <div id="rescheduleError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:700;"></div>
+            <div id="rescheduleError" class="form-error-box"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeRescheduleModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="rescheduleSubmitBtn">Сохранить</button>
@@ -265,15 +265,15 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <div class="cal-form-group">
                 <label class="cal-form-label" for="completePhotos">Фото подтверждения</label>
                 <input type="file" id="completePhotos" class="cal-form-control" accept="image/*" multiple>
-                <div style="color:var(--text-muted); font-size:12px; margin-top:4px;">Необязательно, можно выбрать несколько фото</div>
+                <div class="photo-upload-hint">Необязательно, можно выбрать несколько фото</div>
             </div>
-            <div id="completeProgressWrap" style="display:none; margin-bottom:14px;">
-                <div style="background:#f3f4f6; border-radius:20px; overflow:hidden; height:8px;">
-                    <div id="completeProgressBar" style="background:var(--primary); height:100%; width:0%; transition:width .15s;"></div>
+            <div id="completeProgressWrap" class="progress-wrap cal-hidden">
+                <div class="progress-track">
+                    <div id="completeProgressBar" class="progress-bar-fill"></div>
                 </div>
-                <div id="completeProgressText" style="color:var(--text-muted); font-size:12px; margin-top:4px;">0%</div>
+                <div id="completeProgressText" class="progress-text">0%</div>
             </div>
-            <div id="completeError" style="display:none; color:#dc2626; background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:9px; font-size:13px; font-weight:700;"></div>
+            <div id="completeError" class="form-error-box"></div>
             <div class="cal-modal-buttons">
                 <button type="button" class="cal-btn-secondary" onclick="closeCompleteModal()">Отмена</button>
                 <button type="submit" class="cal-btn-primary" id="completeSubmitBtn">Завершить</button>
@@ -283,12 +283,12 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 </div>
 
 <!-- ===== ЛАЙТБОКС ФОТО ===== -->
-<div class="cal-modal-overlay" id="photoLightbox" style="background: rgba(17,24,39,.9); z-index: 30000;">
-    <button type="button" id="lightboxClose" style="position:absolute; top:20px; right:24px; background:rgba(255,255,255,.12); border:0; color:white; width:42px; height:42px; border-radius:50%; font-size:24px; cursor:pointer;">×</button>
-    <button type="button" id="lightboxPrev" style="position:absolute; left:16px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.12); border:0; color:white; width:48px; height:48px; border-radius:50%; font-size:22px; cursor:pointer;">‹</button>
-    <img id="lightboxImg" src="" alt="Фото подтверждения" style="max-width:85vw; max-height:82vh; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,.5);">
-    <button type="button" id="lightboxNext" style="position:absolute; right:16px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,.12); border:0; color:white; width:48px; height:48px; border-radius:50%; font-size:22px; cursor:pointer;">›</button>
-    <div id="lightboxCounter" style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); color:white; font-size:13px; font-weight:700; background:rgba(255,255,255,.12); padding:6px 14px; border-radius:20px;"></div>
+<div class="cal-modal-overlay photo-lightbox-overlay" id="photoLightbox">
+    <button type="button" id="lightboxClose" class="lightbox-close-btn">×</button>
+    <button type="button" id="lightboxPrev" class="lightbox-nav-btn">‹</button>
+    <img id="lightboxImg" src="" alt="Фото подтверждения" class="lightbox-img">
+    <button type="button" id="lightboxNext" class="lightbox-nav-btn">›</button>
+    <div id="lightboxCounter" class="lightbox-counter"></div>
 </div>
 
 <!-- ===== КОНТЕКСТНОЕ МЕНЮ ===== -->
@@ -344,23 +344,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function showToast(message, type) {
         const container = document.getElementById('toastContainer');
-        const cal-toast = document.createElement('div');
-        cal-toast.className = 'cal-toast ' + (type || '');
-        cal-toast.textContent = message;
-        container.appendChild(cal-toast);
+        const toastEl = document.createElement('div');
+        toastEl.className = 'cal-toast ' + (type || '');
+        toastEl.textContent = message;
+        container.appendChild(toastEl);
         setTimeout(() => {
-            cal-toast.style.opacity = '0';
-            cal-toast.style.transform = 'translateY(10px)';
-            setTimeout(() => cal-toast.remove(), 300);
+            toastEl.style.opacity = '0';
+            toastEl.style.transform = 'translateY(10px)';
+            setTimeout(() => toastEl.remove(), 300);
         }, 3000);
     }
 
     function showFormError(errorEl, message) {
         errorEl.textContent = message;
-        errorEl.style.display = 'block';
+        errorEl.classList.add('show');
     }
     function hideFormError(errorEl) {
-        errorEl.style.display = 'none';
+        errorEl.classList.remove('show');
     }
 
     function escapeHtml(value) {
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('eventDatetime').value = date + 'T' + time;
         document.getElementById('isEmergency').checked = false;
         document.getElementById('emergencyComment').value = '';
-        document.getElementById('emergencyGroup').style.display = 'none';
+        document.getElementById('emergencyGroup').classList.add('cal-hidden');
         document.getElementById('emergencyComment').required = false;
         hideFormError(document.getElementById('formError'));
         eventModal.classList.add('active');
@@ -740,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('isEmergency').addEventListener('change', function() {
         const group = document.getElementById('emergencyGroup');
         const comment = document.getElementById('emergencyComment');
-        group.style.display = this.checked ? 'block' : 'none';
+        group.classList.toggle('cal-hidden', !this.checked);
         comment.required = this.checked;
     });
 
@@ -797,11 +797,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderPhotosBlock(photos) {
         if (!photos || photos.length === 0) return '';
         const thumbs = photos.map((p, i) =>
-            `<button type="button" onclick='openPhotoLightbox(${JSON.stringify(photos)}, ${i})' style="display:inline-block; width:70px; height:70px; margin:4px; padding:0; border-radius:8px; overflow:hidden; border:1px solid #e5e7eb; cursor:pointer; background:none;">
-                <img src="/${p}" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Фото подтверждения">
+            `<button type="button" class="detail-photo-thumb-btn" onclick='openPhotoLightbox(${JSON.stringify(photos)}, ${i})'>
+                <img src="/${p}" alt="Фото подтверждения">
             </button>`
         ).join('');
-        return `<div class="detail-item" style="margin-bottom:18px;"><div class="detail-label">Фото подтверждения</div><div>${thumbs}</div></div>`;
+        return `<div class="detail-item spaced"><div class="detail-label">Фото подтверждения</div><div>${thumbs}</div></div>`;
     }
 
     // ===== ЛАЙТБОКС ФОТО =====
@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             html += `</div>`;
             if (props.comment) {
-                html += `<div class="detail-item" style="margin-bottom:18px;"><div class="detail-label">Комментарий</div><div class="detail-value">${escapeHtml(props.comment)}</div></div>`;
+                html += `<div class="detail-item spaced"><div class="detail-label">Комментарий</div><div class="detail-value">${escapeHtml(props.comment)}</div></div>`;
             }
             html += renderPhotosBlock(props.photos);
             html += `<div class="detail-actions"><button class="cal-btn-primary full" onclick="openRelatedPage()">📍 Открыть точку</button></div>`;
@@ -892,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (props.proposed_datetime || props.confirmed_datetime) {
             html += `
-                <div class="detail-item" style="margin-bottom:18px;">
+                <div class="detail-item spaced">
                     <div class="detail-label">Время</div>
                     <div class="detail-value">
                         ${props.proposed_datetime ? 'Предложено: ' + formatDateTimeString(props.proposed_datetime) : ''}
@@ -1052,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', function () {
         completeEventId = activeEvent.extendedProps.dbId;
         document.getElementById('completePhotos').value = '';
         hideFormError(document.getElementById('completeError'));
-        document.getElementById('completeProgressWrap').style.display = 'none';
+        document.getElementById('completeProgressWrap').classList.add('cal-hidden');
         document.getElementById('completeProgressBar').style.width = '0%';
         completeModal.classList.add('active');
     };
@@ -1078,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const progressWrap = document.getElementById('completeProgressWrap');
         const progressBar = document.getElementById('completeProgressBar');
         const progressText = document.getElementById('completeProgressText');
-        progressWrap.style.display = 'block';
+        progressWrap.classList.remove('cal-hidden');
         progressBar.style.width = '0%';
         progressText.textContent = '0%';
 
@@ -1093,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function resetButton() {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Завершить';
-            progressWrap.style.display = 'none';
+            progressWrap.classList.add('cal-hidden');
             showLoading(false);
         }
 
