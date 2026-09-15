@@ -4,6 +4,11 @@ rr_session_start();
 header('Content-Type: application/json');
 require_once __DIR__ . '/../config.php';
 
+// Единственный эндпоинт без обязательной авторизации — ограничиваем по IP,
+// а не по пользователю (гостевая сессия ничего не стоит создать заново).
+$pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'cities:' . rr_client_ip(), 30, 60);
+
 $query = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 if (mb_strlen($query, 'UTF-8') < 2) {
@@ -22,7 +27,6 @@ if ($cached !== null) {
 }
 
 try {
-    $pdo = getDbConnection();
     $stmt = $pdo->prepare("
         SELECT title_ru as name, region_ru as region
         FROM _cities
@@ -51,6 +55,7 @@ try {
     echo json_encode($result);
 
 } catch (PDOException $e) {
+    error_log('cities.php: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Не удалось выполнить поиск городов']);
 }

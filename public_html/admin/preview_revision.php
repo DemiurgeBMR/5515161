@@ -83,7 +83,7 @@ $spaceTypes = [
 ];
 
 function formatValue($field, $value, $spaceTypes, $boolValues) {
-    if ($value === null || $value === '') return '<span style="color:#999;">(не указано)</span>';
+    if ($value === null || $value === '') return '<span class="value-muted">(не указано)</span>';
     if ($field === 'has_electricity' || $field === 'has_wifi' || $field === 'has_water') {
         return $boolValues[(int)$value];
     }
@@ -104,6 +104,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Просмотр ревизии — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -115,7 +116,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
         
         <div class="changes-card">
             <h2>📋 Ревизия #<?php echo $revision['id']; ?> для объявления #<?php echo $location['id']; ?></h2>
-            <p style="color: #888; margin-bottom: 20px;">
+            <p class="revision-meta">
                 Объявление: <strong><?php echo htmlspecialchars($location['title']); ?></strong><br>
                 Создана: <?php echo date('d.m.Y H:i', strtotime($revision['created_at'])); ?>
             </p>
@@ -143,7 +144,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                         <?php else: ?>
                             <div class="change-same">
                                 <?php echo formatValue($field, $oldValue, $spaceTypes, $boolValues); ?>
-                                <span style="font-size:12px; color:#999;">(без изменений)</span>
+                                <span class="unchanged-note">(без изменений)</span>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -160,17 +161,17 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             $hasPhotoChanges = !empty($deleteIds) || !empty($newPhotoPaths);
             ?>
             <?php if ($hasPhotoChanges): ?>
-                <div class="change-row" style="flex-direction: column; align-items: stretch; padding: 15px 0;">
-                    <div class="change-label" style="width: 100%; margin-bottom: 10px;">📷 Фотографии</div>
+                <div class="change-row photo-row">
+                    <div class="change-label full-width">📷 Фотографии</div>
                     <div class="photo-section">
                         <?php if (!empty($newPhotoPaths)): ?>
-                            <div style="margin-bottom: 10px;">
-                                <strong style="color:#2ecc71;">➕ Будут добавлены:</strong>
+                            <div class="photo-group">
+                                <strong class="photo-group-title added">➕ Будут добавлены:</strong>
                                 <div class="photo-grid">
                                     <?php foreach ($newPhotoPaths as $path): ?>
                                         <div class="photo-item photo-add">
                                             <img src="/<?php echo htmlspecialchars($path); ?>" alt="Новое фото">
-                                            <div class="label" style="color:#2ecc71;">Новое</div>
+                                            <div class="label added">Новое</div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
@@ -183,13 +184,13 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                             $stmtDel->execute(array_merge($deleteIds, [$location['id']]));
                             $delPhotos = $stmtDel->fetchAll(PDO::FETCH_COLUMN);
                         ?>
-                            <div>
-                                <strong style="color:#e74c3c;">❌ Будут удалены:</strong>
+                            <div class="photo-group">
+                                <strong class="photo-group-title removed">❌ Будут удалены:</strong>
                                 <div class="photo-grid">
                                     <?php foreach ($delPhotos as $path): ?>
                                         <div class="photo-item photo-delete">
                                             <img src="/<?php echo htmlspecialchars($path); ?>" alt="Удаляемое фото">
-                                            <div class="label" style="color:#e74c3c;">Удаляется</div>
+                                            <div class="label removed">Удаляется</div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>

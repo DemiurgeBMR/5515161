@@ -22,6 +22,7 @@ if ($application_id <= 0) {
 
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'get_chat_messages:' . $user_id, 60, 60);
 
 // Проверяем, что пользователь участник этой заявки
 $stmt = $pdo->prepare("SELECT operator_id, owner_id FROM applications WHERE id = ?");
@@ -41,6 +42,7 @@ $stmt = $pdo->prepare("
     WHERE application_id = ? AND receiver_id = ? AND is_read = 0
 ");
 $stmt->execute([$application_id, $user_id]);
+notify_mark_link_read($pdo, $user_id, '/pages/application_chat.php?application_id=' . $application_id);
 
 // Забираем всё новое после last_id (is_read уже актуален после апдейта выше)
 $stmt = $pdo->prepare("

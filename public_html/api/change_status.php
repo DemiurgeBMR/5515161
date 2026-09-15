@@ -9,6 +9,10 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$pdo = getDbConnection();
+$user_id = $_SESSION['user_id'];
+rr_enforce_rate_limit($pdo, 'change_status:' . $user_id, 30, 60);
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
@@ -30,9 +34,6 @@ if ($application_id <= 0) {
     echo json_encode(['error' => 'Invalid application ID']);
     exit;
 }
-
-$pdo = getDbConnection();
-$user_id = $_SESSION['user_id'];
 
 $stmt = $pdo->prepare("SELECT operator_id, owner_id, status, cancelled_by FROM applications WHERE id = ?");
 $stmt->execute([$application_id]);

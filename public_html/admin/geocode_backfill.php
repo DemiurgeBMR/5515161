@@ -48,6 +48,7 @@ $remaining = (int) $pdo->query("
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Геокодирование локаций — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -60,6 +61,7 @@ $remaining = (int) $pdo->query("
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
+            <a href="/admin/users.php">👥 Пользователи</a>
             <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
         </div>
 
@@ -67,7 +69,7 @@ $remaining = (int) $pdo->query("
            (новые локации получают координаты автоматически при добавлении/редактировании).</p>
 
         <?php if ($batchResult): ?>
-            <div class="success"><?php echo htmlspecialchars($batchResult); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($batchResult); ?></div>
         <?php endif; ?>
 
         <p>Локаций без координат: <strong><?php echo $remaining; ?></strong></p>
@@ -83,7 +85,7 @@ $remaining = (int) $pdo->query("
             <p>🎉 Все локации с адресом уже имеют координаты.</p>
         <?php endif; ?>
 
-        <p style="margin-top: 20px;"><a href="/admin/index.php">← В админку</a></p>
+        <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>

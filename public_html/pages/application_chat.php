@@ -52,6 +52,7 @@ $stmt->execute([$application_id]);
 $messages = $stmt->fetchAll();
 $stmt = $pdo->prepare("UPDATE messages SET is_read = 1 WHERE application_id = ? AND receiver_id = ? AND is_read = 0");
 $stmt->execute([$application_id, $user_id]);
+notify_mark_link_read($pdo, $user_id, '/pages/application_chat.php?application_id=' . $application_id);
 $is_operator = ($user_id == $application['operator_id']);
 $other_party = $is_operator ? $application['owner_name'] : $application['operator_name'];
 
@@ -131,869 +132,15 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Чат по заявке — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
-    <style>
-        /* =========================================================
-           ROOT (единый стиль с календарём)
-        ========================================================= */
-        :root {
-            --primary: #e94560;
-            --primary-dark: #d63852;
-            --text: #f2f2f5;
-            --text-light: #9a9aa5;
-            --border: #2a2a33;
-            --background: #0b0b0f;
-            --white: #16161c;
-            --blue: #5b9bf7;
-            --blue-bg: rgba(59, 130, 246, 0.15);
-            --yellow: #f5a623;
-            --yellow-bg: rgba(245, 158, 11, 0.15);
-            --green: #2ecc71;
-            --green-bg: rgba(34, 197, 94, 0.15);
-            --red: #ff6b6b;
-            --red-bg: rgba(239, 68, 68, 0.15);
-            --gray: #9a9aa5;
-            --gray-bg: #1c1c24;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
-            --shadow-md: 0 8px 30px rgba(0,0,0,0.4);
-            --shadow-lg: 0 20px 60px rgba(0,0,0,0.6);
-            --radius: 14px;
-            --sidebar-w: 300px;
-        }
-        /* Светлая тема — переключатель в шапке (includes/header.php)
-           ставит data-theme="light" на <html>; этот блок держит
-           собственную палитру страницы синхронной с общей. */
-        :root[data-theme="light"] {
-            --text: #202124;
-            --text-light: #6b7280;
-            --border: #e5e7eb;
-            --background: #f6f7fb;
-            --white: #ffffff;
-            --blue: #3b82f6;
-            --blue-bg: #eff6ff;
-            --yellow: #f59e0b;
-            --yellow-bg: #fffbeb;
-            --green: #22c55e;
-            --green-bg: #f0fdf4;
-            --red: #ef4444;
-            --red-bg: #fef2f2;
-            --gray: #6b7280;
-            --gray-bg: #f3f4f6;
-            --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
-            --shadow-md: 0 8px 30px rgba(0,0,0,0.08);
-            --shadow-lg: 0 20px 60px rgba(0,0,0,0.15);
-        }
-        body { background: var(--background); }
-
-        /* =========================================================
-           КОНТЕЙНЕР
-        ========================================================= */
-        .chat-container {
-            max-width: 1180px;
-            margin: 30px auto;
-            padding: 0 20px 40px;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--text-light);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            transition: .2s;
-        }
-        .back-link:hover { color: var(--primary); }
-
-        /* =========================================================
-           КАРТОЧКА ЧАТА — теперь двухколоночный layout
-        ========================================================= */
-        .chat-card {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow-sm);
-            overflow: hidden;
-            display: flex;
-            align-items: stretch;
-            height: min(720px, calc(100vh - 140px));
-            min-height: 480px;
-            position: relative;
-        }
-
-        /* =========================================================
-           ОСНОВНАЯ КОЛОНКА (тред)
-        ========================================================= */
-        .chat-main {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Компактная мобильная шапка треда: имя + кнопка "Детали" */
-        .chat-main-topbar {
-            display: none;
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        .chat-main-topbar .who {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-        .chat-main-topbar .who .party-avatar {
-            width: 34px;
-            height: 34px;
-            font-size: 13px;
-        }
-        .chat-main-topbar .who .name {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .details-toggle-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: var(--gray-bg);
-            border: none;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text);
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: .2s;
-        }
-        .details-toggle-btn:hover { background: var(--border); }
-        .details-toggle-btn .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--yellow);
-            flex-shrink: 0;
-        }
-        .details-toggle-btn .status-dot.dot-agreed,
-        .details-toggle-btn .status-dot.dot-placed { background: var(--green); }
-        .details-toggle-btn .status-dot.dot-cancelled { background: var(--red); }
-
-        /* =========================================================
-           БОКОВАЯ ПАНЕЛЬ (контекст заявки)
-        ========================================================= */
-        .chat-sidebar {
-            width: var(--sidebar-w);
-            flex-shrink: 0;
-            border-left: 1px solid var(--border);
-            background: var(--gray-bg);
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar-section {
-            padding: 18px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        .sidebar-section:last-child { border-bottom: none; }
-        .sidebar-section-title {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            color: var(--text-light);
-            margin: 0 0 12px;
-        }
-
-        /* --- профиль собеседника в сайдбаре --- */
-        .sidebar-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .party-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            font-size: 15px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .sidebar-profile .info { min-width: 0; }
-        .sidebar-profile .name {
-            font-size: 15px;
-            font-weight: 800;
-            color: var(--text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .sidebar-profile .meta {
-            margin-top: 3px;
-            font-size: 12.5px;
-            color: var(--text-light);
-        }
-        .sidebar-profile .meta a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 700;
-        }
-        .sidebar-profile .meta a:hover { text-decoration: underline; }
-
-        /* --- статус в сайдбаре --- */
-        .status-wrapper { position: relative; }
-        .status-selector {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            padding: 2px 0;
-        }
-        .status-selector.inactive { cursor: default; opacity: 0.6; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .status-pending { background: #fff3cd; color: #856404; }
-        .status-negotiating { background: #fef3c7; color: #92400e; }
-        .status-agreed { background: #d4edda; color: #155724; }
-        .status-placed { background: #dbeafe; color: #1d4ed8; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
-        .status-arrow {
-            font-size: 13px;
-            color: var(--text-light);
-            margin-left: 2px;
-        }
-        .status-dropdown {
-            display: none;
-            position: absolute;
-            left: 0;
-            top: calc(100% + 4px);
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
-            padding: 6px;
-            min-width: 180px;
-            z-index: 900;
-        }
-        .status-dropdown .dropdown-item {
-            padding: 8px 14px;
-            font-weight: 600;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: var(--text);
-        }
-        .status-dropdown .dropdown-item:hover { background: var(--gray-bg); }
-
-        /* --- карточка события выезда в сайдбаре --- */
-        .event-card {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-        .event-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 11px;
-            background: var(--blue-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 17px;
-            flex-shrink: 0;
-        }
-        .event-body {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-        }
-        .event-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .event-status {
-            font-weight: 700;
-            font-size: 12.5px;
-        }
-        .event-emergency {
-            background: var(--red);
-            color: white;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-        .event-datetime {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--text);
-        }
-        .event-comment {
-            background: #fffbeb;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            border-left: 4px solid var(--yellow);
-            color: #78350f;
-        }
-        .event-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 2px;
-        }
-        .event-empty {
-            font-size: 13px;
-            color: var(--text-light);
-            line-height: 1.5;
-        }
-        .btn-event {
-            padding: 7px 14px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12.5px;
-            font-weight: 700;
-            background: var(--primary);
-            color: white;
-            transition: .2s;
-        }
-        .btn-event:hover { opacity: 0.85; transform: translateY(-1px); }
-        .btn-event.propose-btn { background: var(--blue); }
-        .btn-event.emergency-btn { background: var(--red); }
-        .btn-event.confirm-btn { background: var(--green); }
-        .btn-event.reschedule-btn { background: var(--yellow); color: #78350f; }
-        .btn-event.cancel-btn { background: var(--gray); }
-        .btn-event.complete-btn { background: var(--green); }
-
-        /* --- действия (уведомления / удалить) в сайдбаре --- */
-        .sidebar-action-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 0;
-            font-size: 13.5px;
-            font-weight: 700;
-            color: var(--text);
-        }
-        .sidebar-action-row + .sidebar-action-row { border-top: 1px solid var(--border); }
-        .sidebar-action-row.danger-link {
-            cursor: pointer;
-            color: var(--red);
-        }
-        .sidebar-action-row.danger-link a {
-            color: var(--red);
-            text-decoration: none;
-            width: 100%;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 40px;
-            height: 22px;
-            flex-shrink: 0;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .3s;
-            border-radius: 22px;
-        }
-        .slider:before {
-            content: "";
-            position: absolute;
-            height: 16px;
-            width: 16px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
-        }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(18px); }
-
-        /* =========================================================
-           СООБЩЕНИЯ
-        ========================================================= */
-        .chat-messages {
-            padding: 20px 24px;
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            background: var(--background);
-            scroll-behavior: smooth;
-        }
-        .chat-messages::-webkit-scrollbar { width: 8px; }
-        .chat-messages::-webkit-scrollbar-track { background: transparent; }
-        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-        .chat-messages::-webkit-scrollbar-thumb:hover { background: var(--gray); }
-
-        .date-separator {
-            text-align: center;
-            margin: 4px 0 18px;
-            position: sticky;
-            top: 0;
-            z-index: 5;
-        }
-        .date-separator span {
-            display: inline-block;
-            background: var(--white);
-            border: 1px solid var(--border);
-            color: var(--text-light);
-            font-size: 12px;
-            font-weight: 700;
-            padding: 4px 14px;
-            border-radius: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,.04);
-        }
-        .date-separator:first-child { margin-top: 0; }
-
-        .message {
-            display: flex;
-            align-items: flex-end;
-            gap: 8px;
-            margin-bottom: 14px;
-            animation: msgIn .2s ease;
-        }
-        .message:last-child { margin-bottom: 0; }
-        .message.grouped { margin-top: -8px; }
-        .message.own { justify-content: flex-end; }
-        @keyframes msgIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--blue-bg);
-            color: var(--blue);
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 800;
-        }
-        .message-body {
-            display: flex;
-            flex-direction: column;
-            max-width: 75%;
-        }
-        .message.own .message-body { align-items: flex-end; }
-        .message .sender {
-            font-weight: 700;
-            font-size: 12px;
-            color: var(--text-light);
-            margin-bottom: 4px;
-            padding: 0 4px;
-        }
-        .message .sender .time {
-            font-weight: 400;
-            font-size: 11px;
-            color: var(--text-light);
-            margin-left: 8px;
-        }
-        .message .text {
-            display: inline-block;
-            padding: 9px 14px;
-            border-radius: 16px;
-            border-bottom-left-radius: 4px;
-            background: var(--white);
-            border: 1px solid var(--border);
-            font-size: 14px;
-            line-height: 1.5;
-            word-break: break-word;
-            box-shadow: 0 1px 2px rgba(0,0,0,.03);
-        }
-        .message.own .text {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            border-radius: 16px;
-            border-bottom-right-radius: 4px;
-        }
-        .msg-meta {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-top: 3px;
-            padding: 0 4px;
-            font-size: 11px;
-            color: var(--text-light);
-        }
-        .read-receipt { font-size: 13px; letter-spacing: -2px; color: var(--text-light); }
-        .read-receipt.read { color: var(--blue); letter-spacing: -1px; }
-        .chat-empty {
-            color: var(--text-light);
-            text-align: center;
-            padding: 50px 0;
-            font-size: 14px;
-        }
-        .chat-empty .chat-empty-icon {
-            font-size: 30px;
-            display: block;
-            margin-bottom: 8px;
-            opacity: .6;
-        }
-
-        /* Место под будущий индикатор "печатает..." — зарезервировано,
-           заполняется следующим шагом (см. #typingIndicator) */
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 6px;
-            padding: 0 24px 8px;
-            font-size: 12.5px;
-            color: var(--text-light);
-            flex-shrink: 0;
-        }
-        .typing-indicator.show { display: flex; }
-
-        /* =========================================================
-           ИНПУТ
-        ========================================================= */
-        .chat-input {
-            padding: 14px 24px 20px;
-            border-top: 1px solid var(--border);
-            background: var(--white);
-            flex-shrink: 0;
-        }
-        .chat-input form {
-            display: flex;
-            align-items: flex-end;
-            gap: 6px;
-            background: var(--gray-bg);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 6px 6px 6px 18px;
-            transition: .2s;
-        }
-        .chat-input form:focus-within {
-            border-color: var(--primary);
-            background: var(--white);
-            box-shadow: 0 0 0 3px rgba(233,69,96,.08);
-        }
-        .chat-input textarea {
-            flex: 1;
-            border: none;
-            background: transparent;
-            resize: none;
-            min-height: 24px;
-            max-height: 140px;
-            padding: 8px 0;
-            font-size: 14px;
-            font-family: inherit;
-            outline: none;
-            line-height: 1.4;
-        }
-        .chat-input button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            transition: .2s;
-            flex-shrink: 0;
-        }
-        .chat-input button:hover { background: var(--primary-dark); transform: scale(1.05); }
-        .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .chat-closed {
-            color: var(--text-light);
-            font-style: italic;
-            padding: 10px 0 0;
-            text-align: center;
-        }
-
-        /* =========================================================
-           МОДАЛКА (единый стиль)
-        ========================================================= */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(17,24,39,.55);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            z-index: 10000;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            width: min(520px, 100%);
-            max-height: calc(100vh - 40px);
-            overflow-y: auto;
-            background: var(--white);
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 18px;
-            padding: 25px;
-            box-shadow: var(--shadow-lg);
-            animation: modalIn .2s ease;
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: translateY(10px) scale(.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        .modal-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .modal-title {
-            margin: 0;
-            font-size: 21px;
-            font-weight: 800;
-            color: var(--text);
-        }
-        .modal-subtitle {
-            margin: 5px 0 0;
-            color: var(--text-light);
-            font-size: 13px;
-        }
-        .close-btn {
-            border: 0;
-            background: var(--gray-bg);
-            width: 36px;
-            height: 36px;
-            border-radius: 9px;
-            cursor: pointer;
-            font-size: 22px;
-            color: var(--text-light);
-            flex: 0 0 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .close-btn:hover { background: var(--border); }
-        .form-group { margin-bottom: 17px; }
-        .form-label {
-            display: block;
-            margin-bottom: 7px;
-            font-size: 13px;
-            font-weight: 800;
-            color: var(--text);
-        }
-        .form-control {
-            width: 100%;
-            box-sizing: border-box;
-            min-height: 44px;
-            padding: 10px 13px;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--gray-bg);
-            color: var(--text);
-            font-size: 14px;
-            outline: none;
-            transition: .2s;
-        }
-        .form-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(233,69,96,.08);
-        }
-        textarea.form-control { resize: vertical; }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 22px;
-        }
-        .modal-buttons button {
-            flex: 1;
-            height: 44px;
-            border-radius: 10px;
-            border: 0;
-            cursor: pointer;
-            font-weight: 800;
-            font-size: 14px;
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-        .btn-primary:hover { background: var(--primary-dark); }
-        .btn-secondary {
-            background: var(--gray-bg);
-            color: var(--text);
-        }
-        .btn-secondary:hover { background: var(--border); }
-        .btn-danger {
-            background: var(--red);
-            color: white;
-        }
-
-        /* =========================================================
-           TOAST
-        ========================================================= */
-        .toast-container {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            z-index: 50000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast {
-            min-width: 280px;
-            max-width: 420px;
-            padding: 13px 16px;
-            background: #111827;
-            color: white;
-            border-radius: 11px;
-            box-shadow: var(--shadow-lg);
-            font-size: 14px;
-            font-weight: 700;
-            animation: toastIn .25s ease;
-        }
-        .toast.success { background: #15803d; }
-        .toast.error { background: #dc2626; }
-        .toast.warning { background: #b45309; }
-        @keyframes toastIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* =========================================================
-           SIDEBAR BACKDROP (только мобилка)
-        ========================================================= */
-        .sidebar-backdrop {
-            display: none;
-            position: absolute;
-            inset: 0;
-            background: rgba(17,24,39,.45);
-            z-index: 190;
-        }
-        .sidebar-backdrop.show { display: block; }
-
-        /* =========================================================
-           RESPONSIVE — ниже 768px сайдбар становится drawer
-        ========================================================= */
-        @media (max-width: 768px) {
-            .chat-card { height: min(88vh, 760px); }
-            .chat-main-topbar { display: flex; }
-            .chat-sidebar {
-                position: absolute;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: min(86%, 340px);
-                border-left: 1px solid var(--border);
-                box-shadow: var(--shadow-lg);
-                transform: translateX(100%);
-                transition: transform .25s ease;
-                z-index: 200;
-            }
-            .chat-sidebar.open { transform: translateX(0); }
-            .sidebar-close-btn {
-                display: inline-flex;
-            }
-        }
-        @media (min-width: 769px) {
-            .sidebar-close-btn { display: none; }
-        }
-
-        @media (max-width: 640px) {
-            .chat-container { padding: 0 12px 30px; }
-            .chat-messages { padding: 14px; }
-            .chat-input { padding: 12px 16px; }
-            .modal-box { padding: 18px; }
-            .event-actions { flex-direction: column; }
-            .event-actions .btn-event { width: 100%; }
-        }
-
-        .sidebar-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-        }
-        .sidebar-header-title {
-            font-size: 14px;
-            font-weight: 800;
-            color: var(--text);
-        }
-        .sidebar-close-btn {
-            border: 0;
-            background: var(--gray-bg);
-            width: 32px;
-            height: 32px;
-            border-radius: 9px;
-            cursor: pointer;
-            font-size: 19px;
-            color: var(--text-light);
-            align-items: center;
-            justify-content: center;
-        }
-        .sidebar-close-btn:hover { background: var(--border); }
-
-        /* --- свёрнутая "таблетка" для подтверждённого события --- */
-        .event-summary-pill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            background: #d4edda;
-            border: 1px solid transparent;
-            padding: 10px 12px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 700;
-            color: #155724;
-            text-align: left;
-            font-family: inherit;
-            transition: .15s;
-        }
-        .event-summary-pill:hover { background: #c3e6cb; }
-        .event-summary-icon { flex-shrink: 0; }
-        .event-summary-text { flex: 1; min-width: 0; }
-        .event-summary-chevron { flex-shrink: 0; font-size: 11px; opacity: .7; }
-    </style>
 </head>
 <body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="chat-container">
-    <a href="<?php echo $backUrl; ?>" class="back-link">← Назад к списку заявок</a>
+    <a href="<?php echo $backUrl; ?>" class="chat-back-link">← Назад к списку заявок</a>
 
     <div class="chat-card" id="chatCard">
 
@@ -1033,7 +180,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         <?php endif; ?>
                         <div class="message <?php echo $isOwn ? 'own' : ''; ?> <?php echo $isGrouped ? 'grouped' : ''; ?>">
                             <?php if (!$isOwn): ?>
-                                <div class="avatar" style="<?php echo $isGrouped ? 'visibility:hidden;' : ''; ?>"><?php echo htmlspecialchars(getInitials($senderFullName)); ?></div>
+                                <div class="avatar<?php echo $isGrouped ? ' avatar-hidden' : ''; ?>"><?php echo htmlspecialchars(getInitials($senderFullName)); ?></div>
                             <?php endif; ?>
                             <div class="message-body">
                                 <?php if (!$isGrouped): ?>
@@ -1086,7 +233,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- заголовок панели, только на мобилке -->
             <div class="sidebar-header">
                 <span class="sidebar-header-title">Детали заявки</span>
-                <button class="sidebar-close-btn" id="sidebarCloseBtn">×</button>
+                <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Закрыть">×</button>
             </div>
 
             <!-- профиль собеседника -->
@@ -1109,14 +256,14 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- запрос на закрепление за локацией — решение владельца -->
             <div class="sidebar-section" id="assignmentRequestBlock">
                 <p class="sidebar-section-title">Запрос на закрепление</p>
-                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                <p class="sidebar-note">
                     Оператор просит закрепить его за этой локацией.
                 </p>
                 <div class="modal-buttons">
-                    <button type="button" id="approveAssignmentBtn" class="btn-primary">✅ Одобрить</button>
+                    <button type="button" id="approveAssignmentBtn" class="chat-btn-primary">✅ Одобрить</button>
                     <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
                 </div>
-                <div id="assignmentRequestStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+                <div id="assignmentRequestStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <?php endif; ?>
 
@@ -1124,16 +271,16 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <!-- оператор может по своей инициативе запросить закрепление прямо из чата -->
             <div class="sidebar-section" id="requestAssignmentBlock">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
-                <p style="font-size:13px; color:var(--text-muted, #888); margin-bottom:10px;">
+                <p class="sidebar-note">
                     Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
                 </p>
-                <button type="button" id="requestAssignmentBtn" class="btn-primary">📩 Запросить закрепление</button>
-                <div id="requestAssignmentStatus" style="margin-top:8px; font-weight:bold; font-size:13px;"></div>
+                <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">📩 Запросить закрепление</button>
+                <div id="requestAssignmentStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
-                <p style="font-size:13px; color:var(--text-muted, #888);">
+                <p class="sidebar-note">
                     ⏳ Запрос на закрепление отправлен, ожидайте решения владельца.
                 </p>
             </div>
@@ -1144,10 +291,10 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 <p class="sidebar-section-title">Статус</p>
                 <div class="status-wrapper">
                     <div class="status-selector <?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? 'inactive' : ''; ?>" id="statusSelector" data-active="<?php echo ($currentPublicStatus !== 'cancelled' || $canChangeCancel) ? '1' : '0'; ?>">
-                        <span class="status-badge status-<?php echo $displayStatus; ?>" id="currentStatusBadge">
+                        <span class="chat-status-badge status-<?php echo $displayStatus; ?>" id="currentStatusBadge">
                             <?php echo $statusLabels[$displayStatus] ?? '⏳ Ожидает'; ?>
                         </span>
-                        <span class="status-arrow" id="statusArrow" <?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? 'style="display:none;"' : ''; ?>>▼</span>
+                        <span class="status-arrow<?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? ' chat-hidden' : ''; ?>" id="statusArrow">▼</span>
                     </div>
                     <div class="status-dropdown" id="statusDropdown"></div>
                 </div>
@@ -1171,7 +318,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                             <span class="event-summary-chevron" id="eventSummaryChevron">▾</span>
                         </button>
                     <?php endif; ?>
-                    <div class="event-card" id="eventCardBody" <?php echo $isCollapsible ? 'style="display:none;"' : ''; ?>>
+                    <div class="event-card<?php echo $isCollapsible ? ' chat-hidden' : ''; ?>" id="eventCardBody">
                         <span class="event-icon"><?php echo $current_event['is_emergency'] ? '🚨' : '📅'; ?></span>
                         <div class="event-body">
                             <div class="event-header">
@@ -1256,36 +403,36 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
 </div>
 
 <!-- МОДАЛЬНОЕ ОКНО ДЛЯ ДАТЫ -->
-<div class="modal-overlay" id="dateModal">
-    <div class="modal-box">
+<div class="chat-modal-overlay" id="dateModal">
+    <div class="chat-modal-box">
         <div class="modal-header">
             <div>
                 <h3 class="modal-title" id="modalTitle">📅 Выберите дату и время</h3>
                 <p class="modal-subtitle">Укажите время выезда</p>
             </div>
-            <button class="close-btn" onclick="closeDateModal()">×</button>
+            <button class="close-btn" onclick="closeDateModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="dateForm">
-            <div class="form-group">
+            <div class="chat-form-group">
                 <label class="form-label" for="eventDatetime">Дата и время</label>
                 <input type="datetime-local" id="eventDatetime" class="form-control" required>
             </div>
-            <div id="emergencyCommentGroup" style="display: none;" class="form-group">
+            <div id="emergencyCommentGroup" class="chat-form-group chat-hidden">
                 <label class="form-label" for="emergencyComment">Комментарий (причина срочного выезда)</label>
                 <textarea id="emergencyComment" class="form-control" rows="3" placeholder="Опишите проблему..."></textarea>
             </div>
             <input type="hidden" id="modalAction" value="propose">
             <input type="hidden" id="modalEventId" value="0">
             <div class="modal-buttons">
-                <button type="button" class="btn-secondary" onclick="closeDateModal()">Отмена</button>
-                <button type="submit" class="btn-primary">Отправить</button>
+                <button type="button" class="chat-btn-secondary" onclick="closeDateModal()">Отмена</button>
+                <button type="submit" class="chat-btn-primary">Отправить</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- TOAST-контейнер -->
-<div class="toast-container" id="toastContainer"></div>
+<div class="chat-toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -1565,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateStatusDisplay(newStatus) {
         var label = allStatuses[newStatus] || '⏳ Ожидает';
-        currentBadge.className = 'status-badge status-' + newStatus;
+        currentBadge.className = 'chat-status-badge status-' + newStatus;
         currentBadge.textContent = label;
 
         if (detailsToggleDot) {
@@ -1581,7 +728,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statusSelector.dataset.active = isActive ? '1' : '0';
         statusSelector.classList.toggle('inactive', !isActive);
         if (statusArrow) {
-            statusArrow.style.display = isActive ? 'inline' : 'none';
+            statusArrow.classList.toggle('chat-hidden', !isActive);
         }
         if (newStatus === 'cancelled') {
             var chatInput = document.querySelector('.chat-input form');
@@ -1604,7 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var currentDisplay = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
         options.forEach(function(status) {
             var isActive = (status === currentDisplay);
-            html += '<div class="dropdown-item status-option" data-status="' + status + '" style="' + (isActive ? 'background:var(--gray-bg);' : '') + '">' +
+            html += '<div class="dropdown-item status-option' + (isActive ? ' active' : '') + '" data-status="' + status + '">' +
                         allStatuses[status] +
                     '</div>';
         });
@@ -1679,8 +826,8 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventSummaryChevron = document.getElementById('eventSummaryChevron');
     if (eventSummaryToggle && eventCardBody) {
         eventSummaryToggle.addEventListener('click', function() {
-            var isHidden = eventCardBody.style.display === 'none';
-            eventCardBody.style.display = isHidden ? 'flex' : 'none';
+            var isHidden = eventCardBody.classList.contains('chat-hidden');
+            eventCardBody.classList.toggle('chat-hidden', !isHidden);
             if (eventSummaryChevron) eventSummaryChevron.textContent = isHidden ? '▴' : '▾';
         });
     }
@@ -1700,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTitle').textContent = '📅 Предложить дату выезда';
         document.getElementById('modalAction').value = 'propose';
         document.getElementById('modalEventId').value = 0;
-        document.getElementById('emergencyCommentGroup').style.display = 'none';
+        document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');
         document.getElementById('dateModal').classList.add('active');
     });
 
@@ -1708,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('modalTitle').textContent = '🚨 Срочный выезд';
         document.getElementById('modalAction').value = 'emergency';
         document.getElementById('modalEventId').value = 0;
-        document.getElementById('emergencyCommentGroup').style.display = 'block';
+        document.getElementById('emergencyCommentGroup').classList.remove('chat-hidden');
         document.getElementById('dateModal').classList.add('active');
     });
 
@@ -1718,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalTitle').textContent = '✏️ Предложить другое время';
             document.getElementById('modalAction').value = 'reschedule';
             document.getElementById('modalEventId').value = eventId;
-            document.getElementById('emergencyCommentGroup').style.display = 'none';
+            document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');
             document.getElementById('dateModal').classList.add('active');
         });
     });

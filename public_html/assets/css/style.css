@@ -8,6 +8,7 @@
 @import 'components/_modals.css';
 @import 'components/_star-rating.css';
 @import 'utils/_back-link.css';
+@import 'utils/_common.css';
 @import 'pages/_add_location.css';
 @import 'pages/_catalog.css';
 @import 'pages/_map.css';
@@ -16,8 +17,18 @@
 @import 'pages/_auth.css';
 @import 'pages/_register.css';
 @import 'pages/_profile.css';
+@import 'pages/_edit_profile.css';
 @import 'pages/_subscription.css';
 @import 'pages/_how_it_works.css';
+@import 'pages/_notifications.css';
+@import 'pages/_documents.css';
+@import 'pages/_owner_operators.css';
+@import 'pages/_service_history.css';
+@import 'pages/_index.css';
+@import 'pages/_operator_locations.css';
+@import 'pages/_operator_dashboard.css';
+@import 'pages/_application_chat.css';
+@import 'pages/_events_calendar.css';
 @import 'admin/_admin.css';
 @import 'admin/_admin-locations.css'; 
 @import 'admin/_admin-preview-revision.css';
@@ -44,7 +55,17 @@
     --info: #5dade2;
     --info-soft: rgba(52, 152, 219, 0.15);
     --danger: #ff6b6b;
-    --shadow: rgba(0, 0, 0, 0.5);
+    --danger-soft: rgba(255, 107, 107, 0.15);
+    /* Единая шкала теней — раньше почти каждый файл придумывал свой
+       box-shadow с фиксированной непрозрачностью, которая на светлой теме
+       выглядела тяжёлой (чёрная тень с alpha 0.3–0.6 поверх белого фона).
+       Три уровня — карточка / поднятый элемент (модалка, дропдаун) / самый
+       заметный (полноэкранный оверлей) — покрывают почти все случаи;
+       ориентир взят из pages/events_calendar.php, где это уже было сделано правильно. */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+    --radius: 14px;
 }
 
 /* Светлая тема — переключается через data-theme="light" на <html>
@@ -70,7 +91,10 @@
     --info: #3498db;
     --info-soft: #d6eaf8;
     --danger: #e74c3c;
-    --shadow: rgba(0, 0, 0, 0.1);
+    --danger-soft: #fdecea;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 * {
@@ -94,63 +118,12 @@ a {
     padding: 0 20px;
 }
 
-/* ===== ГЛАВНЫЙ БАННЕР ===== */
-.hero {
-    text-align: center;
-    padding: 80px 20px;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: white;
-}
-
-.hero h1 {
-    font-size: 48px;
-    margin-bottom: 15px;
-}
-
-.hero p {
-    font-size: 20px;
-    opacity: 0.8;
-    margin-bottom: 30px;
-}
-
-.cta-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 14px 40px;
-    border-radius: 30px;
-    text-decoration: none;
-    font-weight: bold;
-    font-size: 18px;
-    transition: all 0.3s;
-}
-
-.btn-primary {
-    background: #e94560;
-    color: white;
-}
-
-.btn-primary:hover {
-    background: #c73652;
-    transform: translateY(-2px);
-}
-
-.btn-secondary {
-    background: transparent;
-    color: white;
-    border: 2px solid white;
-}
-
-.btn-secondary:hover {
-    background: white;
-    color: #1a1a2e;
-}
-
-/* ===== ЛОКАЦИИ (для главной страницы) ===== */
+/* ===== ЛОКАЦИИ (для главной страницы) =====
+   .hero/.btn*/.cta-buttons для homepage переехали в pages/_index.css под
+   .home-* именами — эти классы больше нигде bare не использовались (каждый
+   из 3 файлов, где встречались .btn-primary/.btn-secondary, уже полностью
+   переопределял их в своём собственном <style>), так что здесь удалены,
+   а не оставлены как мёртвый код. */
 .locations-preview {
     padding: 60px 20px;
     background: var(--bg);
@@ -175,12 +148,12 @@ a {
     border-radius: 12px;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: var(--shadow-sm);
 }
 
 .location-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 30px var(--shadow);
+    box-shadow: var(--shadow-md);
     border-color: var(--border-strong);
 }
 
@@ -248,7 +221,7 @@ a {
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 16px 20px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-md);
     border-left: 4px solid #e94560;
     transform: translateX(110%);
     opacity: 0;
@@ -336,23 +309,6 @@ a {
 }
 .toast-notification .toast-close:hover {
     color: var(--text);
-}
-
-/* ===== ТОСТЫ ДЛЯ СИСТЕМНЫХ УВЕДОМЛЕНИЙ ===== */
-.toast-notification.notification-toast {
-    border-left-color: #3498db; /* синий вместо красного */
-}
-
-.toast-notification.notification-toast .toast-header .toast-avatar {
-    background: #3498db; /* синий фон для иконки */
-}
-
-/* Если хотите добавить иконку-колокольчик вместо аватара, можно переопределить */
-.toast-notification.notification-toast .toast-header .toast-avatar {
-    content: "🔔";
-    background: transparent;
-    font-size: 22px;
-    color: #3498db;
 }
 
 /* Адаптив для маленьких экранов */

@@ -11,6 +11,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'toggle_notifications:' . $_SESSION['user_id'], 20, 60);
+
 if (!csrf_verify_request()) {
     http_response_code(403);
     echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
@@ -26,7 +29,6 @@ if ($application_id <= 0) {
     exit;
 }
 
-$pdo = getDbConnection();
 $user_id = $_SESSION['user_id'];
 
 $stmt = $pdo->prepare("SELECT operator_id, owner_id FROM applications WHERE id = ?");
