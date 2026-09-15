@@ -22,6 +22,7 @@ if ($application_id <= 0) {
 
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'get_chat_messages:' . $user_id, 60, 60);
 
 // Проверяем, что пользователь участник этой заявки
 $stmt = $pdo->prepare("SELECT operator_id, owner_id FROM applications WHERE id = ?");

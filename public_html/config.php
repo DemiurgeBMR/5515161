@@ -431,6 +431,66 @@ function csrf_verify_request() {
     return csrf_verify($token);
 }
 
+// --- RATE LIMITING ---
+// Раньше ограничение по частоте было только на логине (блокировка аккаунта
+// после серии неудачных попыток). Остальные API-эндпоинты можно было дёргать
+// без остановки. Простой rate-limiter с фиксированным окном на базе таблицы
+// `rate_limits` (см. миграцию 2026_09_15_add_rate_limits_table.sql) — одна
+// строка на ключ, окно и счётчик сбрасываются при переходе в новое окно,
+// поэтому таблица не растёт бесконечно.
+
+/**
+ * true, если запрос с этим ключом ещё укладывается в лимит $maxRequests за
+ * последние $windowSeconds секунд (и инкрементирует счётчик), false — если
+ * лимит уже превышен. Ключ должен однозначно определять "кого" ограничиваем
+ * для конкретного действия, например "send_message:42" (эндпоинт + user_id)
+ * или "cities:203.0.113.5" (эндпоинт + IP — для запросов без авторизации).
+ */
+function rr_check_rate_limit(PDO $pdo, $key, $maxRequests, $windowSeconds) {
+    $now = time();
+    $windowStart = intdiv($now, $windowSeconds) * $windowSeconds;
+
+    $stmt = $pdo->prepare("
+        INSERT INTO rate_limits (rate_key, window_start, request_count)
+        VALUES (?, ?, 1)
+        ON DUPLICATE KEY UPDATE
+            request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
+            window_start = VALUES(window_start)
+    ");
+    $stmt->execute([$key, $windowStart]);
+
+    $stmt = $pdo->prepare("SELECT request_count FROM rate_limits WHERE rate_key = ?");
+    $stmt->execute([$key]);
+    return (int) $stmt->fetchColumn() <= $maxRequests;
+}
+
+/**
+ * Готовый вызов для начала API-эндпоинта: если лимит превышен — сразу
+ * отвечает 429 в том же JSON-формате, что и остальные ошибки эндпоинтов,
+ * и завершает скрипт. Иначе просто возвращается, не мешая обработке дальше.
+ */
+function rr_enforce_rate_limit(PDO $pdo, $key, $maxRequests, $windowSeconds) {
+    if (!rr_check_rate_limit($pdo, $key, $maxRequests, $windowSeconds)) {
+        http_response_code(429);
+        header('Retry-After: ' . $windowSeconds);
+        echo json_encode(['error' => 'Слишком много запросов. Попробуйте немного позже.']);
+        exit;
+    }
+}
+
+/**
+ * IP клиента с учётом X-Forwarded-For от прокси/балансировщика (берём первый
+ * адрес в цепочке — исходный клиент) — для rate-limit ключей у эндпоинтов без
+ * авторизации, где нет user_id для идентификации запрашивающего.
+ */
+function rr_client_ip() {
+    $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+    if ($forwarded !== '') {
+        return trim(explode(',', $forwarded)[0]);
+    }
+    return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+}
+
 function formatDateRu($date) {
     if (empty($date)) return '';
     $months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',

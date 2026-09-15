@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify_request()) {
 $user_id = $_SESSION['user_id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'operator_assign:' . $user_id, 60, 60);
 
 // Проверка прав: только владельцы и операторы имеют доступ
 $role = $_SESSION['user_role'] ?? '';

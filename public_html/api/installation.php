@@ -19,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify_request()) {
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'installation:' . $user_id, 60, 60);
 
 // ========== ФОТО-ПОДТВЕРЖДЕНИЯ (service_photos) ==========
 // Принимает массив файлов из $_FILES['photos'] (input type="file" multiple),

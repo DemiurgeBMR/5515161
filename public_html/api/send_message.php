@@ -11,6 +11,10 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$user_id = $_SESSION['user_id'];
+$pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'send_message:' . $user_id, 20, 60);
+
 if (!csrf_verify_request()) {
     http_response_code(403);
     echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
@@ -25,10 +29,6 @@ if ($application_id <= 0 || empty($message)) {
     echo json_encode(['error' => 'Invalid parameters']);
     exit;
 }
-
-$user_id = $_SESSION['user_id'];
-
-$pdo = getDbConnection();
 
 // Проверяем, что пользователь участник чата и чат активен
 $stmt = $pdo->prepare("

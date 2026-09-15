@@ -14,6 +14,7 @@ $user_id = $_SESSION['user_id'];
 $action = $_GET['action'] ?? '';
 
 $pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'get_notifications:' . $user_id, 60, 60);
 
 /**
  * Добавляет иконку/категорию из общего справочника (config.php) к сырой
