@@ -87,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } catch (PDOException $e) {
+                error_log('login.php: ' . $e->getMessage());
                 $error = 'Ошибка базы данных';
             }
         }

@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         } catch (PDOException $e) {
+            error_log('register.php: ' . $e->getMessage());
             $error = 'Ошибка базы данных: ' . $e->getMessage();
         }
     }

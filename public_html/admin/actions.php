@@ -368,6 +368,7 @@ try {
     // Throwable, а не только PDOException — notifyLocationModeration() зовёт
     // notify(), которая бросает InvalidArgumentException на неизвестном типе
     // уведомления, а не PDO-исключение.
+    error_log('admin/actions.php (' . ($action ?? '?') . '): ' . $e->getMessage());
     $_SESSION['flash'] = 'Ошибка: ' . $e->getMessage();
 }
 

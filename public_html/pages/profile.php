@@ -108,6 +108,7 @@ if ($user_role === 'owner') {
 }
     
 } catch (PDOException $e) {
+    error_log('profile.php: ' . $e->getMessage());
     $error = 'Ошибка загрузки профиля';
 }
 

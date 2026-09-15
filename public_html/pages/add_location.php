@@ -181,6 +181,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
             // Можно оставить как есть, чтобы пользователь видел успех.
 
         } catch (PDOException $e) {
+            error_log('add_location.php: ' . $e->getMessage());
             $error = 'Ошибка базы данных: ' . $e->getMessage();
         }
     }

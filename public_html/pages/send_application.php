@@ -88,6 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
             exit;
         } catch (PDOException $e) {
             $pdo->rollBack();
+            error_log('send_application.php: ' . $e->getMessage());
             $error = 'Ошибка при отправке заявки: ' . $e->getMessage();
         }
     }

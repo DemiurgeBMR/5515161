@@ -78,6 +78,7 @@ try {
             $_SESSION['flash'] = 'Неизвестное действие.';
     }
 } catch (PDOException $e) {
+    error_log('admin/user_actions.php (' . $action . '): ' . $e->getMessage());
     $_SESSION['flash'] = 'Ошибка БД: ' . $e->getMessage();
 }
 

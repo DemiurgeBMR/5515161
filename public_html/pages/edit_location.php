@@ -223,6 +223,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
         $photos = $stmt_photos->fetchAll();
 
     } catch (PDOException $e) {
+        error_log('edit_location.php: ' . $e->getMessage());
         $error = 'Ошибка базы данных: ' . $e->getMessage();
     }
 }

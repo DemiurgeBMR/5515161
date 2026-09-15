@@ -138,7 +138,10 @@ $pdo = new PDO(
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
-        die('Ошибка подключения к базе данных: ' . $e->getMessage());
+        error_log('getDbConnection: ' . $e->getMessage());
+        // Раньше это всегда показывало сырой текст исключения посетителю,
+        // независимо от DEBUG_MODE, — потенциальная утечка деталей о БД.
+        die(DEBUG_MODE ? 'Ошибка подключения к базе данных: ' . $e->getMessage() : 'Сервис временно недоступен. Попробуйте немного позже.');
     }
 }
 
@@ -148,6 +151,7 @@ function testDbConnection() {
         $pdo = getDbConnection();
         return true;
     } catch (Exception $e) {
+        error_log('testDbConnection: ' . $e->getMessage());
         return false;
     }
 }

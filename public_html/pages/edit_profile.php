@@ -151,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             $user = $stmt->fetch();
 
         } catch (PDOException $e) {
+            error_log('edit_profile.php: ' . $e->getMessage());
             $error = 'Ошибка базы данных: ' . $e->getMessage();
         }
     } else {

@@ -55,6 +55,7 @@ try {
     echo json_encode($result);
 
 } catch (PDOException $e) {
+    error_log('cities.php: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['error' => 'Не удалось выполнить поиск городов']);
 }
