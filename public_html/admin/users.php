@@ -30,12 +30,27 @@ if ($search !== '') {
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
+// Пагинация — раньше страница грузила всех пользователей разом одним
+// запросом без LIMIT, тот же паттерн, что и в catalog.php (page/per_page/offset).
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page = 20;
+$offset = ($page - 1) * $per_page;
+$filterParams = [];
+if ($roleFilter !== '') $filterParams['role'] = $roleFilter;
+if ($search !== '') $filterParams['q'] = $search;
+
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM users $whereSql");
+$countStmt->execute($params);
+$total_matching = (int) $countStmt->fetchColumn();
+$total_pages = max(1, (int)ceil($total_matching / $per_page));
+
 $stmt = $pdo->prepare("
     SELECT id, full_name, email, phone, role, has_subscription, is_verified, is_banned, banned_reason,
            two_factor_enabled, locked_until, created_at
     FROM users
     $whereSql
     ORDER BY created_at DESC
+    LIMIT $per_page OFFSET $offset
 ");
 $stmt->execute($params);
 $users = $stmt->fetchAll();
@@ -74,7 +89,7 @@ unset($_SESSION['flash']);
 
         <div class="admin-stats">
             <div class="stat-box">
-                <div class="number"><?php echo count($users); ?></div>
+                <div class="number"><?php echo $total_matching; ?></div>
                 <div class="label"><?php echo $roleFilter !== '' || $search !== '' ? 'Найдено' : 'Всего пользователей'; ?></div>
             </div>
             <div class="stat-box">
@@ -107,7 +122,7 @@ unset($_SESSION['flash']);
             <?php endif; ?>
         </form>
 
-        <?php if (count($users) > 0): ?>
+        <?php if ($total_matching > 0): ?>
             <div class="admin-table">
                 <table>
                     <thead>
@@ -170,6 +185,24 @@ unset($_SESSION['flash']);
                     </tbody>
                 </table>
             </div>
+
+            <?php if ($total_pages > 1): ?>
+                <div class="pagination">
+                    <?php if ($page > 1): ?>
+                        <a href="?page=<?php echo $page-1; ?>&<?php echo http_build_query($filterParams); ?>">←</a>
+                    <?php endif; ?>
+                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                        <?php if ($i == $page): ?>
+                            <span class="active"><?php echo $i; ?></span>
+                        <?php else: ?>
+                            <a href="?page=<?php echo $i; ?>&<?php echo http_build_query($filterParams); ?>"><?php echo $i; ?></a>
+                        <?php endif; ?>
+                    <?php endfor; ?>
+                    <?php if ($page < $total_pages): ?>
+                        <a href="?page=<?php echo $page+1; ?>&<?php echo http_build_query($filterParams); ?>">→</a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
         <?php else: ?>
             <div class="empty-pending">
                 <h3>😕 Никого не нашлось</h3>
