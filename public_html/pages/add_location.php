@@ -216,7 +216,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <input type="text" name="title" required placeholder="Например: ТЦ Мега, 1 этаж">
             </div>
             
-            <!-- Поле ГОРОД с автодополнением (принудительный выбор) -->
+            <!-- Поле ГОРОД с автодополнением (выбор из подсказки — необязателен). -->
             <div class="form-group city-wrapper">
                 <label>Город *</label>
                 <input type="text" name="city_display" id="cityInput" required placeholder="Начните вводить город..." autocomplete="off">
@@ -448,7 +448,14 @@ fileInput.addEventListener('change', function(e) {
 });
 </script>
     
-    <!-- Скрипт для автодополнения городов (принудительный выбор) -->
+    <!--
+        Скрипт для автодополнения городов. Выбор из подсказки не обязателен —
+        справочник городов (_cities) сейчас пуст (данные внешние, их ещё не
+        перенесли на этот сервер), так что жёстко требовать клик по подсказке
+        значило бы, что создать локацию нельзя вообще ни для одного города.
+        Подсказки — это просто помощь, если справочник заполнят; при отправке
+        формы то, что введено в поле, в любом случае уходит как есть.
+    -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const input = document.getElementById('cityInput');
@@ -514,9 +521,8 @@ fileInput.addEventListener('change', function(e) {
                 if (!selectedCity) {
                     const val = input.value.trim();
                     if (val.length > 0) {
-                        status.innerHTML = '⚠️ Выберите город из списка!';
-                        status.classList.add('status-error'); status.classList.remove('status-ok');
-                        input.setCustomValidity('Пожалуйста, выберите город из списка');
+                        status.innerHTML = 'ℹ️ Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.';
+                        status.classList.add('status-ok'); status.classList.remove('status-error');
                     }
                 }
                 suggestions.style.display = 'none';
@@ -538,12 +544,10 @@ fileInput.addEventListener('change', function(e) {
 
         if (form) {
             form.addEventListener('submit', function(e) {
+                // Ничего не выбрано из подсказок — отправляем как есть то, что
+                // введено в видимое поле, а не блокируем форму.
                 if (!hidden.value || hidden.value.trim() === '') {
-                    e.preventDefault();
-                    status.innerHTML = '❌ Выберите город из списка перед отправкой!';
-                    status.classList.add('status-error'); status.classList.remove('status-ok');
-                    input.focus();
-                    return false;
+                    hidden.value = input.value.trim();
                 }
             });
         }
