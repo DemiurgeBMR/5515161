@@ -45,7 +45,7 @@ function uploadErrorMessage($code) {
 
 // Возвращает ['saved' => int, 'errors' => [ 'имя_файла: причина', ... ]]
 function saveServicePhotos($sourceType, $sourceId, $filesField) {
-    global $pdo;
+    global $pdo, $user_id;
 
     $result = ['saved' => 0, 'errors' => []];
 
@@ -60,6 +60,12 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
+
+    // Накопительная квота на пользователя — раньше размер и число файлов
+    // ограничивались только на один запрос, ничто не мешало копить фото
+    // годами и постепенно занять весь диск сервера.
+    $diskLow = ($free = @disk_free_space(__DIR__)) !== false && $free < 500 * 1024 * 1024;
+    $usedBytes = getUserUploadedBytes($pdo, $user_id);
 
     $tmpNames = (array)$_FILES[$filesField]['tmp_name'];
     $origNames = (array)$_FILES[$filesField]['name'];
@@ -81,6 +87,10 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
             $result['errors'][] = $name . ': больше ' . round($maxBytes / 1024 / 1024) . ' МБ';
             continue;
         }
+        if ($diskLow || $usedBytes + ($sizes[$i] ?? 0) > USER_UPLOAD_QUOTA_BYTES) {
+            $result['errors'][] = $name . ': достигнут лимит на общий объём загруженных фото (200 МБ на аккаунт)';
+            continue;
+        }
         if (!getimagesize($tmpPath)) {
             $result['errors'][] = $name . ': не похоже на изображение';
             continue;
@@ -97,9 +107,10 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
         // applyWatermark = false — это фото-подтверждение, а не публичный листинг локации
         if (compressImage($tmpPath, $destPath, 1600, 1600, 82, false, false)) {
             $relativePath = 'uploads/service/' . $newName;
-            $stmt = $pdo->prepare("INSERT INTO service_photos (source_type, source_id, photo_path) VALUES (?, ?, ?)");
-            $stmt->execute([$sourceType, $sourceId, $relativePath]);
+            $stmt = $pdo->prepare("INSERT INTO service_photos (source_type, source_id, photo_path, uploaded_by) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$sourceType, $sourceId, $relativePath, $user_id]);
             $result['saved']++;
+            $usedBytes += is_file($destPath) ? filesize($destPath) : 0;
         } else {
             $result['errors'][] = $name . ': не удалось обработать изображение на сервере';
         }

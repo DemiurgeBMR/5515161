@@ -110,6 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $uploaded_files = $_FILES['photos'];
                 $total_files = min(count($uploaded_files['name']), 5);
 
+                // Накопительная квота на пользователя — раньше размер и число файлов
+                // ограничивались только на один запрос, ничто не мешало копить фото
+                // годами и постепенно занять весь диск сервера.
+                $diskLow = ($free = @disk_free_space(__DIR__)) !== false && $free < 500 * 1024 * 1024;
+                $usedBytes = getUserUploadedBytes($pdo, $_SESSION['user_id']);
+
                 for ($i = 0; $i < $total_files; $i++) {
                     if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) continue;
                     $tmp_name = $uploaded_files['tmp_name'][$i];
@@ -118,6 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$extension) continue;
                     if ($uploaded_files['size'][$i] > $max_size) {
                         $error = 'Файл "' . $uploaded_files['name'][$i] . '" превышает 5 МБ';
+                        continue;
+                    }
+                    if ($diskLow || $usedBytes + $uploaded_files['size'][$i] > USER_UPLOAD_QUOTA_BYTES) {
+                        $error = 'Достигнут лимит на общий объём загруженных фото (200 МБ на аккаунт). Удалите старые фото у своих локаций, чтобы освободить место.';
                         continue;
                     }
 
@@ -137,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $newPhotoPaths[] = 'uploads/revisions/' . $new_name;
+                    $usedBytes += is_file($final_path) ? filesize($final_path) : 0;
                 }
             }
 

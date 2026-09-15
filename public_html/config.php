@@ -392,6 +392,85 @@ function geocodeAddress($address, $city) {
     return $result;
 }
 
+// --- КВОТА НА ЗАГРУЗКУ ФАЙЛОВ ---
+// Размер и число файлов раньше ограничивались только на один запрос — ничто
+// не мешало настойчивому пользователю копить фото годами и постепенно
+// заполнить диск сервера. USER_UPLOAD_QUOTA_BYTES — суммарный лимит на
+// пользователя по всем его фото (локации + ожидающие модерации ревизии +
+// фото подтверждения обслуживания).
+define('USER_UPLOAD_QUOTA_BYTES', 200 * 1024 * 1024); // 200 МБ на пользователя
+
+/**
+ * Реальный размер файла на диске по пути, как он хранится в БД (относительно
+ * корня public_html, без ведущего слэша, например "uploads/service/x.jpg").
+ * 0, если файла уже нет на диске — не даём отсутствующему файлу молча ломать
+ * подсчёт квоты.
+ */
+function rr_upload_file_size($relativePath) {
+    $fullPath = __DIR__ . '/' . $relativePath;
+    return is_file($fullPath) ? (int) filesize($fullPath) : 0;
+}
+
+/**
+ * Суммарный объём (в байтах), который пользователь уже занимает на диске:
+ * фото активных локаций (владелец), фото в ещё не одобренных ревизиях
+ * (владелец) и фото подтверждения обслуживания (кто именно загрузил —
+ * uploaded_by, см. миграцию 2026_09_15_add_uploaded_by_to_service_photos.sql;
+ * у фото, загруженных до этой миграции, атрибуции нет, и в подсчёт для
+ * конкретного пользователя они не попадают).
+ */
+function getUserUploadedBytes(PDO $pdo, $userId) {
+    $total = 0;
+
+    $stmt = $pdo->prepare("
+        SELECT lp.photo_path
+        FROM location_photos lp
+        JOIN locations l ON l.id = lp.location_id
+        WHERE l.owner_id = ?
+    ");
+    $stmt->execute([$userId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $path) {
+        $total += rr_upload_file_size($path);
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT lr.data
+        FROM location_revisions lr
+        JOIN locations l ON l.id = lr.location_id
+        WHERE l.owner_id = ? AND lr.status = 'pending'
+    ");
+    $stmt->execute([$userId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $json) {
+        $data = json_decode($json, true);
+        foreach ($data['new_photos'] ?? [] as $path) {
+            $total += rr_upload_file_size($path);
+        }
+    }
+
+    $stmt = $pdo->prepare("SELECT photo_path FROM service_photos WHERE uploaded_by = ?");
+    $stmt->execute([$userId]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $path) {
+        $total += rr_upload_file_size($path);
+    }
+
+    return $total;
+}
+
+/**
+ * true, если у пользователя ещё есть место в его личной квоте (с запасом
+ * $additionalBytes под файл, который вот-вот сохранят) И на диске сервера в
+ * целом остаётся разумный запас — вторая проверка не даёт исчерпать диск
+ * даже если бы много разных пользователей одновременно уложились каждый в
+ * свою квоту (задел на будущее, сейчас маловероятно, но дёшево проверить).
+ */
+function rr_has_upload_room(PDO $pdo, $userId, $additionalBytes = 0) {
+    $free = @disk_free_space(__DIR__);
+    if ($free !== false && $free < 500 * 1024 * 1024) { // <500 МБ свободно на диске
+        return false;
+    }
+    return (getUserUploadedBytes($pdo, $userId) + $additionalBytes) <= USER_UPLOAD_QUOTA_BYTES;
+}
+
 // --- CSRF-ЗАЩИТА ---
 // Требует, чтобы session_start() уже был вызван к моменту обращения.
 
