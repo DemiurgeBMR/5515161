@@ -533,18 +533,26 @@ function rr_check_rate_limit(PDO $pdo, $key, $maxRequests, $windowSeconds) {
     $now = time();
     $windowStart = intdiv($now, $windowSeconds) * $windowSeconds;
 
-    $stmt = $pdo->prepare("
-        INSERT INTO rate_limits (rate_key, window_start, request_count)
-        VALUES (?, ?, 1)
-        ON DUPLICATE KEY UPDATE
-            request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
-            window_start = VALUES(window_start)
-    ");
-    $stmt->execute([$key, $windowStart]);
+    try {
+        $stmt = $pdo->prepare("
+            INSERT INTO rate_limits (rate_key, window_start, request_count)
+            VALUES (?, ?, 1)
+            ON DUPLICATE KEY UPDATE
+                request_count = IF(window_start = VALUES(window_start), request_count + 1, 1),
+                window_start = VALUES(window_start)
+        ");
+        $stmt->execute([$key, $windowStart]);
 
-    $stmt = $pdo->prepare("SELECT request_count FROM rate_limits WHERE rate_key = ?");
-    $stmt->execute([$key]);
-    return (int) $stmt->fetchColumn() <= $maxRequests;
+        $stmt = $pdo->prepare("SELECT request_count FROM rate_limits WHERE rate_key = ?");
+        $stmt->execute([$key]);
+        return (int) $stmt->fetchColumn() <= $maxRequests;
+    } catch (PDOException $e) {
+        // Лимит — защита от злоупотреблений, а не граница безопасности: если
+        // сама проверка не выполнилась (например, таблица rate_limits ещё не
+        // накатилась миграцией), пропускаем запрос, а не роняем весь эндпоинт.
+        error_log('rr_check_rate_limit(' . $key . '): ' . $e->getMessage());
+        return true;
+    }
 }
 
 /**
