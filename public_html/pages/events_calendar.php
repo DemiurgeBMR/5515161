@@ -312,6 +312,26 @@ document.addEventListener('DOMContentLoaded', function () {
     let activeEvent = null;  // выбранный объект FullCalendar (event или quicklog)
     let activeQuickFilter = null;
     let isLoading = false;
+    let deepLinkHandled = false; // ?event_id=X в URL — открыть карточку один раз при первой загрузке
+
+    // Ссылка из уведомления о визите ведёт сюда с ?event_id=X — открываем
+    // карточку конкретного события, а не просто общий список календаря.
+    function maybeOpenDeepLinkedEvent() {
+        if (deepLinkHandled) return;
+        deepLinkHandled = true;
+        const targetId = new URLSearchParams(window.location.search).get('event_id');
+        if (!targetId) return;
+        setTimeout(function () {
+            const obj = calendar.getEventById('evt-' + targetId);
+            if (obj) {
+                activeEvent = obj;
+                openDetailsModal(obj);
+                calendar.gotoDate(obj.start);
+            } else {
+                showToast('Событие не найдено — возможно, оно уже обработано', 'warning');
+            }
+        }, 0);
+    }
 
     const eventTypeLabels = {
         installation: 'Установка', maintenance: 'Плановое обслуживание',
@@ -523,6 +543,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     updateInterface();
                     successCallback(getFilteredEvents());
                     showLoading(false);
+                    maybeOpenDeepLinkedEvent();
                 })
                 .catch(error => {
                     console.error(error);

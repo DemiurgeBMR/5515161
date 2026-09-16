@@ -284,9 +284,7 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $lo['operator_id']) ? $lo['owner_id'] : $lo['operator_id'];
-        $link = $application_id
-            ? '/pages/application_chat.php?application_id=' . $application_id
-            : '/pages/location.php?id=' . $lo['location_id'];
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
         $type = $is_emergency ? 'emergency_event' : 'event_requested';
         $message = $is_emergency
             ? '🚨 Срочный выезд запрошен для точки ' . $lo['location_title']
@@ -340,9 +338,7 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
         notify($pdo, $receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link, ['event_id' => $event_id]);
         // =========================
 
@@ -465,9 +461,7 @@ switch ($action) {
                 ? $event['owner_id']
                 : $event['operator_id'];
 
-            $link = $event['application_id']
-                ? '/pages/application_chat.php?application_id=' . $event['application_id']
-                : '/pages/location.php?id=' . $event['location_id'];
+            $link = '/pages/events_calendar.php?event_id=' . $event_id;
             notify(
                 $pdo,
                 $receiver_id,
@@ -524,9 +518,7 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
         notify($pdo, $receiver_id, 'event_cancelled', '❌ Выезд отменён', $link, ['event_id' => $event_id]);
         // =========================
 
@@ -566,9 +558,7 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
         notify($pdo, $receiver_id, 'event_completed', '✅ Выезд завершён', $link, ['event_id' => $event_id]);
         // =========================
 
