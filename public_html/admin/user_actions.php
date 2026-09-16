@@ -79,7 +79,7 @@ try {
     }
 } catch (PDOException $e) {
     error_log('admin/user_actions.php (' . $action . '): ' . $e->getMessage());
-    $_SESSION['flash'] = 'Ошибка БД: ' . $e->getMessage();
+    $_SESSION['flash'] = DEBUG_MODE ? ('Ошибка БД: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
 }
 
 header('Location: /admin/users.php');

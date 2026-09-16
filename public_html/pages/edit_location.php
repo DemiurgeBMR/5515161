@@ -233,7 +233,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 
     } catch (PDOException $e) {
         error_log('edit_location.php: ' . $e->getMessage());
-        $error = 'Ошибка базы данных: ' . $e->getMessage();
+        $error = DEBUG_MODE ? ('Ошибка базы данных: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
     }
 }
 }

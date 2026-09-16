@@ -16,8 +16,11 @@ define('SITE_NAME', 'RR - Riveg Rent');
 define('SITE_URL', 'http://riveg-rent.local');
 
 // --- РЕЖИМ РАЗРАБОТКИ ---
-// true = показывать ошибки, false = скрывать (для продакшена)
-define('DEBUG_MODE', true);
+// true = показывать ошибки и стектрейсы, false = скрывать (для продакшена).
+// Дефолт — false: боевой сервер не должен внезапно начать светить внутренние
+// детали посетителям только потому, что кто-то забыл выставить переменную
+// окружения. Включать явно через DEBUG_MODE=true только на деве.
+define('DEBUG_MODE', filter_var(getenv('DEBUG_MODE') ?: 'false', FILTER_VALIDATE_BOOLEAN));
 
 // --- ЗАЩИТА ВХОДА ОТ ПОДБОРА ПАРОЛЯ ---
 // После LOGIN_MAX_ATTEMPTS неудачных попыток подряд аккаунт временно
@@ -123,8 +126,13 @@ if (DEBUG_MODE) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
 } else {
-    error_reporting(0);
+    // error_reporting(0) раньше означал не просто "не показывать" — PHP
+    // вообще переставал что-либо логировать, включая необработанные фатальные
+    // ошибки. В проде ошибки по-прежнему нужно видеть в логе сервера, просто
+    // не показывать посетителям.
+    error_reporting(E_ALL);
     ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
 }
 
 // --- ПОДКЛЮЧЕНИЕ К БД (функция) ---

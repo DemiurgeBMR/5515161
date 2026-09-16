@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
 
         } catch (PDOException $e) {
             error_log('edit_profile.php: ' . $e->getMessage());
-            $error = 'Ошибка базы данных: ' . $e->getMessage();
+            $error = DEBUG_MODE ? ('Ошибка базы данных: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
         }
     } else {
         $error = implode('<br>', $errors);

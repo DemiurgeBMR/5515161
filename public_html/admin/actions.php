@@ -369,7 +369,7 @@ try {
     // notify(), которая бросает InvalidArgumentException на неизвестном типе
     // уведомления, а не PDO-исключение.
     error_log('admin/actions.php (' . ($action ?? '?') . '): ' . $e->getMessage());
-    $_SESSION['flash'] = 'Ошибка: ' . $e->getMessage();
+    $_SESSION['flash'] = DEBUG_MODE ? ('Ошибка: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
 }
 
 header('Location: /admin/index.php');
