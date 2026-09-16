@@ -703,37 +703,7 @@ textarea.cal-form-control { resize: vertical; }
 .menu-item:hover { background: var(--gray-bg); }
 .menu-item.danger { color: var(--red); }
 .menu-item.danger:hover { background: var(--red-bg); }
-/* =========================================================
-   TOAST
-========================================================= */
-.cal-toast-container {
-    position: fixed;
-    bottom: 25px;
-    right: 25px;
-    z-index: 50000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.cal-toast {
-    min-width: 280px;
-    max-width: 420px;
-    padding: 13px 16px;
-    background: #111827;
-    color: white;
-    border-radius: 11px;
-    box-shadow: var(--shadow-lg);
-    font-size: 14px;
-    font-weight: 700;
-    animation: toastIn .25s ease;
-}
-.cal-toast.success { background: #15803d; }
-.cal-toast.error { background: #dc2626; }
-.cal-toast.warning { background: #b45309; }
-@keyframes toastIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* Toast — общий на весь сайт, см. components/_rr-ui.css */
 /* =========================================================
    RESPONSIVE
 ========================================================= */

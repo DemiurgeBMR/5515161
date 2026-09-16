@@ -122,17 +122,17 @@ unset($_SESSION['flash']);
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
-                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Удалить локацию?')">🗑️ Удалить</a>
+                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
                                 <?php else: ?>
                                     <!-- Уже опубликованная -->
                                     <?php if ($loc['is_active'] == 1): ?>
-                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" onclick="return confirm('Скрыть локацию?')">🔒 Скрыть</a>
+                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" data-rr-confirm="Скрыть локацию?" data-rr-confirm-ok="Скрыть">🔒 Скрыть</a>
                                     <?php else: ?>
-                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Показать локацию?')">🔓 Показать</a>
+                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Показать локацию?" data-rr-confirm-ok="Показать">🔓 Показать</a>
                                     <?php endif; ?>
                                 <?php endif; ?>
                                 <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>

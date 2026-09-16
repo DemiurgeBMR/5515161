@@ -323,9 +323,10 @@ document.getElementById('serviceForm').addEventListener('submit', function(e) {
         }
         if (data.success) {
             if (data.photo_errors && data.photo_errors.length > 0) {
-                alert('Обслуживание отмечено, но часть фото не сохранилась:\n\n' + data.photo_errors.join('\n'));
+                rrAlert('Обслуживание отмечено, но часть фото не сохранилась:\n\n' + data.photo_errors.join('\n')).then(() => location.reload());
+            } else {
+                location.reload();
             }
-            location.reload();
         } else {
             errorEl.textContent = data.error || 'Ошибка сохранения';
             errorEl.style.display = 'block';

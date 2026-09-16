@@ -395,7 +395,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                     </label>
                 </div>
                 <div class="sidebar-action-row danger-link">
-                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" onclick="return confirm('Удалить заявку и всю переписку безвозвратно?')">🗑️ Удалить чат</a>
+                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" data-rr-confirm="Удалить заявку и всю переписку безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить чат</a>
                 </div>
             </div>
         </div>
@@ -430,9 +430,6 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
         </form>
     </div>
 </div>
-
-<!-- TOAST-контейнер -->
-<div class="chat-toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
@@ -499,41 +496,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function decideAssignmentRequest(action, btn) {
         var confirmText = action === 'approve' ? 'Одобрить закрепление этого оператора?' : 'Отклонить запрос на закрепление?';
-        if (!confirm(confirmText)) return;
+        rrConfirm(confirmText, { okText: action === 'approve' ? 'Одобрить' : 'Отклонить' }).then(function(ok) {
+            if (!ok) return;
 
-        approveAssignmentBtn.disabled = true;
-        rejectAssignmentBtn.disabled = true;
-        btn.textContent = 'Отправка...';
-        assignmentRequestStatus.textContent = '';
+            approveAssignmentBtn.disabled = true;
+            rejectAssignmentBtn.disabled = true;
+            btn.textContent = 'Отправка...';
+            assignmentRequestStatus.textContent = '';
 
-        var formData = new FormData();
-        formData.append('action', action);
-        formData.append('application_id', applicationId);
+            var formData = new FormData();
+            formData.append('action', action);
+            formData.append('application_id', applicationId);
 
-        fetch('/api/operator_assign.php', { method: 'POST', body: formData })
-            .then(function(response) { return response.json(); })
-            .then(function(data) {
-                if (data.success) {
-                    assignmentRequestStatus.style.color = '#2ecc71';
-                    assignmentRequestStatus.textContent = '✅ Готово, обновляем страницу...';
-                    setTimeout(function() { location.reload(); }, 700);
-                } else {
+            fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        assignmentRequestStatus.style.color = '#2ecc71';
+                        assignmentRequestStatus.textContent = '✅ Готово, обновляем страницу...';
+                        setTimeout(function() { location.reload(); }, 700);
+                    } else {
+                        assignmentRequestStatus.style.color = '#e74c3c';
+                        assignmentRequestStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                        approveAssignmentBtn.disabled = false;
+                        rejectAssignmentBtn.disabled = false;
+                        approveAssignmentBtn.textContent = '✅ Одобрить';
+                        rejectAssignmentBtn.textContent = '❌ Отклонить';
+                    }
+                })
+                .catch(function() {
                     assignmentRequestStatus.style.color = '#e74c3c';
-                    assignmentRequestStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                    assignmentRequestStatus.textContent = '❌ Ошибка соединения';
                     approveAssignmentBtn.disabled = false;
                     rejectAssignmentBtn.disabled = false;
                     approveAssignmentBtn.textContent = '✅ Одобрить';
                     rejectAssignmentBtn.textContent = '❌ Отклонить';
-                }
-            })
-            .catch(function() {
-                assignmentRequestStatus.style.color = '#e74c3c';
-                assignmentRequestStatus.textContent = '❌ Ошибка соединения';
-                approveAssignmentBtn.disabled = false;
-                rejectAssignmentBtn.disabled = false;
-                approveAssignmentBtn.textContent = '✅ Одобрить';
-                rejectAssignmentBtn.textContent = '❌ Отклонить';
-            });
+                });
+        });
     }
 
     if (approveAssignmentBtn && rejectAssignmentBtn) {
@@ -547,36 +546,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (requestAssignmentBtn) {
         requestAssignmentBtn.addEventListener('click', function() {
-            if (!confirm('Отправить владельцу запрос на закрепление за этой локацией?')) return;
+            rrConfirm('Отправить владельцу запрос на закрепление за этой локацией?', { okText: 'Отправить' }).then(function(ok) {
+                if (!ok) return;
 
-            requestAssignmentBtn.disabled = true;
-            requestAssignmentBtn.textContent = 'Отправка...';
-            requestAssignmentStatus.textContent = '';
+                requestAssignmentBtn.disabled = true;
+                requestAssignmentBtn.textContent = 'Отправка...';
+                requestAssignmentStatus.textContent = '';
 
-            var formData = new FormData();
-            formData.append('action', 'request');
-            formData.append('application_id', applicationId);
+                var formData = new FormData();
+                formData.append('action', 'request');
+                formData.append('application_id', applicationId);
 
-            fetch('/api/operator_assign.php', { method: 'POST', body: formData })
-                .then(function(response) { return response.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        requestAssignmentStatus.style.color = '#2ecc71';
-                        requestAssignmentStatus.textContent = '✅ Запрос отправлен, обновляем страницу...';
-                        setTimeout(function() { location.reload(); }, 800);
-                    } else {
+                fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        if (data.success) {
+                            requestAssignmentStatus.style.color = '#2ecc71';
+                            requestAssignmentStatus.textContent = '✅ Запрос отправлен, обновляем страницу...';
+                            setTimeout(function() { location.reload(); }, 800);
+                        } else {
+                            requestAssignmentStatus.style.color = '#e74c3c';
+                            requestAssignmentStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                            requestAssignmentBtn.disabled = false;
+                            requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                        }
+                    })
+                    .catch(function() {
                         requestAssignmentStatus.style.color = '#e74c3c';
-                        requestAssignmentStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                        requestAssignmentStatus.textContent = '❌ Ошибка соединения';
                         requestAssignmentBtn.disabled = false;
                         requestAssignmentBtn.textContent = '📩 Запросить закрепление';
-                    }
-                })
-                .catch(function() {
-                    requestAssignmentStatus.style.color = '#e74c3c';
-                    requestAssignmentStatus.textContent = '❌ Ошибка соединения';
-                    requestAssignmentBtn.disabled = false;
-                    requestAssignmentBtn.textContent = '📩 Запросить закрепление';
-                });
+                    });
+            });
         });
     }
 
@@ -763,36 +764,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     statusDropdown.style.display = 'none';
                     return;
                 }
-                if (!confirm('Изменить статус на "' + this.textContent.trim() + '"?')) return;
-                var statusFormData = new FormData();
-                statusFormData.append('application_id', applicationId);
-                statusFormData.append('status', newStatus);
-                fetch('/api/change_status.php', { method: 'POST', body: statusFormData })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        showToast('Ошибка: ' + data.error, 'error');
-                    } else {
-                        if (newStatus === 'cancelled') {
-                            publicStatus = 'cancelled';
-                            cancelledBy = currentUser;
-                            currentMyTag = null;
+                rrConfirm('Изменить статус на «' + this.textContent.trim() + '»?', { okText: 'Изменить' }).then(function(ok) {
+                    if (!ok) return;
+                    var statusFormData = new FormData();
+                    statusFormData.append('application_id', applicationId);
+                    statusFormData.append('status', newStatus);
+                    fetch('/api/change_status.php', { method: 'POST', body: statusFormData })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            showToast('Ошибка: ' + data.error, 'error');
                         } else {
-                            if (publicStatus === 'cancelled') {
-                                publicStatus = 'pending';
-                                cancelledBy = null;
+                            if (newStatus === 'cancelled') {
+                                publicStatus = 'cancelled';
+                                cancelledBy = currentUser;
+                                currentMyTag = null;
+                            } else {
+                                if (publicStatus === 'cancelled') {
+                                    publicStatus = 'pending';
+                                    cancelledBy = null;
+                                }
+                                currentMyTag = newStatus;
                             }
-                            currentMyTag = newStatus;
+                            var displayStatus = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
+                            updateStatusDisplay(displayStatus);
+                            statusDropdown.style.display = 'none';
+                            showToast('Статус обновлён', 'success');
                         }
-                        var displayStatus = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
-                        updateStatusDisplay(displayStatus);
-                        statusDropdown.style.display = 'none';
-                        showToast('Статус обновлён', 'success');
-                    }
-                })
-                .catch(err => {
-                    showToast('Ошибка соединения', 'error');
-                    console.error(err);
+                    })
+                    .catch(err => {
+                        showToast('Ошибка соединения', 'error');
+                        console.error(err);
+                    });
                 });
             });
         });
@@ -873,26 +876,28 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.confirm-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var eventId = this.dataset.eventId;
-            if (!confirm('Подтвердить эту дату?')) return;
-            var formData = new FormData();
-            formData.append('action', 'confirm');
-            formData.append('event_id', eventId);
-            fetch('/api/installation.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Дата подтверждена!', 'success');
-                    refreshEventBlock();
-                } else {
-                    showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
-                }
-            })
-            .catch(err => {
-                showToast('Ошибка соединения', 'error');
-                console.error(err);
+            rrConfirm('Подтвердить эту дату?', { okText: 'Подтвердить' }).then(function(ok) {
+                if (!ok) return;
+                var formData = new FormData();
+                formData.append('action', 'confirm');
+                formData.append('event_id', eventId);
+                fetch('/api/installation.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Дата подтверждена!', 'success');
+                        refreshEventBlock();
+                    } else {
+                        showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
+                    }
+                })
+                .catch(err => {
+                    showToast('Ошибка соединения', 'error');
+                    console.error(err);
+                });
             });
         });
     });
@@ -900,26 +905,28 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.cancel-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var eventId = this.dataset.eventId;
-            if (!confirm('Отменить событие?')) return;
-            var formData = new FormData();
-            formData.append('action', 'cancel');
-            formData.append('event_id', eventId);
-            fetch('/api/installation.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Событие отменено', 'success');
-                    refreshEventBlock();
-                } else {
-                    showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
-                }
-            })
-            .catch(err => {
-                showToast('Ошибка соединения', 'error');
-                console.error(err);
+            rrConfirm('Отменить событие?', { okText: 'Отменить событие', danger: true }).then(function(ok) {
+                if (!ok) return;
+                var formData = new FormData();
+                formData.append('action', 'cancel');
+                formData.append('event_id', eventId);
+                fetch('/api/installation.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Событие отменено', 'success');
+                        refreshEventBlock();
+                    } else {
+                        showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
+                    }
+                })
+                .catch(err => {
+                    showToast('Ошибка соединения', 'error');
+                    console.error(err);
+                });
             });
         });
     });
@@ -927,26 +934,28 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.complete-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var eventId = this.dataset.eventId;
-            if (!confirm('Завершить событие?')) return;
-            var formData = new FormData();
-            formData.append('action', 'complete');
-            formData.append('event_id', eventId);
-            fetch('/api/installation.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Событие завершено', 'success');
-                    refreshEventBlock();
-                } else {
-                    showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
-                }
-            })
-            .catch(err => {
-                showToast('Ошибка соединения', 'error');
-                console.error(err);
+            rrConfirm('Завершить событие?', { okText: 'Завершить' }).then(function(ok) {
+                if (!ok) return;
+                var formData = new FormData();
+                formData.append('action', 'complete');
+                formData.append('event_id', eventId);
+                fetch('/api/installation.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Событие завершено', 'success');
+                        refreshEventBlock();
+                    } else {
+                        showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
+                    }
+                })
+                .catch(err => {
+                    showToast('Ошибка соединения', 'error');
+                    console.error(err);
+                });
             });
         });
     });
@@ -1011,20 +1020,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') closeDateModal();
     });
 
-    // --- TOAST ---
-    function showToast(message, type) {
-        var container = document.getElementById('toastContainer');
-        var toast = document.createElement('div');
-        toast.className = 'toast ' + (type || '');
-        toast.textContent = message;
-        container.appendChild(toast);
-        setTimeout(function() {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px)';
-            setTimeout(function() { toast.remove(); }, 300);
-        }, 3000);
-    }
-    window.showToast = showToast;
 });
 </script>
 

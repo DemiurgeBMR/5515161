@@ -130,22 +130,25 @@ document.addEventListener('DOMContentLoaded', function() {
     // Открепление
     document.querySelectorAll('.btn-unassign').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            if (!confirm('Открепить этого оператора от локации?')) return;
-            var id = this.dataset.id;
-            var formData = new FormData();
-            formData.append('action', 'unassign');
-            formData.append('location_operator_id', id);
-            fetch('/api/operator_assign.php', { method: 'POST', body: formData })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ Оператор откреплён');
-                        location.reload();
-                    } else {
-                        alert('❌ Ошибка: ' + data.error);
-                    }
-                })
-                .catch(err => alert('❌ Ошибка соединения'));
+            var self = this;
+            rrConfirm('Открепить этого оператора от локации?', { okText: 'Открепить', danger: true }).then(function(ok) {
+                if (!ok) return;
+                var id = self.dataset.id;
+                var formData = new FormData();
+                formData.append('action', 'unassign');
+                formData.append('location_operator_id', id);
+                fetch('/api/operator_assign.php', { method: 'POST', body: formData })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Оператор откреплён', 'success');
+                            setTimeout(() => location.reload(), 800);
+                        } else {
+                            showToast('Ошибка: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(err => showToast('Ошибка соединения', 'error'));
+            });
         });
     });
 
@@ -189,8 +192,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Оператор закреплён');
-                    location.reload();
+                    showToast('Оператор закреплён', 'success');
+                    setTimeout(() => location.reload(), 800);
                 } else {
                     errorEl.textContent = data.error || 'Ошибка';
                     errorEl.classList.add('show');

@@ -168,15 +168,15 @@ unset($_SESSION['flash']);
                                         <span class="you-note">Это вы</span>
                                     <?php else: ?>
                                         <?php if ($u['is_banned']): ?>
-                                            <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Разблокировать пользователя?')">✅ Разблокировать</a>
+                                            <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать">✅ Разблокировать</a>
                                         <?php else: ?>
-                                            <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Заблокировать пользователя? Он не сможет войти в аккаунт.')">🚫 Заблокировать</a>
+                                            <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Заблокировать пользователя? Он не сможет войти в аккаунт." data-rr-confirm-ok="Заблокировать" data-rr-confirm-danger>🚫 Заблокировать</a>
                                         <?php endif; ?>
 
                                         <?php if ($u['role'] !== 'admin'): ?>
-                                            <a href="/admin/user_actions.php?action=make_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" onclick="return confirm('Сделать администратором?')">👑 В админы</a>
+                                            <a href="/admin/user_actions.php?action=make_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Сделать администратором?" data-rr-confirm-ok="Сделать">👑 В админы</a>
                                         <?php elseif ($total_admins > 1): ?>
-                                            <a href="/admin/user_actions.php?action=remove_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" onclick="return confirm('Снять права администратора?')">👤 Снять админку</a>
+                                            <a href="/admin/user_actions.php?action=remove_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Снять права администратора?" data-rr-confirm-ok="Снять">👤 Снять админку</a>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </td>

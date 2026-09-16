@@ -1,0 +1,89 @@
+/* ===== ОБЩИЕ UI-ХЕЛПЕРЫ (rr-ui.js) =====
+   Toast-уведомления и модалка подтверждения — замена нативным
+   confirm()/alert() браузера везде на сайте. */
+
+.rr-toast-container {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    z-index: 50000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: calc(100vw - 32px);
+}
+.rr-toast {
+    min-width: 280px;
+    max-width: 420px;
+    padding: 13px 16px;
+    background: var(--bg-elevated-2);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 11px;
+    box-shadow: var(--shadow-lg);
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .25s ease, transform .25s ease;
+}
+.rr-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.rr-toast.success { background: var(--success); color: #fff; border-color: transparent; }
+.rr-toast.error   { background: var(--danger);  color: #fff; border-color: transparent; }
+.rr-toast.warning { background: var(--warning); color: #fff; border-color: transparent; }
+
+/* Модалка подтверждения — та же оболочка .modal-overlay/.modal-box,
+   что и у остальных модалок на сайте (памятка проходимости и т.п.),
+   только со своим содержимым. */
+.rr-confirm-box {
+    max-width: 420px;
+    padding: 26px;
+    text-align: center;
+}
+.rr-confirm-message {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text);
+    margin: 0 0 22px;
+    white-space: pre-line;
+    text-align: left;
+}
+.rr-confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+.rr-confirm-btn {
+    flex: 1;
+    padding: 11px 18px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+}
+.rr-confirm-cancel {
+    background: var(--bg-elevated-2);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+}
+.rr-confirm-cancel:hover { background: var(--border); }
+.rr-confirm-ok {
+    background: var(--accent);
+    color: #fff;
+}
+.rr-confirm-ok:hover { background: var(--accent-hover); }
+.rr-confirm-ok.rr-confirm-ok-danger {
+    background: var(--danger);
+}
+.rr-confirm-ok.rr-confirm-ok-danger:hover {
+    filter: brightness(0.9);
+}
+
+@media (max-width: 480px) {
+    .rr-toast-container { left: 16px; right: 16px; bottom: 16px; }
+    .rr-toast { min-width: 0; max-width: none; width: 100%; }
+}

@@ -48,5 +48,6 @@
     }
     </script>
     <script src="/assets/js/notifications.js"></script>
+    <script src="/assets/js/rr-ui.js"></script>
 </body>
 </html>

@@ -299,9 +299,6 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="menu-item danger" id="ctxDelete">🗑️ Отменить выезд</div>
 </div>
 
-<!-- ===== TOAST ===== -->
-<div class="cal-toast-container" id="toastContainer" role="status" aria-live="polite"></div>
-
 <script>
 const ROLE = <?php echo json_encode($role); ?>;
 const USER_ID = <?php echo (int)$user_id; ?>;
@@ -340,19 +337,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function showLoading(show) {
         isLoading = show;
         loadingOverlay.classList.toggle('active', show);
-    }
-
-    function showToast(message, type) {
-        const container = document.getElementById('toastContainer');
-        const toastEl = document.createElement('div');
-        toastEl.className = 'cal-toast ' + (type || '');
-        toastEl.textContent = message;
-        container.appendChild(toastEl);
-        setTimeout(() => {
-            toastEl.style.opacity = '0';
-            toastEl.style.transform = 'translateY(10px)';
-            setTimeout(() => toastEl.remove(), 300);
-        }, 3000);
     }
 
     function showFormError(errorEl, message) {
@@ -1139,11 +1123,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     window.cancelActiveEvent = function() {
         if (!activeEvent) return;
-        if (!confirm('Отменить этот выезд?')) return;
-        sendEventAction('cancel', activeEvent.extendedProps.dbId, function() {
-            closeDetailsModal();
-            showToast('🗑️ Выезд отменён', 'success');
-            calendar.refetchEvents();
+        rrConfirm('Отменить этот выезд?', { okText: 'Отменить выезд', danger: true }).then(function(ok) {
+            if (!ok) return;
+            sendEventAction('cancel', activeEvent.extendedProps.dbId, function() {
+                closeDetailsModal();
+                showToast('Выезд отменён', 'success');
+                calendar.refetchEvents();
+            });
         });
     };
 

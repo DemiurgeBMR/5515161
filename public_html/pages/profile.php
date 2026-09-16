@@ -239,19 +239,19 @@ unset($_SESSION['flash']);
                             </a>
 <div class="card-actions">
     <?php if ($loc['pending_revisions_count'] > 0): ?>
-        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" onclick="return confirm('Отозвать правки и перейти к редактированию?')">✏️ Отозвать и редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" data-rr-confirm="Отозвать правки и перейти к редактированию?" data-rr-confirm-ok="Отозвать">✏️ Отозвать и редактировать</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
     <?php elseif (!$loc['is_moderated']): ?>
         <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить объявление?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
     <?php else: ?>
         <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
         <?php if ($loc['is_active'] == 1): ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" onclick="return confirm('Скрыть?')">🙈 Скрыть</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Скрыть?" data-rr-confirm-ok="Скрыть">🙈 Скрыть</a>
         <?php else: ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" onclick="return confirm('Показать?')">👁️ Показать</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Показать?" data-rr-confirm-ok="Показать">👁️ Показать</a>
         <?php endif; ?>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" onclick="return confirm('Удалить безвозвратно?')">🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
     <?php endif; ?>
 </div>
                         </div>

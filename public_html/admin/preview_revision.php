@@ -207,8 +207,8 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             <?php endif; ?>
 
             <div class="change-actions">
-                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить эту ревизию?')">✅ Одобрить</a>
-                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить эту ревизию?')">❌ Отклонить</a>
+                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить эту ревизию?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
+                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить эту ревизию?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
             </div>
         </div>
     </div>
