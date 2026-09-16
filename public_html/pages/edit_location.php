@@ -93,8 +93,13 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
                 if (!empty($geo['city'])) {
                     $revisionData['city'] = $geo['city'];
                 }
-                $revisionData['latitude'] = $geo['lat'];
-                $revisionData['longitude'] = $geo['lng'];
+                // lat/lng = null значит, что найденная улица не похожа на
+                // введённую — не затираем этим прежние (верные) координаты
+                // локации, просто оставляем их как есть.
+                if ($geo['lat'] !== null) {
+                    $revisionData['latitude'] = $geo['lat'];
+                    $revisionData['longitude'] = $geo['lng'];
+                }
             }
         }
 

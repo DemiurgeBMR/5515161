@@ -348,13 +348,57 @@ function formatDate($date) {
  * null в 'city', если Nominatim не смог определить населённый пункт —
  * вызывающий код в этом случае просто оставляет то, что ввёл пользователь.
  *
+ * Город и адрес отправляются раздельными полями структурного запроса (city=,
+ * street=), а не одной строкой в q= — свободный текст вида "Симферополь, ул.
+ * Полюсная, д. 49" Nominatim иногда разбирает неверно и уверенно подставляет
+ * координаты совсем другой улицы. Дополнительно сверяем распознанную улицу с
+ * тем, что ввёл пользователь (rr_geocode_street_matches) — если общих слов
+ * нет вообще, это тот самый случай подмены адреса, и координаты не отдаём
+ * (город при этом всё равно можно использовать, он определяется надёжнее).
+ *
  * @return array{lat: float, lng: float, city: ?string}|null
  */
-function geocodeAddress($address, $city) {
-    $query = trim(trim($city) . ', ' . trim($address), ', ');
-    if ($query === '') return null;
+function rr_geocode_street_words($text) {
+    $text = mb_strtolower($text, 'UTF-8');
+    $stopWords = ['ул', 'улица', 'пр', 'пр-т', 'проспект', 'пер', 'переулок',
+        'д', 'дом', 'кв', 'квартира', 'корп', 'корпус', 'стр', 'строение', 'г'];
+    $words = preg_split('/[^a-zа-яё0-9]+/iu', $text) ?: [];
+    return array_values(array_filter($words, function ($w) use ($stopWords) {
+        return mb_strlen($w, 'UTF-8') >= 3 && !in_array($w, $stopWords, true) && !ctype_digit($w);
+    }));
+}
 
-    $cacheKey = 'geo_' . md5(mb_strtolower($query, 'UTF-8'));
+function rr_geocode_street_matches($inputAddress, $resolvedRoad) {
+    if (empty($resolvedRoad)) {
+        // Nominatim вообще не вернул название улицы (например, нашёл только
+        // город) — сверять не с чем, но и подменять адрес тут нечем, поэтому
+        // не блокируем: доверяем координатам как есть.
+        return true;
+    }
+    $inputWords = rr_geocode_street_words($inputAddress);
+    if (empty($inputWords)) {
+        return true;
+    }
+    $resolvedWords = rr_geocode_street_words($resolvedRoad);
+    foreach ($inputWords as $w) {
+        foreach ($resolvedWords as $rw) {
+            if ($w === $rw || mb_strpos($w, $rw, 0, 'UTF-8') !== false || mb_strpos($rw, $w, 0, 'UTF-8') !== false) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function geocodeAddress($address, $city) {
+    $city = trim($city);
+    $address = trim($address);
+    if ($city === '' && $address === '') return null;
+
+    // geo2_ вместо geo_ — старый кеш строился на свободнотекстовом запросе и
+    // мог содержать неверно подобранные координаты; префикс сменён, чтобы
+    // после этого фикса такие записи не отдавались повторно ещё месяц.
+    $cacheKey = 'geo2_' . md5(mb_strtolower($city . '|' . $address, 'UTF-8'));
     $cached = getCached($cacheKey, 30 * 24 * 3600);
     if ($cached !== null) {
         return $cached ?: null;
@@ -368,12 +412,14 @@ function geocodeAddress($address, $city) {
     }
     file_put_contents($lockFile, microtime(true));
 
-    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
-        'q'              => $query,
+    $params = [
         'format'         => 'json',
         'addressdetails' => 1,
         'limit'          => 1,
-    ]);
+    ];
+    if ($address !== '') $params['street'] = $address;
+    if ($city !== '') $params['city'] = $city;
+    $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query($params);
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
@@ -401,9 +447,12 @@ function geocodeAddress($address, $city) {
     $resolvedCity = $addr['city'] ?? $addr['town'] ?? $addr['village']
         ?? $addr['municipality'] ?? $addr['county'] ?? null;
 
+    $resolvedRoad = $addr['road'] ?? $addr['pedestrian'] ?? $addr['footway'] ?? null;
+    $streetMatches = $address === '' || rr_geocode_street_matches($address, $resolvedRoad);
+
     $result = [
-        'lat'  => (float) $data[0]['lat'],
-        'lng'  => (float) $data[0]['lon'],
+        'lat'  => $streetMatches ? (float) $data[0]['lat'] : null,
+        'lng'  => $streetMatches ? (float) $data[0]['lon'] : null,
         'city' => $resolvedCity,
     ];
     setCache($cacheKey, $result);

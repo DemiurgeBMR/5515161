@@ -91,9 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'space_type'       => $space_type
             ];
 
-            // Если геокодинг не удался вообще — локация просто не появится на
+            // Если геокодинг не удался, или найденная улица не похожа на
+            // введённую (geocodeAddress тогда отдаёт lat/lng = null, не
+            // доверяя случайному совпадению) — локация просто не появится на
             // карте, на модерацию это не влияет.
-            if ($geo) {
+            if ($geo && $geo['lat'] !== null) {
                 $revisionData['latitude'] = $geo['lat'];
                 $revisionData['longitude'] = $geo['lng'];
             }

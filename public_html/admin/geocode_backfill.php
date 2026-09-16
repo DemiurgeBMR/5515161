@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run')
     $failed = 0;
     foreach ($rows as $row) {
         $geo = geocodeAddress($row['address'], $row['city']);
-        if ($geo) {
+        // lat === null значит, что найденная улица не похожа на введённую
+        // (geocodeAddress тогда не доверяет совпадению) — это тот же случай,
+        // что и полностью неудавшийся геокодинг, а не "готово".
+        if ($geo && $geo['lat'] !== null) {
             $upd = $pdo->prepare("UPDATE locations SET latitude = ?, longitude = ? WHERE id = ?");
             $upd->execute([$geo['lat'], $geo['lng'], $row['id']]);
             $done++;
