@@ -38,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = getDbConnection();
 
+            // Геокодируем адрес заранее (а не после вставки) — если Nominatim
+            // распознал населённый пункт, используем его нормализованное имя
+            // вместо сырого ввода пользователя (лечит опечатки и разнобой вроде
+            // "мск"/"Москва") и для координат, и для самой записи локации.
+            $geo = geocodeAddress($address, $city);
+            if ($geo && !empty($geo['city'])) {
+                $city = $geo['city'];
+            }
+
             // 1. Вставляем локацию (неактивную, непромодерированную)
             $stmt = $pdo->prepare("
                 INSERT INTO locations
@@ -82,9 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'space_type'       => $space_type
             ];
 
-            // Геокодируем адрес (для отображения на карте). Если не удалось —
-            // локация просто не появится на карте, на модерацию это не влияет.
-            $geo = geocodeAddress($address, $city);
+            // Если геокодинг не удался вообще — локация просто не появится на
+            // карте, на модерацию это не влияет.
             if ($geo) {
                 $revisionData['latitude'] = $geo['lat'];
                 $revisionData['longitude'] = $geo['lng'];

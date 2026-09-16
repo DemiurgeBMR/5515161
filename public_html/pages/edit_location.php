@@ -84,11 +84,15 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             'space_type'       => $space_type
         ];
 
-        // Геокодируем адрес заново, если город или адрес изменились (для карты).
-        // Если координаты не поменялись — не тратим лишний запрос к Nominatim.
+        // Геокодируем адрес заново, если город или адрес изменились (для карты
+        // и нормализации города). Если координаты не поменялись — не тратим
+        // лишний запрос к Nominatim.
         if ($city !== $location['city'] || $address !== $location['address']) {
             $geo = geocodeAddress($address, $city);
             if ($geo) {
+                if (!empty($geo['city'])) {
+                    $revisionData['city'] = $geo['city'];
+                }
                 $revisionData['latitude'] = $geo['lat'];
                 $revisionData['longitude'] = $geo['lng'];
             }

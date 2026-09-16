@@ -342,7 +342,13 @@ function formatDate($date) {
  *
  * Соблюдает лимит Nominatim в 1 запрос/сек через файл с меткой времени последнего запроса.
  *
- * @return array{lat: float, lng: float}|null
+ * Заодно возвращает нормализованное имя населённого пункта из разбора адреса
+ * Nominatim (city — единая классификация вместо свободного текста от
+ * пользователя, включая опечатки и разное написание одного и того же города).
+ * null в 'city', если Nominatim не смог определить населённый пункт —
+ * вызывающий код в этом случае просто оставляет то, что ввёл пользователь.
+ *
+ * @return array{lat: float, lng: float, city: ?string}|null
  */
 function geocodeAddress($address, $city) {
     $query = trim(trim($city) . ', ' . trim($address), ', ');
@@ -363,9 +369,10 @@ function geocodeAddress($address, $city) {
     file_put_contents($lockFile, microtime(true));
 
     $url = 'https://nominatim.openstreetmap.org/search?' . http_build_query([
-        'q'      => $query,
-        'format' => 'json',
-        'limit'  => 1,
+        'q'              => $query,
+        'format'         => 'json',
+        'addressdetails' => 1,
+        'limit'          => 1,
     ]);
 
     $ch = curl_init($url);
@@ -388,9 +395,16 @@ function geocodeAddress($address, $city) {
         return null;
     }
 
+    // Разные теги в зависимости от типа населённого пункта — Nominatim не
+    // всегда присылает именно 'city' (для посёлков и сёл это 'town'/'village').
+    $addr = $data[0]['address'] ?? [];
+    $resolvedCity = $addr['city'] ?? $addr['town'] ?? $addr['village']
+        ?? $addr['municipality'] ?? $addr['county'] ?? null;
+
     $result = [
-        'lat' => (float) $data[0]['lat'],
-        'lng' => (float) $data[0]['lon'],
+        'lat'  => (float) $data[0]['lat'],
+        'lng'  => (float) $data[0]['lon'],
+        'city' => $resolvedCity,
     ];
     setCache($cacheKey, $result);
     return $result;
