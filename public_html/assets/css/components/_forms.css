@@ -29,7 +29,7 @@
 }
 .form-group input:focus,
 .form-group textarea:focus {
-    border-color: #e94560;
+    border-color: var(--accent);
     outline: none;
 }
 
@@ -60,7 +60,7 @@
 .btn-submit {
     width: 100%;
     padding: 14px;
-    background: #e94560;
+    background: var(--accent);
     color: white;
     border: none;
     border-radius: 8px;
@@ -69,7 +69,7 @@
     cursor: pointer;
 }
 .btn-submit:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 
 /* ★★★ Добавляем вторичную кнопку ★★★ */
@@ -83,11 +83,11 @@
 /* Сообщения об ошибках и успехе — фиксированные светлые "стикеры":
    так они одинаково хорошо читаются что на тёмной, что на светлой теме. */
 .error {
-    color: #e94560;
+    color: var(--danger);
     text-align: center;
     margin-bottom: 15px;
     padding: 10px;
-    background: #fde8ec;
+    background: var(--danger-soft);
     border-radius: 6px;
 }
 .success {

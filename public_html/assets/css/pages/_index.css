@@ -36,11 +36,11 @@
     transition: 0.2s;
 }
 .btn-primary {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .btn-primary:hover {
-    background: #c73652;
+    background: var(--accent-hover);
     transform: scale(1.03);
 }
 .btn-secondary {
@@ -124,7 +124,7 @@
 }
 .home-location-card .price {
     font-size: 22px;
-    color: #ff5c7a;
+    color: var(--accent);
     font-weight: bold;
     margin-top: 6px;
 }
@@ -133,7 +133,7 @@
     margin: 40px 0;
 }
 .view-all a {
-    background: #e94560;
+    background: var(--accent);
     color: white;
     padding: 12px 40px;
     border-radius: 30px;
@@ -141,7 +141,7 @@
     font-weight: bold;
 }
 .view-all a:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .empty-home {
     text-align: center;

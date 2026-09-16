@@ -59,11 +59,11 @@
     cursor: pointer;
 }
 .btn-calendar {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .btn-calendar:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .empty {
     text-align: center;
@@ -115,7 +115,7 @@
     margin-top: 8px;
 }
 .service-ok { background: #e8f8ed; color: #1e8449; }
-.service-due { background: #fde8ec; color: #e94560; }
+.service-due { background: var(--accent-soft); color: var(--accent); }
 .service-unknown { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
 
 .machine-actions {
@@ -128,8 +128,8 @@
 .btn-service:hover { background: #27ae60; }
 .btn-edit-machine { background: var(--bg-elevated-2, #1c1c24); color: var(--text, #f2f2f5); }
 .btn-edit-machine:hover { background: var(--border, #2a2a33); }
-.btn-add-machine { background: #e94560; color: white; }
-.btn-add-machine:hover { background: #c73652; }
+.btn-add-machine { background: var(--accent); color: white; }
+.btn-add-machine:hover { background: var(--accent-hover); }
 
 .ol-modal-error {
     color: var(--danger, #e74c3c);

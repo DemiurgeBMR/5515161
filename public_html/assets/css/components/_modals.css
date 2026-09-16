@@ -41,7 +41,7 @@
 }
 .modal-box h3 {
     margin-top: 0;
-    color: #e94560;
+    color: var(--accent);
 }
 .modal-box table {
     width: 100%;

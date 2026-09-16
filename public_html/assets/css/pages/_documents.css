@@ -19,7 +19,7 @@
 .doc-info .title { font-size: 18px; font-weight: bold; margin-bottom: 6px; color: var(--text, #f2f2f5); }
 .doc-info .desc { color: var(--text-muted, #9a9aa5); font-size: 14px; line-height: 1.5; max-width: 480px; }
 .btn-download {
-    background: #e94560;
+    background: var(--accent);
     color: white;
     text-decoration: none;
     padding: 12px 24px;
@@ -27,7 +27,7 @@
     font-weight: bold;
     white-space: nowrap;
 }
-.btn-download:hover { background: #c73652; }
+.btn-download:hover { background: var(--accent-hover); }
 
 .warning-box {
     background: #fff3cd;

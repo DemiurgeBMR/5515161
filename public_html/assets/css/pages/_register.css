@@ -16,8 +16,8 @@
 }
 .reg-badge {
     display: inline-block;
-    background: rgba(233, 69, 96, 0.15);
-    color: #e94560;
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
     font-size: 13px;
     font-weight: 700;
     padding: 6px 16px;
@@ -58,7 +58,7 @@
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    background: rgba(233, 69, 96, 0.15);
+    background: rgba(var(--accent-rgb), 0.15);
     font-size: 16px;
     margin-bottom: 10px;
 }
@@ -106,8 +106,8 @@
     pointer-events: none;
 }
 .reg-role-card.active {
-    border-color: #e94560;
-    background: rgba(233, 69, 96, 0.08);
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.08);
 }
 .reg-role-card.active:hover {
     transform: none;
@@ -157,8 +157,8 @@
     transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 .reg-step.active .reg-step-num {
-    background: #e94560;
-    border-color: #e94560;
+    background: var(--accent);
+    border-color: var(--accent);
     color: #fff;
 }
 .reg-step.done .reg-step-num {
@@ -264,7 +264,7 @@
     font-size: 14px;
 }
 .reg-login-link a {
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 700;
 }

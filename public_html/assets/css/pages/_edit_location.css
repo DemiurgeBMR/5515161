@@ -76,7 +76,7 @@
 .traffic-help-icon {
     font-size: 20px;
     cursor: pointer;
-    color: #e94560;
+    color: var(--accent);
 }
 .traffic-rating-hint {
     font-size: 14px;

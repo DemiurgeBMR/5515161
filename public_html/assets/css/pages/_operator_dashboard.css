@@ -24,7 +24,7 @@
     width: 80px;
     height: 80px;
     border-radius: 50%;
-    background: #e94560;
+    background: var(--accent);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -64,7 +64,7 @@
     background: var(--bg-elevated-2, #1c1c24);
 }
 .dashboard-nav a.active {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .dashboard-nav a i {
@@ -120,21 +120,21 @@
 .quick-actions .btn {
     padding: 12px 24px;
     border-radius: 8px;
-    background: #e94560;
+    background: var(--accent);
     color: white;
     text-decoration: none;
     font-weight: bold;
 }
 .quick-actions .btn:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .quick-actions .btn-outline {
     background: transparent;
-    color: #e94560;
-    border: 2px solid #e94560;
+    color: var(--accent);
+    border: 2px solid var(--accent);
 }
 .quick-actions .btn-outline:hover {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 
@@ -168,7 +168,7 @@
 }
 .next-visit-link {
     flex-shrink: 0;
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
@@ -209,7 +209,7 @@
 .attention-group-head a {
     font-size: 13px;
     font-weight: 600;
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
 }
 .attention-group-head a:hover {

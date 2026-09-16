@@ -42,7 +42,7 @@
     color: #2ecc71;
 }
 .change-old .value {
-    background: rgba(233, 69, 96, 0.12);
+    background: rgba(var(--accent-rgb), 0.12);
     padding: 2px 8px;
     border-radius: 4px;
 }

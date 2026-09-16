@@ -70,14 +70,14 @@
     margin-bottom: 4px;
 }
 .map-popup-price {
-    color: #e94560;
+    color: var(--accent);
     font-weight: bold;
     font-size: 15px;
     margin-bottom: 6px;
 }
 .map-popup-link {
     display: inline-block;
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-size: 13px;
     font-weight: 600;
@@ -149,7 +149,7 @@
 .city-counts-table th:last-child {
     text-align: right;
     font-weight: bold;
-    color: #e94560;
+    color: var(--accent);
 }
 .city-counts-table tr:last-child td {
     border-bottom: none;

@@ -38,7 +38,7 @@
 }
 .profile-sidebar .avatar:hover {
     transform: scale(1.05);
-    border-color: #e94560;
+    border-color: var(--accent);
 }
 .profile-sidebar .avatar .hint {
     position: absolute;
@@ -74,7 +74,7 @@
     font-weight: bold;
 }
 .badge-owner {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .badge-operator {
@@ -133,11 +133,11 @@
     transition: 0.2s;
 }
 .btn-action.primary {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .btn-action.primary:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .btn-action.danger {
     background: #ff6b6b;
@@ -192,7 +192,7 @@
     color: var(--text, #f2f2f5);
 }
 .tabs a.active {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .tabs a .count {
@@ -275,7 +275,7 @@
 }
 .card-price {
     font-size: 18px;
-    color: #e94560;
+    color: var(--accent);
     font-weight: bold;
     margin-top: 4px;
 }
@@ -373,7 +373,7 @@
     color: var(--text-muted, #9a9aa5);
 }
 .empty-locations a {
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: bold;
 }
@@ -392,8 +392,8 @@
     border: 1px solid #c3e6cb;
 }
 .flash-message.flash-error {
-    background: #fde8ec;
-    color: #e94560;
+    background: var(--danger-soft);
+    color: var(--danger);
     border-color: #f5c6cb;
 }
 
@@ -462,11 +462,11 @@
     transition: 0.2s;
 }
 .btn-save {
-    background: #e94560;
+    background: var(--accent);
     color: white;
 }
 .btn-save:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .btn-close {
     background: var(--bg-elevated-2, #1c1c24);

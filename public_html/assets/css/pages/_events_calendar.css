@@ -9,8 +9,8 @@
    _forms.css, _index.css, utils/_back-link.css, _catalog.css и у чата;
    без префикса они бы переопределяли друг друга через общий каскад. */
 :root {
-    --primary: #e94560;
-    --primary-dark: #d63852;
+    --primary: var(--accent);
+    --primary-dark: var(--accent-hover);
     --text: #f2f2f5;
     --text-light: #9a9aa5;
     --border: #2a2a33;
@@ -157,7 +157,7 @@ body { background: var(--background); }
 }
 .stat-card.active {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(233,69,96,.08);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .08);
 }
 .stat-icon {
     width: 48px;
@@ -220,7 +220,7 @@ body { background: var(--background); }
 }
 .cal-search-box input:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(233,69,96,.08);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .08);
 }
 .search-icon {
     position: absolute;
@@ -400,7 +400,7 @@ body { background: var(--background); }
     padding: 8px;
 }
 .fc .fc-day-today {
-    background: rgba(233,69,96,.035) !important;
+    background: rgba(var(--accent-rgb), .035) !important;
 }
 .fc .fc-day-today .fc-daygrid-day-number {
     background: var(--primary);
@@ -570,7 +570,7 @@ body { background: var(--background); }
 }
 .cal-form-control:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(233,69,96,.08);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .08);
 }
 textarea.cal-form-control { resize: vertical; }
 .emergency-toggle {

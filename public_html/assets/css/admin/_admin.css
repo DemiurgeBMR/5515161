@@ -36,7 +36,7 @@
     font-size: 14px;
 }
 .stat-box.pending .number {
-    color: #e94560;
+    color: var(--accent);
 }
 
 .admin-table {
@@ -101,7 +101,7 @@
 }
 .nav-admin a {
     margin-right: 15px;
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: bold;
 }

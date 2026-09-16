@@ -18,7 +18,7 @@
     margin: 0;
 }
 .notif-mark-all {
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
@@ -48,7 +48,7 @@
     color: var(--text, #f2f2f5);
 }
 .notif-tabs a.active {
-    background: #e94560;
+    background: var(--accent);
     color: #fff;
 }
 
@@ -92,7 +92,7 @@
     background: var(--bg-elevated-2, #1c1c24);
 }
 .notif-item.unread {
-    border-left: 3px solid #e94560;
+    border-left: 3px solid var(--accent);
 }
 .notif-item:not(.unread) {
     opacity: 0.75;
@@ -120,7 +120,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #e94560;
+    background: var(--accent);
     flex-shrink: 0;
     margin-top: 6px;
 }
@@ -141,6 +141,6 @@
     font-size: 13px;
 }
 .notif-pagination a.active {
-    background: #e94560;
+    background: var(--accent);
     color: #fff;
 }

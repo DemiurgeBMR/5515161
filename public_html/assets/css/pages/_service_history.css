@@ -25,7 +25,7 @@
     color: var(--text, #f2f2f5);
 }
 .sh-btn-filter {
-    background: #e94560;
+    background: var(--accent);
     color: white;
     border: none;
     padding: 9px 18px;
@@ -34,7 +34,7 @@
     cursor: pointer;
     height: 36px;
 }
-.sh-btn-filter:hover { background: #c73652; }
+.sh-btn-filter:hover { background: var(--accent-hover); }
 
 .export-bar { display: flex; gap: 10px; margin-bottom: 18px; }
 .btn-export {
@@ -50,7 +50,7 @@
     font-weight: 600;
     font-size: 13px;
 }
-.btn-export:hover { border-color: #e94560; color: #e94560; }
+.btn-export:hover { border-color: var(--accent); color: var(--accent); }
 
 .history-table {
     background: var(--bg-elevated, #16161c);
