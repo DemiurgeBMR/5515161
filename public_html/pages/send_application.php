@@ -88,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
             exit;
         } catch (PDOException $e) {
             $pdo->rollBack();
-            $error = 'Ошибка при отправке заявки: ' . $e->getMessage();
+            error_log('send_application.php: ' . $e->getMessage());
+            $error = DEBUG_MODE ? ('Ошибка при отправке заявки: ' . $e->getMessage()) : 'Не удалось отправить заявку. Попробуйте ещё раз позже.';
         }
     }
 }
@@ -97,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Отправить заявку — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -106,12 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
     <div class="register-form">
         <a href="/pages/location.php?id=<?php echo $location_id; ?>" class="back-link">← Назад к локации</a>
         <h2>📩 Отправить заявку на аренду</h2>
-        <p style="color: #555; margin-bottom: 15px;">
+        <p class="page-intro spaced-tight">
             Локация: <strong><?php echo htmlspecialchars($location['title']); ?></strong>
         </p>
 
         <?php if (isset($error)): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <form method="POST">

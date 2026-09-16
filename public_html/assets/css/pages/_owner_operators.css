@@ -1,0 +1,35 @@
+/* ===== СТРАНИЦА "МОИ ОПЕРАТОРЫ" =====
+   Модалка добавления, форма внутри неё и флеш-баннер намеренно не
+   переопределяются здесь — используют общие .modal-box/.form-group/
+   .btn-submit/.flash-message из components/_modals.css, _forms.css и
+   _profile.css, чтобы не расходиться с остальным сайтом. */
+
+.oo-container { max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+
+.assignments-table {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    color: var(--text, #f2f2f5);
+}
+.assignments-table table { width: 100%; border-collapse: collapse; }
+.assignments-table th { background: var(--bg-elevated-2, #1c1c24); text-align: left; padding: 12px 15px; font-weight: 600; }
+.assignments-table td { padding: 12px 15px; border-top: 1px solid var(--border, #2a2a33); }
+
+.btn-unassign { background: var(--danger, #e74c3c); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+.btn-unassign:hover { background: #c0392b; }
+.btn-add { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-bottom: 20px; transition: background 0.2s; }
+.btn-add:hover { background: var(--accent-hover); }
+
+.empty { text-align: center; padding: 40px; color: var(--text-muted, #9a9aa5); }
+
+.modal-error {
+    color: var(--danger, #e74c3c);
+    margin-bottom: 10px;
+    display: none;
+}
+.modal-error.show {
+    display: block;
+}

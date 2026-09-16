@@ -11,6 +11,10 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+$user_id = $_SESSION['user_id'];
+$pdo = getDbConnection();
+rr_enforce_rate_limit($pdo, 'send_message:' . $user_id, 20, 60);
+
 if (!csrf_verify_request()) {
     http_response_code(403);
     echo json_encode(['error' => 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.']);
@@ -26,12 +30,14 @@ if ($application_id <= 0 || empty($message)) {
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
-
-$pdo = getDbConnection();
-
 // Проверяем, что пользователь участник чата и чат активен
-$stmt = $pdo->prepare("SELECT operator_id, owner_id, status FROM applications WHERE id = ?");
+$stmt = $pdo->prepare("
+    SELECT a.operator_id, a.owner_id, a.status, a.operator_notifications_enabled, a.owner_notifications_enabled,
+           l.title as location_title
+    FROM applications a
+    JOIN locations l ON l.id = a.location_id
+    WHERE a.id = ?
+");
 $stmt->execute([$application_id]);
 $app = $stmt->fetch();
 if (!$app || ($app['operator_id'] != $user_id && $app['owner_id'] != $user_id)) {
@@ -45,7 +51,11 @@ if ($app['status'] == 'cancelled' || $app['status'] == 'placed') {
     exit;
 }
 
-$receiver_id = ($app['operator_id'] == $user_id) ? $app['owner_id'] : $app['operator_id'];
+$isOperator = $app['operator_id'] == $user_id;
+$receiver_id = $isOperator ? $app['owner_id'] : $app['operator_id'];
+// Получатель мог заглушить именно эту заявку (см. api/toggle_notifications.php) —
+// в таком случае уведомление вообще не создаём, а не просто прячем тост.
+$receiverNotificationsEnabled = $isOperator ? $app['owner_notifications_enabled'] : $app['operator_notifications_enabled'];
 
 // Вставляем сообщение
 $stmt = $pdo->prepare("
@@ -64,6 +74,16 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$message_id]);
 $msg = $stmt->fetch();
+
+if ($receiverNotificationsEnabled) {
+    $link = '/pages/application_chat.php?application_id=' . $application_id;
+    $preview = mb_substr($message, 0, 80) . (mb_strlen($message) > 80 ? '…' : '');
+    notify($pdo, $receiver_id, 'new_message', $preview, $link, [
+        'application_id'  => $application_id,
+        'sender_name'     => $msg['sender_name'],
+        'location_title'  => $app['location_title'],
+    ]);
+}
 
 echo json_encode([
     'success' => true,

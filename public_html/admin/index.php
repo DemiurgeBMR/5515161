@@ -34,6 +34,7 @@ unset($_SESSION['flash']);
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Админ-панель — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -50,6 +51,7 @@ unset($_SESSION['flash']);
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
+            <a href="/admin/users.php">👥 Пользователи</a>
             <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
         </div>
         
@@ -97,9 +99,9 @@ unset($_SESSION['flash']);
                                     <!-- Просмотр всех ревизий -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
                                     <!-- Одобрить все правки (применяет последнюю) -->
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
                                     <!-- Отклонить все правки -->
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
                                     <!-- Просмотр на сайте -->
                                     <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
                                 </td>

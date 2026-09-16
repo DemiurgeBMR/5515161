@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Восстановление пароля — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -59,27 +60,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>🔑 Восстановление пароля</h2>
 
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
         <?php if ($resetLink): ?>
-            <div class="success">
+            <div class="success" role="status">
                 Отправка писем на сайте пока не настроена, поэтому ссылка для сброса пароля
                 показана прямо здесь (только на этот раз):
             </div>
-            <p style="margin: 15px 0; word-break: break-all;">
+            <p class="auth-link-break">
                 <a href="<?php echo htmlspecialchars($resetLink); ?>"><?php echo htmlspecialchars($resetLink); ?></a>
             </p>
-            <p style="color: #888; font-size: 13px;">
+            <p class="auth-note-small">
                 Ссылка действует <?php echo PASSWORD_RESET_TTL_MINUTES; ?> минут и может быть использована один раз.
             </p>
         <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error): ?>
-            <div class="success">
+            <div class="success" role="status">
                 Если такой email зарегистрирован, для него можно было бы получить ссылку для
                 сброса пароля.
             </div>
         <?php else: ?>
-            <p style="color: #888; margin-bottom: 15px;">
+            <p class="auth-note">
                 Укажите email, указанный при регистрации — мы поможем восстановить доступ к аккаунту.
             </p>
             <form method="POST">

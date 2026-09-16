@@ -12,6 +12,13 @@ $pdo = getDbConnection();
 
 $filter = $_GET['filter'] ?? 'all'; // all, active, pending, hidden
 
+// Пагинация — раньше страница грузила все локации разом одним запросом
+// без LIMIT, тот же паттерн, что и в catalog.php (page/per_page/offset).
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$per_page = 20;
+$offset = ($page - 1) * $per_page;
+$filterParams = ['filter' => $filter];
+
 // Основной запрос с подзапросом для подсчёта pending ревизий
 $sql = "
     SELECT l.*, u.full_name as owner_name,
@@ -19,6 +26,7 @@ $sql = "
     FROM locations l
     JOIN users u ON l.owner_id = u.id
 ";
+$countSql = "SELECT COUNT(*) FROM locations l JOIN users u ON l.owner_id = u.id";
 
 $where = [];
 if ($filter === 'active') {
@@ -32,10 +40,15 @@ if ($filter === 'active') {
 // all — без условий
 
 if (count($where) > 0) {
-    $sql .= " WHERE " . implode(' AND ', $where);
+    $whereSql = " WHERE " . implode(' AND ', $where);
+    $sql .= $whereSql;
+    $countSql .= $whereSql;
 }
 
-$sql .= " ORDER BY l.created_at DESC";
+$total = (int) $pdo->query($countSql)->fetchColumn();
+$total_pages = max(1, (int)ceil($total / $per_page));
+
+$sql .= " ORDER BY l.created_at DESC LIMIT $per_page OFFSET $offset";
 $locations = $pdo->query($sql)->fetchAll();
 
 $flash = $_SESSION['flash'] ?? '';
@@ -45,6 +58,7 @@ unset($_SESSION['flash']);
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Все локации — админка</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -61,6 +75,7 @@ unset($_SESSION['flash']);
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
+            <a href="/admin/users.php">👥 Пользователи</a>
             <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
         </div>
         
@@ -107,17 +122,17 @@ unset($_SESSION['flash']);
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Одобрить все правки?')">✅ Одобрить</a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Отклонить все правки?')">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
-                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" onclick="return confirm('Удалить локацию?')">🗑️ Удалить</a>
+                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
                                 <?php else: ?>
                                     <!-- Уже опубликованная -->
                                     <?php if ($loc['is_active'] == 1): ?>
-                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" onclick="return confirm('Скрыть локацию?')">🔒 Скрыть</a>
+                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" data-rr-confirm="Скрыть локацию?" data-rr-confirm-ok="Скрыть">🔒 Скрыть</a>
                                     <?php else: ?>
-                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" onclick="return confirm('Показать локацию?')">🔓 Показать</a>
+                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Показать локацию?" data-rr-confirm-ok="Показать">🔓 Показать</a>
                                     <?php endif; ?>
                                 <?php endif; ?>
                                 <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
@@ -127,8 +142,26 @@ unset($_SESSION['flash']);
                 </tbody>
             </table>
         </div>
+
+        <?php if ($total_pages > 1): ?>
+            <div class="pagination">
+                <?php if ($page > 1): ?>
+                    <a href="?page=<?php echo $page-1; ?>&<?php echo http_build_query($filterParams); ?>">←</a>
+                <?php endif; ?>
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <?php if ($i == $page): ?>
+                        <span class="active"><?php echo $i; ?></span>
+                    <?php else: ?>
+                        <a href="?page=<?php echo $i; ?>&<?php echo http_build_query($filterParams); ?>"><?php echo $i; ?></a>
+                    <?php endif; ?>
+                <?php endfor; ?>
+                <?php if ($page < $total_pages): ?>
+                    <a href="?page=<?php echo $page+1; ?>&<?php echo http_build_query($filterParams); ?>">→</a>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
     </div>
-    
+
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
 </html>

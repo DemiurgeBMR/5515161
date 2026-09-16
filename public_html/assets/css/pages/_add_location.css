@@ -6,7 +6,7 @@
     background: var(--bg-elevated, #16161c);
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-md);
 }
 .add-form h2 {
     text-align: center;
@@ -23,7 +23,7 @@
     transition: 0.3s;
 }
 .file-upload:hover {
-    border-color: #e94560;
+    border-color: var(--accent);
 }
 .file-upload input[type="file"] {
     display: none;
@@ -37,7 +37,7 @@
     color: var(--text-muted, #9a9aa5);
 }
 .file-upload .text span {
-    color: #e94560;
+    color: var(--accent);
     text-decoration: underline;
 }
 
@@ -57,7 +57,7 @@
     overflow-y: auto;
     display: none;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: var(--shadow-sm);
 }
 .city-suggestions .suggestion-item {
     padding: 10px 15px;
@@ -75,12 +75,70 @@
     margin-top: 5px;
     min-height: 20px;
 }
-#cityStatus .success {
+#cityStatus.status-ok {
     color: #2ecc71;
 }
-#cityStatus .error {
-    color: #e94560;
+#cityStatus.status-error {
+    color: var(--danger);
 }
-#cityStatus .warning {
-    color: #f39c12;
+
+/* ===== ПРОХОДИМОСТЬ (звёзды + памятка) ===== */
+.traffic-rating-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
+.traffic-help-icon {
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--accent);
+}
+.traffic-rating-hint {
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+    margin-top: 5px;
+}
+.traffic-modal-subtitle {
+    color: var(--text-muted, #9a9aa5);
+    margin-top: -5px;
+}
+.traffic-modal-footnote {
+    text-align: right;
+    margin-top: 15px;
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+}
+
+/* ===== ЗАГРУЗКА ФОТО: превью выбранных файлов ===== */
+.file-names-hint {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+}
+.photo-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+}
+.photo-preview-item {
+    position: relative;
+    width: 120px;
+    border: 1px solid var(--border-strong, #3a3a45);
+    border-radius: 6px;
+    padding: 5px;
+}
+.photo-preview-thumb {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.photo-preview-radio-label {
+    display: block;
+    text-align: center;
+    margin-top: 4px;
+    font-size: 13px;
+}
+.upload-msg-ok { color: #2ecc71; }
+.upload-msg-error { color: #e74c3c; }

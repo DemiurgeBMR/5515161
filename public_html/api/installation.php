@@ -19,14 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify_request()) {
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
-
-// ========== ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ ==========
-function createNotification($user_id, $type, $message, $link = null) {
-    global $pdo;
-    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, type, message, link) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$user_id, $type, $message, $link]);
-}
-// =============================================
+rr_enforce_rate_limit($pdo, 'installation:' . $user_id, 60, 60);
 
 // ========== ФОТО-ПОДТВЕРЖДЕНИЯ (service_photos) ==========
 // Принимает массив файлов из $_FILES['photos'] (input type="file" multiple),
@@ -52,7 +45,7 @@ function uploadErrorMessage($code) {
 
 // Возвращает ['saved' => int, 'errors' => [ 'имя_файла: причина', ... ]]
 function saveServicePhotos($sourceType, $sourceId, $filesField) {
-    global $pdo;
+    global $pdo, $user_id;
 
     $result = ['saved' => 0, 'errors' => []];
 
@@ -67,6 +60,12 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
+
+    // Накопительная квота на пользователя — раньше размер и число файлов
+    // ограничивались только на один запрос, ничто не мешало копить фото
+    // годами и постепенно занять весь диск сервера.
+    $diskLow = ($free = @disk_free_space(__DIR__)) !== false && $free < 500 * 1024 * 1024;
+    $usedBytes = getUserUploadedBytes($pdo, $user_id);
 
     $tmpNames = (array)$_FILES[$filesField]['tmp_name'];
     $origNames = (array)$_FILES[$filesField]['name'];
@@ -88,6 +87,10 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
             $result['errors'][] = $name . ': больше ' . round($maxBytes / 1024 / 1024) . ' МБ';
             continue;
         }
+        if ($diskLow || $usedBytes + ($sizes[$i] ?? 0) > USER_UPLOAD_QUOTA_BYTES) {
+            $result['errors'][] = $name . ': достигнут лимит на общий объём загруженных фото (200 МБ на аккаунт)';
+            continue;
+        }
         if (!getimagesize($tmpPath)) {
             $result['errors'][] = $name . ': не похоже на изображение';
             continue;
@@ -104,9 +107,10 @@ function saveServicePhotos($sourceType, $sourceId, $filesField) {
         // applyWatermark = false — это фото-подтверждение, а не публичный листинг локации
         if (compressImage($tmpPath, $destPath, 1600, 1600, 82, false, false)) {
             $relativePath = 'uploads/service/' . $newName;
-            $stmt = $pdo->prepare("INSERT INTO service_photos (source_type, source_id, photo_path) VALUES (?, ?, ?)");
-            $stmt->execute([$sourceType, $sourceId, $relativePath]);
+            $stmt = $pdo->prepare("INSERT INTO service_photos (source_type, source_id, photo_path, uploaded_by) VALUES (?, ?, ?, ?)");
+            $stmt->execute([$sourceType, $sourceId, $relativePath, $user_id]);
             $result['saved']++;
+            $usedBytes += is_file($destPath) ? filesize($destPath) : 0;
         } else {
             $result['errors'][] = $name . ': не удалось обработать изображение на сервере';
         }
@@ -280,14 +284,12 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $lo['operator_id']) ? $lo['owner_id'] : $lo['operator_id'];
-        $link = $application_id
-            ? '/pages/application_chat.php?application_id=' . $application_id
-            : '/pages/location.php?id=' . $lo['location_id'];
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
         $type = $is_emergency ? 'emergency_event' : 'event_requested';
         $message = $is_emergency
             ? '🚨 Срочный выезд запрошен для точки ' . $lo['location_title']
             : '📅 Запрошен визит (' . ($eventTypeLabels[$event_type] ?? $event_type) . ') для точки ' . $lo['location_title'];
-        createNotification($receiver_id, $type, $message, $link);
+        notify($pdo, $receiver_id, $type, $message, $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true, 'event_id' => $event_id]);
@@ -336,10 +338,8 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link);
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
+        notify($pdo, $receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -461,14 +461,14 @@ switch ($action) {
                 ? $event['owner_id']
                 : $event['operator_id'];
 
-            $link = $event['application_id']
-                ? '/pages/application_chat.php?application_id=' . $event['application_id']
-                : '/pages/location.php?id=' . $event['location_id'];
-            createNotification(
+            $link = '/pages/events_calendar.php?event_id=' . $event_id;
+            notify(
+                $pdo,
                 $receiver_id,
                 'event_rescheduled',
                 '🔄 Дата выезда изменена',
-                $link
+                $link,
+                ['event_id' => $event_id]
             );
 
             echo json_encode([
@@ -518,10 +518,8 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_cancelled', '❌ Выезд отменён', $link);
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
+        notify($pdo, $receiver_id, 'event_cancelled', '❌ Выезд отменён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -560,10 +558,8 @@ switch ($action) {
 
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
-        $link = $event['application_id']
-            ? '/pages/application_chat.php?application_id=' . $event['application_id']
-            : '/pages/location.php?id=' . $event['location_id'];
-        createNotification($receiver_id, 'event_completed', '✅ Выезд завершён', $link);
+        $link = '/pages/events_calendar.php?event_id=' . $event_id;
+        notify($pdo, $receiver_id, 'event_completed', '✅ Выезд завершён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
@@ -728,7 +724,7 @@ switch ($action) {
             $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
             $message = '🔧 Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
-            createNotification($lo['owner_id'], 'quick_service', $message, $link);
+            notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);
 
             echo json_encode(['success' => true, 'log_id' => $log_id, 'machine_id' => $machine_id, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
         } catch (Throwable $e) {

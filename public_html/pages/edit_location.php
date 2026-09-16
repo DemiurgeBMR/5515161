@@ -84,13 +84,22 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             'space_type'       => $space_type
         ];
 
-        // Геокодируем адрес заново, если город или адрес изменились (для карты).
-        // Если координаты не поменялись — не тратим лишний запрос к Nominatim.
+        // Геокодируем адрес заново, если город или адрес изменились (для карты
+        // и нормализации города). Если координаты не поменялись — не тратим
+        // лишний запрос к Nominatim.
         if ($city !== $location['city'] || $address !== $location['address']) {
             $geo = geocodeAddress($address, $city);
             if ($geo) {
-                $revisionData['latitude'] = $geo['lat'];
-                $revisionData['longitude'] = $geo['lng'];
+                if (!empty($geo['city'])) {
+                    $revisionData['city'] = $geo['city'];
+                }
+                // lat/lng = null значит, что найденная улица не похожа на
+                // введённую — не затираем этим прежние (верные) координаты
+                // локации, просто оставляем их как есть.
+                if ($geo['lat'] !== null) {
+                    $revisionData['latitude'] = $geo['lat'];
+                    $revisionData['longitude'] = $geo['lng'];
+                }
             }
         }
 
@@ -142,6 +151,12 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
             $uploaded_files = $_FILES['photos'];
             $total_files = min(count($uploaded_files['name']), 5);
 
+            // Накопительная квота на пользователя — раньше размер и число файлов
+            // ограничивались только на один запрос, ничто не мешало копить фото
+            // годами и постепенно занять весь диск сервера.
+            $diskLow = ($free = @disk_free_space(__DIR__)) !== false && $free < 500 * 1024 * 1024;
+            $usedBytes = getUserUploadedBytes($pdo, $_SESSION['user_id']);
+
             for ($i = 0; $i < $total_files; $i++) {
                 if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) continue;
                 $tmp_name = $uploaded_files['tmp_name'][$i];
@@ -150,6 +165,10 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
                 if (!$extension) continue;
                 if ($uploaded_files['size'][$i] > $max_size) {
                     $error = 'Файл "' . $uploaded_files['name'][$i] . '" превышает 5 МБ';
+                    continue;
+                }
+                if ($diskLow || $usedBytes + $uploaded_files['size'][$i] > USER_UPLOAD_QUOTA_BYTES) {
+                    $error = 'Достигнут лимит на общий объём загруженных фото (200 МБ на аккаунт). Удалите старые фото у своих локаций, чтобы освободить место.';
                     continue;
                 }
 
@@ -169,6 +188,7 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
                 }
 
                 $newPhotoPaths[] = 'uploads/revisions/' . $new_name;
+                $usedBytes += is_file($final_path) ? filesize($final_path) : 0;
             }
         }
 
@@ -212,7 +232,8 @@ if (strpos($mainPhoto, 'existing_') === 0) {
         $photos = $stmt_photos->fetchAll();
 
     } catch (PDOException $e) {
-        $error = 'Ошибка базы данных: ' . $e->getMessage();
+        error_log('edit_location.php: ' . $e->getMessage());
+        $error = DEBUG_MODE ? ('Ошибка базы данных: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
     }
 }
 }
@@ -221,6 +242,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Редактировать локацию — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -229,13 +251,13 @@ if (strpos($mainPhoto, 'existing_') === 0) {
     
     <div class="add-form">
         <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2>✏️ Редактировать локацию</h2>
+        <h2><?php echo rr_icon('edit'); ?> Редактировать локацию</h2>
         
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         
         <form method="POST" enctype="multipart/form-data">
@@ -307,17 +329,17 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 
             <!-- ★★★ БЛОК ЗВЁЗД ПРОХОДИМОСТИ (с уже закрашенными) ★★★ -->
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px;">
+                <label class="traffic-rating-label">
                     Проходимость места
-                    <span style="font-size: 20px; cursor: pointer; color: #e94560;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
                 </label>
-                <div class="star-rating" style="display: flex; gap: 10px; font-size: 30px; cursor: pointer;">
+                <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <span data-value="<?php echo $i; ?>" style="color: <?php echo ($i <= $traffic_rating) ? '#f1c40f' : '#ddd'; ?>; transition: 0.2s;">★</span>
+                        <span data-value="<?php echo $i; ?>" class="<?php echo ($i <= $traffic_rating) ? 'filled' : ''; ?>">★</span>
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="<?php echo $traffic_rating; ?>">
-                <div style="font-size: 14px; color: #888; margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
+                <div class="traffic-rating-hint">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
             <!-- Габариты -->
@@ -341,13 +363,13 @@ if (strpos($mainPhoto, 'existing_') === 0) {
                 <label>Что есть на месте</label>
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="has_electricity" <?php echo $location['has_electricity'] ? 'checked' : ''; ?>> ⚡ Электричество
+                        <input type="checkbox" name="has_electricity" <?php echo $location['has_electricity'] ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
                     </label>
                     <label>
-                        <input type="checkbox" name="has_wifi" <?php echo $location['has_wifi'] ? 'checked' : ''; ?>> 📶 Wi-Fi
+                        <input type="checkbox" name="has_wifi" <?php echo $location['has_wifi'] ? 'checked' : ''; ?>> <?php echo rr_icon('wifi'); ?> Wi-Fi
                     </label>
                     <label>
-                        <input type="checkbox" name="has_water" <?php echo $location['has_water'] ? 'checked' : ''; ?>> 🚰 Вода
+                        <input type="checkbox" name="has_water" <?php echo $location['has_water'] ? 'checked' : ''; ?>> <?php echo rr_icon('droplet'); ?> Вода
                     </label>
                 </div>
             </div>
@@ -391,9 +413,9 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 $isPendingAdd = ($photo['is_pending'] == 1 && $photo['pending_action'] == 'add');
                 $isMain = ($photo['is_main'] == 1);
             ?>
-<div class="photo-item" style="<?php echo $isPendingAdd ? 'opacity: 0.6; border: 2px dashed #3498db;' : ''; ?>">
+<div class="photo-item<?php echo $isPendingAdd ? ' pending-add' : ''; ?>">
     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
-    <div style="font-size: 11px; color: #888; text-align: center;">
+    <div class="photo-pending-note">
         <?php if ($isPendingAdd): ?>
             ⏳ Добавится после модерации
         <?php elseif ($isMain): ?>
@@ -401,7 +423,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
         <?php endif; ?>
     </div>
     <?php if (!$isPendingAdd): ?>
-        <label style="display:block; margin-top:4px;">
+        <label class="radio-label-block">
             <input type="radio" name="main_photo" value="existing_<?php echo $photo['id']; ?>" <?php echo $isMain ? 'checked' : ''; ?>>
             Главное
         </label>
@@ -409,28 +431,28 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             <input type="checkbox" name="delete_photos[]" value="<?php echo $photo['id']; ?>"> Удалить
         </label>
     <?php else: ?>
-        <span style="color: #888; font-size: 11px;">Ожидает добавления</span>
+        <span class="photo-pending-note">Ожидает добавления</span>
     <?php endif; ?>
 </div>
             <?php endforeach; ?>
             
             <?php foreach ($pending_delete_photos as $photo): ?>
-                <div class="photo-item" style="opacity: 0.4; border: 2px solid #e74c3c; position: relative;">
+                <div class="photo-item pending-delete">
                     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
-                    <div style="font-size: 11px; color: #e74c3c; text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px;">
-                        🗑️ Будет удалено
+                    <div class="photo-delete-overlay">
+                        <?php echo rr_icon('trash'); ?> Будет удалено
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
         <?php if (count($pending_delete_photos) > 0): ?>
-            <div style="font-size: 12px; color: #e74c3c; margin-top: 5px;">
-                ⚠️ Отмеченные фото будут удалены после модерации
+            <div class="photo-notice danger">
+                <?php echo rr_icon('warning'); ?> Отмеченные фото будут удалены после модерации
             </div>
         <?php endif; ?>
         <?php if (count($pending_add_photos) > 0): ?>
-            <div style="font-size: 12px; color: #3498db; margin-top: 5px;">
-                📷 Новые фото появятся после модерации
+            <div class="photo-notice info">
+                <?php echo rr_icon('camera'); ?> Новые фото появятся после модерации
             </div>
         <?php endif; ?>
     </div>
@@ -440,20 +462,20 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             <div class="form-group">
                 <label>Добавить новые фотографии (до 5 шт)</label>
                 <div class="file-upload" onclick="document.getElementById('photoInput').click();">
-                    <span class="icon">📸</span>
+                    <span class="icon"><?php echo rr_icon('camera'); ?></span>
                     <div class="text">
                         Кликните или перетащите фото<br>
                         <span>Поддерживаются JPG, PNG, WEBP (до 5 МБ)</span>
                     </div>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
-                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: #555;"></div>
-                <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;"></div>
+                <div id="fileNames" class="file-names-hint"></div>
+                <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
             
-            <div style="display: flex; gap: 15px;">
-                <button type="submit" class="btn-submit">💾 Сохранить изменения</button>
-                <a href="/pages/profile.php" class="btn-submit secondary" style="text-align: center; text-decoration: none;">Отмена</a>
+            <div class="form-actions-row">
+                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
+                <a href="/pages/profile.php" class="btn-submit secondary">Отмена</a>
             </div>
         </form>
     </div>
@@ -461,9 +483,9 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
     <div class="modal-overlay" id="trafficHelpModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
-            <h3>🚶 Как оценить проходимость места?</h3>
-            <p style="color:#555; margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+            <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
+            <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
+            <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -502,10 +524,10 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 </tbody>
             </table>
             <div class="note">
-                <strong>💡 Важно!</strong>
+                <strong><?php echo rr_icon('lightbulb'); ?> Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p style="text-align: right; margin-top: 15px; color:#888; font-size:13px;">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по <?php echo rr_icon('help-circle'); ?></p>
         </div>
     </div>
     
@@ -531,14 +553,10 @@ fileInput.addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const div = document.createElement('div');
-                div.style.position = 'relative';
-                div.style.width = '120px';
-                div.style.border = '1px solid #ddd';
-                div.style.borderRadius = '6px';
-                div.style.padding = '5px';
+                div.className = 'photo-preview-item';
                 div.innerHTML = `
-                    <img src="${ev.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:4px;">
-                    <label style="display:block; text-align:center; margin-top:4px; font-size:13px;">
+                    <img src="${ev.target.result}" class="photo-preview-thumb" alt="Предпросмотр фото">
+                    <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
                         Главное
                     </label>
@@ -551,10 +569,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div style="color: #2ecc71;">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok"><?php echo rr_icon('check'); ?> ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div style="color: #e74c3c;">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error"><?php echo rr_icon('x'); ?> ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;
@@ -571,7 +589,7 @@ fileInput.addEventListener('change', function(e) {
                 document.getElementById('traffic_rating').value = value;
 
                 document.querySelectorAll('.star-rating span').forEach(function(s, idx) {
-                    s.style.color = (idx < value) ? '#f1c40f' : '#ddd';
+                    s.classList.toggle('filled', idx < value);
                 });
             });
         });

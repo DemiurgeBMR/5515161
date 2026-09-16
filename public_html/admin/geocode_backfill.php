@@ -28,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run')
     $failed = 0;
     foreach ($rows as $row) {
         $geo = geocodeAddress($row['address'], $row['city']);
-        if ($geo) {
+        // lat === null значит, что найденная улица не похожа на введённую
+        // (geocodeAddress тогда не доверяет совпадению) — это тот же случай,
+        // что и полностью неудавшийся геокодинг, а не "готово".
+        if ($geo && $geo['lat'] !== null) {
             $upd = $pdo->prepare("UPDATE locations SET latitude = ?, longitude = ? WHERE id = ?");
             $upd->execute([$geo['lat'], $geo['lng'], $row['id']]);
             $done++;
@@ -48,6 +51,7 @@ $remaining = (int) $pdo->query("
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Геокодирование локаций — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -60,6 +64,7 @@ $remaining = (int) $pdo->query("
         <div class="nav-admin">
             <a href="/admin/index.php">📋 На модерацию</a>
             <a href="/admin/locations.php">📍 Все локации</a>
+            <a href="/admin/users.php">👥 Пользователи</a>
             <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
         </div>
 
@@ -67,7 +72,7 @@ $remaining = (int) $pdo->query("
            (новые локации получают координаты автоматически при добавлении/редактировании).</p>
 
         <?php if ($batchResult): ?>
-            <div class="success"><?php echo htmlspecialchars($batchResult); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($batchResult); ?></div>
         <?php endif; ?>
 
         <p>Локаций без координат: <strong><?php echo $remaining; ?></strong></p>
@@ -83,7 +88,7 @@ $remaining = (int) $pdo->query("
             <p>🎉 Все локации с адресом уже имеют координаты.</p>
         <?php endif; ?>
 
-        <p style="margin-top: 20px;"><a href="/admin/index.php">← В админку</a></p>
+        <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>

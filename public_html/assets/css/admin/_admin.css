@@ -18,7 +18,13 @@
     padding: 20px;
     border-radius: 12px;
     text-align: center;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.stat-box:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong, #3a3a45);
 }
 .stat-box .number {
     font-size: 32px;
@@ -30,7 +36,7 @@
     font-size: 14px;
 }
 .stat-box.pending .number {
-    color: #e94560;
+    color: var(--accent);
 }
 
 .admin-table {
@@ -38,7 +44,7 @@
     border: 1px solid var(--border, #2a2a33);
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-sm);
 }
 .admin-table table {
     width: 100%;
@@ -95,10 +101,69 @@
 }
 .nav-admin a {
     margin-right: 15px;
-    color: #e94560;
+    color: var(--accent);
     text-decoration: none;
     font-weight: bold;
 }
 .nav-admin a:hover {
     text-decoration: underline;
+}
+
+/* ===== СТРАНИЦА ПОЛЬЗОВАТЕЛЕЙ ===== */
+.admin-users-filter {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.admin-users-filter input,
+.admin-users-filter select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border, #2a2a33);
+    background: var(--bg-elevated, #16161c);
+    color: var(--text, #f2f2f5);
+}
+.admin-users-filter input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.user-status-pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px 4px 2px 0;
+    white-space: nowrap;
+}
+.user-status-verified {
+    background: #d4edda;
+    color: #155724;
+}
+.user-status-unverified {
+    background: #fff3cd;
+    color: #856404;
+}
+.user-status-banned {
+    background: #f8d7da;
+    color: #721c24;
+}
+.user-status-locked {
+    background: #fde2c8;
+    color: #8a4b00;
+}
+.user-status-2fa {
+    background: #e2d9f3;
+    color: #4a2e8a;
+}
+
+/* ===== Прочие инлайн-стили, вынесенные в классы ===== */
+.admin-link-paragraph {
+    margin-top: 20px;
+}
+.you-note {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
 }

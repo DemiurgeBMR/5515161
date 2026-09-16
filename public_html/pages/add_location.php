@@ -38,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = getDbConnection();
 
+            // Геокодируем адрес заранее (а не после вставки) — если Nominatim
+            // распознал населённый пункт, используем его нормализованное имя
+            // вместо сырого ввода пользователя (лечит опечатки и разнобой вроде
+            // "мск"/"Москва") и для координат, и для самой записи локации.
+            $geo = geocodeAddress($address, $city);
+            if ($geo && !empty($geo['city'])) {
+                $city = $geo['city'];
+            }
+
             // 1. Вставляем локацию (неактивную, непромодерированную)
             $stmt = $pdo->prepare("
                 INSERT INTO locations
@@ -82,10 +91,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'space_type'       => $space_type
             ];
 
-            // Геокодируем адрес (для отображения на карте). Если не удалось —
-            // локация просто не появится на карте, на модерацию это не влияет.
-            $geo = geocodeAddress($address, $city);
-            if ($geo) {
+            // Если геокодинг не удался, или найденная улица не похожа на
+            // введённую (geocodeAddress тогда отдаёт lat/lng = null, не
+            // доверяя случайному совпадению) — локация просто не появится на
+            // карте, на модерацию это не влияет.
+            if ($geo && $geo['lat'] !== null) {
                 $revisionData['latitude'] = $geo['lat'];
                 $revisionData['longitude'] = $geo['lng'];
             }
@@ -110,6 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $uploaded_files = $_FILES['photos'];
                 $total_files = min(count($uploaded_files['name']), 5);
 
+                // Накопительная квота на пользователя — раньше размер и число файлов
+                // ограничивались только на один запрос, ничто не мешало копить фото
+                // годами и постепенно занять весь диск сервера.
+                $diskLow = ($free = @disk_free_space(__DIR__)) !== false && $free < 500 * 1024 * 1024;
+                $usedBytes = getUserUploadedBytes($pdo, $_SESSION['user_id']);
+
                 for ($i = 0; $i < $total_files; $i++) {
                     if ($uploaded_files['error'][$i] !== UPLOAD_ERR_OK) continue;
                     $tmp_name = $uploaded_files['tmp_name'][$i];
@@ -118,6 +134,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$extension) continue;
                     if ($uploaded_files['size'][$i] > $max_size) {
                         $error = 'Файл "' . $uploaded_files['name'][$i] . '" превышает 5 МБ';
+                        continue;
+                    }
+                    if ($diskLow || $usedBytes + $uploaded_files['size'][$i] > USER_UPLOAD_QUOTA_BYTES) {
+                        $error = 'Достигнут лимит на общий объём загруженных фото (200 МБ на аккаунт). Удалите старые фото у своих локаций, чтобы освободить место.';
                         continue;
                     }
 
@@ -137,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $newPhotoPaths[] = 'uploads/revisions/' . $new_name;
+                    $usedBytes += is_file($final_path) ? filesize($final_path) : 0;
                 }
             }
 
@@ -170,7 +191,8 @@ if (strpos($mainPhoto, 'new_') === 0) {
             // Можно оставить как есть, чтобы пользователь видел успех.
 
         } catch (PDOException $e) {
-            $error = 'Ошибка базы данных: ' . $e->getMessage();
+            error_log('add_location.php: ' . $e->getMessage());
+            $error = DEBUG_MODE ? ('Ошибка базы данных: ' . $e->getMessage()) : 'Произошла ошибка. Попробуйте ещё раз позже.';
         }
     }
 }
@@ -179,6 +201,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Добавить локацию — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -187,13 +210,13 @@ if (strpos($mainPhoto, 'new_') === 0) {
     
     <div class="add-form">
             <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2>➕ Добавить новую локацию</h2>
+        <h2><?php echo rr_icon('plus-circle'); ?> Добавить новую локацию</h2>
         
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         
         <form method="POST" enctype="multipart/form-data" id="locationForm">
@@ -203,13 +226,13 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <input type="text" name="title" required placeholder="Например: ТЦ Мега, 1 этаж">
             </div>
             
-            <!-- Поле ГОРОД с автодополнением (принудительный выбор) -->
+            <!-- Поле ГОРОД с автодополнением (выбор из подсказки — необязателен). -->
             <div class="form-group city-wrapper">
                 <label>Город *</label>
                 <input type="text" name="city_display" id="cityInput" required placeholder="Начните вводить город..." autocomplete="off">
                 <input type="hidden" name="city" id="cityHidden" value="">
                 <div class="city-suggestions" id="citySuggestions"></div>
-                <div id="cityStatus" style="font-size: 13px; margin-top: 5px;"></div>
+                <div id="cityStatus"></div>
             </div>
             
             <div class="form-group">
@@ -269,17 +292,17 @@ if (strpos($mainPhoto, 'new_') === 0) {
 
             <!-- ★★★ БЛОК ЗВЁЗД ПРОХОДИМОСТИ (с памяткой) ★★★ -->
             <div class="form-group">
-                <label style="display: flex; align-items: center; gap: 8px;">
+                <label class="traffic-rating-label">
                     Проходимость места
-                    <span style="font-size: 20px; cursor: pointer; color: #e94560;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
                 </label>
-                <div class="star-rating" style="display: flex; gap: 10px; font-size: 30px; cursor: pointer;">
+                <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <span data-value="<?php echo $i; ?>" style="color: #ddd; transition: 0.2s;">★</span>
+                        <span data-value="<?php echo $i; ?>">★</span>
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="0">
-                <div style="font-size: 14px; color: #888; margin-top: 5px;">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
+                <div class="traffic-rating-hint">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
             <!-- Габариты -->
@@ -303,13 +326,13 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <label>Что есть на месте</label>
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="has_electricity" checked> ⚡ Электричество
+                        <input type="checkbox" name="has_electricity" checked> <?php echo rr_icon('bolt'); ?> Электричество
                     </label>
                     <label>
-                        <input type="checkbox" name="has_wifi"> 📶 Wi-Fi
+                        <input type="checkbox" name="has_wifi"> <?php echo rr_icon('wifi'); ?> Wi-Fi
                     </label>
                     <label>
-                        <input type="checkbox" name="has_water"> 🚰 Вода
+                        <input type="checkbox" name="has_water"> <?php echo rr_icon('droplet'); ?> Вода
                     </label>
                 </div>
             </div>
@@ -318,15 +341,15 @@ if (strpos($mainPhoto, 'new_') === 0) {
             <div class="form-group">
                 <label>Фотографии места (до 5 шт)</label>
                 <div class="file-upload" onclick="document.getElementById('photoInput').click();">
-                    <span class="icon">📸</span>
+                    <span class="icon"><?php echo rr_icon('camera'); ?></span>
                     <div class="text">
                         Кликните или перетащите фото<br>
                         <span>Поддерживаются JPG, PNG, WEBP (до 5 МБ)</span>
                     </div>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
-                <div id="fileNames" style="margin-top: 10px; font-size: 14px; color: #555;"></div>
-                <div id="photoPreview" style="display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px;"></div>
+                <div id="fileNames" class="file-names-hint"></div>
+                <div id="photoPreview" class="photo-preview-grid"></div>
             </div>
 
             <button type="submit" class="btn-submit">Опубликовать локацию</button>
@@ -336,9 +359,9 @@ if (strpos($mainPhoto, 'new_') === 0) {
     <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
     <div class="modal-overlay" id="trafficHelpModal">
         <div class="modal-box">
-            <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
-            <h3>🚶 Как оценить проходимость места?</h3>
-            <p style="color:#555; margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+            <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
+            <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
+            <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -377,10 +400,10 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 </tbody>
             </table>
             <div class="note">
-                <strong>💡 Важно!</strong>
+                <strong><?php echo rr_icon('lightbulb'); ?> Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p style="text-align: right; margin-top: 15px; color:#888; font-size:13px;">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по <?php echo rr_icon('help-circle'); ?></p>
         </div>
     </div>
     
@@ -407,14 +430,10 @@ fileInput.addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const div = document.createElement('div');
-                div.style.position = 'relative';
-                div.style.width = '120px';
-                div.style.border = '1px solid #ddd';
-                div.style.borderRadius = '6px';
-                div.style.padding = '5px';
+                div.className = 'photo-preview-item';
                 div.innerHTML = `
-                    <img src="${ev.target.result}" style="width:100%; height:100px; object-fit:cover; border-radius:4px;">
-                    <label style="display:block; text-align:center; margin-top:4px; font-size:13px;">
+                    <img src="${ev.target.result}" class="photo-preview-thumb" alt="Предпросмотр фото">
+                    <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
                         Главное
                     </label>
@@ -427,10 +446,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div style="color: #2ecc71;">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok"><?php echo rr_icon('check'); ?> ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div style="color: #e74c3c;">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error"><?php echo rr_icon('x'); ?> ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;
@@ -439,7 +458,14 @@ fileInput.addEventListener('change', function(e) {
 });
 </script>
     
-    <!-- Скрипт для автодополнения городов (принудительный выбор) -->
+    <!--
+        Скрипт для автодополнения городов. Выбор из подсказки не обязателен —
+        справочник городов (_cities) сейчас пуст (данные внешние, их ещё не
+        перенесли на этот сервер), так что жёстко требовать клик по подсказке
+        значило бы, что создать локацию нельзя вообще ни для одного города.
+        Подсказки — это просто помощь, если справочник заполнят; при отправке
+        формы то, что введено в поле, в любом случае уходит как есть.
+    -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const input = document.getElementById('cityInput');
@@ -458,7 +484,7 @@ fileInput.addEventListener('change', function(e) {
                 selectedCity = '';
                 hidden.value = '';
                 status.innerHTML = '';
-                status.style.color = '';
+                status.classList.remove('status-ok', 'status-error');
             }
             
             if (query.length < 2) {
@@ -472,8 +498,8 @@ fileInput.addEventListener('change', function(e) {
                     .then(data => {
                         if (data.length === 0 || data.error) {
                             suggestions.style.display = 'none';
-                            status.innerHTML = '⚠️ Город не найден. Уточните запрос.';
-                            status.style.color = '#e94560';
+                            status.innerHTML = '<?php echo rr_icon('warning'); ?> Город не найден. Уточните запрос.';
+                            status.classList.add('status-error'); status.classList.remove('status-ok');
                             return;
                         }
                         suggestions.innerHTML = data.map(item => 
@@ -488,8 +514,8 @@ fileInput.addEventListener('change', function(e) {
                                 hidden.value = cityName;
                                 selectedCity = cityName;
                                 suggestions.style.display = 'none';
-                                status.innerHTML = '✅ Выбран город: ' + cityName;
-                                status.style.color = '#2ecc71';
+                                status.innerHTML = '<?php echo rr_icon('check'); ?> Выбран город: ' + cityName;
+                                status.classList.add('status-ok'); status.classList.remove('status-error');
                                 input.setCustomValidity('');
                             });
                         });
@@ -505,9 +531,8 @@ fileInput.addEventListener('change', function(e) {
                 if (!selectedCity) {
                     const val = input.value.trim();
                     if (val.length > 0) {
-                        status.innerHTML = '⚠️ Выберите город из списка!';
-                        status.style.color = '#e94560';
-                        input.setCustomValidity('Пожалуйста, выберите город из списка');
+                        status.innerHTML = 'ℹ️ Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.';
+                        status.classList.add('status-ok'); status.classList.remove('status-error');
                     }
                 }
                 suggestions.style.display = 'none';
@@ -529,12 +554,10 @@ fileInput.addEventListener('change', function(e) {
 
         if (form) {
             form.addEventListener('submit', function(e) {
+                // Ничего не выбрано из подсказок — отправляем как есть то, что
+                // введено в видимое поле, а не блокируем форму.
                 if (!hidden.value || hidden.value.trim() === '') {
-                    e.preventDefault();
-                    status.innerHTML = '❌ Выберите город из списка перед отправкой!';
-                    status.style.color = '#e94560';
-                    input.focus();
-                    return false;
+                    hidden.value = input.value.trim();
                 }
             });
         }
@@ -550,7 +573,7 @@ fileInput.addEventListener('change', function(e) {
                 document.getElementById('traffic_rating').value = value;
                 
                 document.querySelectorAll('.star-rating span').forEach(function(s, idx) {
-                    s.style.color = (idx < value) ? '#f1c40f' : '#ddd';
+                    s.classList.toggle('filled', idx < value);
                 });
             });
         });

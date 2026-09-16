@@ -139,18 +139,18 @@ if (!$hasSubscription) {
                     </table>
                 </div>
             <?php else: ?>
-                <div class="empty" style="margin-top: 20px;">
+                <div class="empty spaced">
                     <h3>😕 Пока ничего нет</h3>
-                    <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" style="color:#e94560;">полный каталог</a>.</p>
+                    <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
                 </div>
             <?php endif; ?>
         <?php else: ?>
             <div id="map"></div>
 
             <?php if (count($mapPoints) === 0): ?>
-                <div class="empty" style="margin-top: 20px;">
+                <div class="empty spaced">
                     <h3>😕 На карте пока ничего нет</h3>
-                    <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" style="color:#e94560;">полный каталог</a>.</p>
+                    <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
                 </div>
             <?php endif; ?>
         <?php endif; ?>
@@ -182,7 +182,7 @@ if (!$hasSubscription) {
             var marker = L.marker([loc.lat, loc.lng]).addTo(map);
             var stars = '';
             for (var i = 1; i <= 5; i++) {
-                stars += '<span style="color:' + (i <= loc.traffic ? '#f1c40f' : '#ddd') + '">★</span>';
+                stars += '<span class="popup-star' + (i <= loc.traffic ? ' filled' : '') + '">★</span>';
             }
             var priceLabel = loc.price.toLocaleString('ru-RU') + ' ₽ / мес';
             marker.bindPopup(

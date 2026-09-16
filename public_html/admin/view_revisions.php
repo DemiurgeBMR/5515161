@@ -35,6 +35,7 @@ $revisions = $stmt->fetchAll();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ревизии локации — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -46,7 +47,7 @@ $revisions = $stmt->fetchAll();
         
         <div class="revisions-card">
             <h2>📋 Ревизии объявления #<?php echo $location['id']; ?></h2>
-            <p style="color: #888; margin-bottom: 20px;">
+            <p class="page-intro spaced">
                 Объявление: <strong><?php echo htmlspecialchars($location['title']); ?></strong>
             </p>
             
@@ -78,7 +79,7 @@ $revisions = $stmt->fetchAll();
                                     <?php if ($rev['status'] === 'pending'): ?>
                                         <a href="/admin/preview_revision.php?revision_id=<?php echo $rev['id']; ?>" class="btn-view">👁️ Просмотр</a>
                                     <?php else: ?>
-                                        <span style="color:#888;">Просмотр</span>
+                                        <span class="page-intro">Просмотр</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

@@ -21,7 +21,7 @@
     max-height: 80vh;
     padding: 30px;
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    box-shadow: var(--shadow-lg);
     overflow-y: auto;
     position: relative;
 }
@@ -41,7 +41,7 @@
 }
 .modal-box h3 {
     margin-top: 0;
-    color: #e94560;
+    color: var(--accent);
 }
 .modal-box table {
     width: 100%;

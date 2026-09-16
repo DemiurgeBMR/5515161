@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Новый пароль — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
@@ -57,14 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
         <h2>🔑 Новый пароль</h2>
 
         <?php if (!$tokenValid): ?>
-            <div class="error">Ссылка недействительна или срок её действия истёк.</div>
-            <p style="margin-top: 15px;"><a href="/pages/forgot_password.php">Запросить новую ссылку →</a></p>
+            <div class="error" role="alert">Ссылка недействительна или срок её действия истёк.</div>
+            <p class="auth-link-paragraph"><a href="/pages/forgot_password.php">Запросить новую ссылку →</a></p>
         <?php elseif ($success): ?>
-            <div class="success">Пароль успешно изменён.</div>
-            <p style="margin-top: 15px;"><a href="/pages/login.php">Войти с новым паролем →</a></p>
+            <div class="success" role="status">Пароль успешно изменён.</div>
+            <p class="auth-link-paragraph"><a href="/pages/login.php">Войти с новым паролем →</a></p>
         <?php else: ?>
             <?php if ($error): ?>
-                <div class="error"><?php echo htmlspecialchars($error); ?></div>
+                <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
             <form method="POST">
                 <?php echo csrf_field(); ?>

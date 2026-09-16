@@ -1,4 +1,18 @@
-/* ===== ЗВЁЗДЫ РЕЙТИНГА ===== */
+/* ===== ЗВЁЗДЫ РЕЙТИНГА =====
+   Общий виджет для add_location.php и edit_location.php. */
+.star-rating {
+    display: flex;
+    gap: 10px;
+    font-size: 30px;
+    cursor: pointer;
+}
+.star-rating span {
+    color: var(--border-strong, #3a3a45);
+    transition: 0.2s;
+}
+.star-rating span.filled {
+    color: #f1c40f;
+}
 .star-rating span:hover {
     transform: scale(1.1);
 }

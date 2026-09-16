@@ -81,12 +81,12 @@
     min-width: 150px;
 }
 .select-pill:focus {
-    outline: 1px solid #e94560;
+    outline: 1px solid var(--accent);
 }
 
 .btn-filter {
     padding: 11px 26px;
-    background: #e94560;
+    background: var(--accent);
     color: white;
     border: none;
     border-radius: 10px;
@@ -95,7 +95,7 @@
     font-size: 14px;
 }
 .btn-filter:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 .btn-filter-small {
     padding: 8px 18px;
@@ -132,15 +132,15 @@
     cursor: pointer;
 }
 .chip-checkbox:has(input:checked) {
-    background: rgba(233, 69, 96, 0.15);
-    border-color: #e94560;
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: var(--accent);
     color: var(--text, #f2f2f5);
 }
 .chip-checkbox input[type="checkbox"] {
     width: 14px;
     height: 14px;
     margin: 0;
-    accent-color: #e94560;
+    accent-color: var(--accent);
 }
 
 /* "Ещё фильтры" — цена/площадь/часы доступа спрятаны сюда, чтобы не
@@ -163,7 +163,7 @@
     display: none;
 }
 .more-filters[open] summary {
-    border-color: #e94560;
+    border-color: var(--accent);
     color: var(--text, #f2f2f5);
 }
 .more-filters-body {
@@ -178,7 +178,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(140px, 1fr));
     gap: 12px;
-    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
+    box-shadow: var(--shadow-md);
     min-width: 320px;
 }
 .more-filters-field {
@@ -229,8 +229,8 @@
     color: var(--text, #f2f2f5);
 }
 .city-chip.active {
-    background: #e94560;
-    border-color: #e94560;
+    background: var(--accent);
+    border-color: var(--accent);
     color: #fff;
 }
 .city-chip-count {
@@ -256,7 +256,7 @@
 }
 .catalog-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px var(--shadow, rgba(0,0,0,0.5));
+    box-shadow: var(--shadow-md);
     border-color: var(--border-strong, #3a3a45);
 }
 .catalog-card-link {
@@ -310,7 +310,7 @@
 }
 .catalog-card .price {
     font-size: 22px;
-    color: #e94560;
+    color: var(--accent);
     font-weight: bold;
     margin-bottom: 6px;
 }
@@ -384,7 +384,7 @@
     display: block;
     text-align: center;
     text-decoration: none;
-    background: #e94560;
+    background: var(--accent);
     color: #fff;
     font-weight: bold;
     font-size: 14px;
@@ -394,7 +394,7 @@
     transition: background 0.2s;
 }
 .btn-card-cta:hover {
-    background: #c73652;
+    background: var(--accent-hover);
 }
 
 /* ---------- Пагинация ---------- */
@@ -418,9 +418,9 @@
     color: var(--text, #f2f2f5);
 }
 .pagination .active {
-    background: #e94560;
+    background: var(--accent);
     color: white;
-    border-color: #e94560;
+    border-color: var(--accent);
 }
 
 .empty {
@@ -434,7 +434,7 @@
     color: var(--text, #f2f2f5);
 }
 .empty a {
-    color: #e94560;
+    color: var(--accent);
 }
 
 /* ---------- Адаптив ---------- */

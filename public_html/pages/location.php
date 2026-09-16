@@ -211,12 +211,34 @@ if (!$is_preview) {
     $pdo->prepare("UPDATE locations SET views = views + 1 WHERE id = ?")->execute([$id]);
 }
 ?>
+<?php
+// Описание и картинка для меню превью (Open Graph) — без них ссылка на
+// карточку, отправленная в мессенджер, разворачивается пустой, без текста
+// и фото. Своего описания у локации может не быть — тогда собираем короткое
+// из города и цены.
+$ogDescription = trim($location['description'] ?? '');
+if ($ogDescription === '') {
+    $ogDescription = 'Место под вендинговый автомат в г. ' . $location['city']
+        . ' — от ' . number_format((float) $location['price_month'], 0, '', ' ') . ' ₽/мес.';
+}
+$ogDescription = mb_substr($ogDescription, 0, 200, 'UTF-8');
+$ogImage = !empty($location['main_photo']) ? SITE_URL . '/' . $location['main_photo'] : null;
+$ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($location['title']); ?> — RR</title>
+    <meta name="description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?php echo htmlspecialchars($location['title']); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($ogUrl); ?>">
+    <?php if ($ogImage): ?>
+        <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
@@ -225,12 +247,12 @@ if (!$is_preview) {
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <?php if ($is_preview): ?>
-    <div style="background: #fff3cd; color: #333; padding: 10px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f39c12;">
-        <strong>👁️ Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
+    <div class="preview-notice">
+        <strong><?php echo rr_icon('eye'); ?> Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
         <?php if ($location['is_moderated'] == 0): ?>
-            <span style="display: inline-block; margin-left: 10px; background: #ffc107; color: #333; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Ожидает модерации</span>
+            <span class="preview-pill pending">Ожидает модерации</span>
         <?php else: ?>
-            <span style="display: inline-block; margin-left: 10px; background: #6c5ce7; color: white; padding: 2px 12px; border-radius: 20px; font-size: 13px;">Черновик</span>
+            <span class="preview-pill draft">Черновик</span>
         <?php endif; ?>
     </div>
 <?php endif; ?>
@@ -238,7 +260,7 @@ if (!$is_preview) {
         <div class="detail-card">
             <!-- Главное фото -->
             <?php if ($isVerified): ?>
-                <span class="verified-badge-photo">✓ Верифицировано</span>
+                <span class="verified-badge-photo"><?php echo rr_icon('check'); ?> Верифицировано</span>
             <?php endif; ?>
             <?php if (!empty($location['main_photo'])): ?>
                 <img src="/<?php echo $location['main_photo']; ?>" alt="<?php echo htmlspecialchars($location['title']); ?>" class="main-photo">
@@ -257,83 +279,83 @@ if (!$is_preview) {
             
             <div class="info">
                 <!-- ★★★ ID локации ★★★ -->
-                <div style="color: #888; font-size: 14px; margin-bottom: 10px;">
-                    📍 ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
+                <div class="location-id-line">
+                    <?php echo rr_icon('map-pin'); ?> ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
                 </div>
 
                 <div class="title">
                     <?php echo htmlspecialchars($location['title']); ?>
                     <?php if ($isVerified): ?>
-                        <span class="verified-pill">✓ Проверено</span>
+                        <span class="verified-pill"><?php echo rr_icon('check'); ?> Проверено</span>
                     <?php endif; ?>
                     <?php if ($isOccupied): ?>
-                        <span class="occupied-pill">🔒 Занято</span>
+                        <span class="occupied-pill"><?php echo rr_icon('lock'); ?> Занято</span>
                     <?php endif; ?>
                 </div>
                 <div class="price"><?php echo number_format($location['price_month'], 0, ',', ' '); ?> ₽ / месяц</div>
                 <?php if ($hasFullAccess): ?>
-                    <div class="address">📍 <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
+                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></div>
                 <?php else: ?>
                     <div class="address">
-                        📍 <?php echo htmlspecialchars($location['city']); ?>
-                        <a href="/pages/subscription.php" class="address-locked-hint">🔒 точный адрес — по подписке</a>
+                        <?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($location['city']); ?>
+                        <a href="/pages/subscription.php" class="address-locked-hint"><?php echo rr_icon('lock'); ?> точный адрес — по подписке</a>
                     </div>
                 <?php endif; ?>
 
-<div style="color: #888; font-size: 14px; margin-top: 8px;">
-🗓️ Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
+<div class="location-added-line">
+<?php echo rr_icon('calendar'); ?> Добавлено: <?php echo formatDateRu($location['updated_at']); ?>
 </div>
                 
                 <!-- ★★★ ТИП ПОМЕЩЕНИЯ (если есть) ★★★ -->
                 <?php if (!empty($location['space_type']) && isset($space_types[$location['space_type']])): ?>
                     <div class="space-type-block">
-                        🏢 <?php echo htmlspecialchars($space_types[$location['space_type']]); ?>
+                        <?php echo rr_icon('building'); ?> <?php echo htmlspecialchars($space_types[$location['space_type']]); ?>
                     </div>
                 <?php endif; ?>
                 
                 <!-- ★★★ Площадь и звёзды трафика ★★★ -->
 <div class="meta-tags">
     <?php if ($area): ?>
-        <span class="tag">📐 <?php echo $area; ?> м²</span>
+        <span class="tag"><?php echo rr_icon('square'); ?> <?php echo $area; ?> м²</span>
     <?php endif; ?>
     <?php if ($location['traffic_rating'] > 0): ?>
-        <span class="tag" style="display: inline-flex; align-items: center; gap: 6px;">
-            🚶 Трафик: 
+        <span class="tag traffic-tag">
+            <?php echo rr_icon('walk'); ?> Трафик: 
             <?php for ($i = 1; $i <= 5; $i++): ?>
                 <span class="star <?php echo ($i <= $location['traffic_rating']) ? 'filled' : ''; ?>">★</span>
             <?php endfor; ?>
-            <span style="font-size: 16px; cursor: pointer; color: #e94560; margin-left: 4px;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+            <span class="traffic-help-icon-sm" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
         </span>
     <?php else: ?>
         <span class="tag">
-            🚶 Трафик не указан
-            <span style="font-size: 16px; cursor: pointer; color: #e94560; margin-left: 4px;" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+            <?php echo rr_icon('walk'); ?> Трафик не указан
+            <span class="traffic-help-icon-sm" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
         </span>
     <?php endif; ?>
 </div>
                 
                 <!-- Бейджики -->
-                <div style="margin: 10px 0;">
+                <div class="badges-row">
                     <?php if ($location['has_electricity']): ?>
-                        <span class="badge badge-electricity">⚡ Электричество</span>
+                        <span class="badge badge-electricity"><?php echo rr_icon('bolt'); ?> Электричество</span>
                     <?php endif; ?>
                     <?php if ($location['has_wifi']): ?>
-                        <span class="badge badge-wifi">📶 Wi-Fi</span>
+                        <span class="badge badge-wifi"><?php echo rr_icon('wifi'); ?> Wi-Fi</span>
                     <?php endif; ?>
                     <?php if ($location['has_water']): ?>
-                        <span class="badge badge-water">🚰 Вода</span>
+                        <span class="badge badge-water"><?php echo rr_icon('droplet'); ?> Вода</span>
                     <?php endif; ?>
                     <?php if ($location['access_hours'] === '24/7'): ?>
-                        <span class="badge badge-24h">🕒 Круглосуточно</span>
+                        <span class="badge badge-24h"><?php echo rr_icon('clock'); ?> Круглосуточно</span>
                     <?php else: ?>
-                        <span class="badge badge-24h" style="background:#e8e8e8;color:#333;">🕒 <?php echo htmlspecialchars($location['access_hours']); ?></span>
+                        <span class="badge badge-24h custom-hours"><?php echo rr_icon('clock'); ?> <?php echo htmlspecialchars($location['access_hours']); ?></span>
                     <?php endif; ?>
                 </div>
                 
                 <!-- ★★★ Структурированное описание ★★★ -->
                 <div class="description">
                     <?php if (!empty($location['description'])): ?>
-                        <h4 style="margin-top: 15px; margin-bottom: 5px;">📌 Описание места</h4>
+                        <h4 class="description-heading">Описание места</h4>
                         <?php 
                             // Разбиваем описание на абзацы по двойным переносам строк
                             $paragraphs = preg_split('/\n\s*\n/', $location['description']);
@@ -349,7 +371,7 @@ if (!$is_preview) {
                             endforeach;
                         ?>
                     <?php else: ?>
-                        <p style="color: #888;">Описание отсутствует.</p>
+                        <p class="description-empty">Описание отсутствует.</p>
                     <?php endif; ?>
                 </div>
                 
@@ -387,27 +409,27 @@ if (!$is_preview) {
                         <span>Владелец</span>
                         <strong><?php echo htmlspecialchars($location['owner_name']); ?></strong>
                     </div>
-                    <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block">📩 Отправить заявку на аренду</a>
+                    <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block"><?php echo rr_icon('arrow-right'); ?> Отправить заявку на аренду</a>
                 <?php else: ?>
-                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe">🔒 Подписка, чтобы связаться</a>
+                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe"><?php echo rr_icon('lock'); ?> Подписка, чтобы связаться</a>
                 <?php endif; ?>
 
                 <ul class="inquiry-points">
-                    <li>💬 RR передаёт ваше обращение владельцу — звонить самому не нужно</li>
-                    <li>🤝 Условия аренды обсуждаются напрямую в чате с владельцем</li>
-                    <li>🔒 Подписка открывает имя и контакт владельца на всех локациях</li>
+                    <li><?php echo rr_icon('message-circle'); ?> RR передаёт ваше обращение владельцу — звонить самому не нужно</li>
+                    <li><?php echo rr_icon('check'); ?> Условия аренды обсуждаются напрямую в чате с владельцем</li>
+                    <li><?php echo rr_icon('lock'); ?> Подписка открывает имя и контакт владельца на всех локациях</li>
                 </ul>
             </div>
         </aside>
         <?php elseif ($showOccupiedBadge): ?>
         <aside class="inquiry-sidebar">
             <div class="inquiry-card inquiry-card-occupied">
-                <h3>🔒 Точка уже занята</h3>
+                <h3><?php echo rr_icon('lock'); ?> Точка уже занята</h3>
                 <p class="inquiry-sub">
                     За этой локацией уже закреплён другой оператор, поэтому она недоступна для новых
                     заявок на размещение.
                 </p>
-                <a href="/pages/catalog.php" class="btn-contact btn-block btn-subscribe">🔍 Смотреть другие локации</a>
+                <a href="/pages/catalog.php" class="btn-contact btn-block btn-subscribe"><?php echo rr_icon('search'); ?> Смотреть другие локации</a>
             </div>
         </aside>
         <?php endif; ?>
@@ -415,8 +437,8 @@ if (!$is_preview) {
 
         <!-- Похожие объявления -->
         <?php if (count($recommendations) > 0): ?>
-    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-        <h3 style="margin-bottom: 15px;">🔍 Похожие объявления</h3>
+    <div class="similar-listings-section">
+        <h3 class="similar-listings-title"><?php echo rr_icon('search'); ?> Похожие объявления</h3>
         <div class="rec-grid">
             <?php foreach ($recommendations as $rec): ?>
                 <a href="/pages/location.php?id=<?php echo $rec['id']; ?>" class="rec-card-link">
@@ -432,9 +454,9 @@ if (!$is_preview) {
                             <div class="rec-price"><?php echo number_format($rec['price_month'], 0, ',', ' '); ?> ₽</div>
                             <?php if ($rec['traffic_rating'] > 0): ?>
                                 <div class="rec-traffic">
-                                    🚶
+                                    <?php echo rr_icon('walk'); ?>
                                     <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <span style="color: <?php echo ($i <= $rec['traffic_rating']) ? '#f1c40f' : '#ddd'; ?>;">★</span>
+                                        <span class="star <?php echo ($i <= $rec['traffic_rating']) ? 'filled' : ''; ?>">★</span>
                                     <?php endfor; ?>
                                 </div>
                             <?php endif; ?>
@@ -451,9 +473,9 @@ if (!$is_preview) {
 <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
 <div class="modal-overlay" id="trafficHelpModal">
     <div class="modal-box">
-        <button class="close-btn" onclick="closeTrafficHelp()">&times;</button>
-        <h3>🚶 Как оценить проходимость места?</h3>
-        <p style="color:#555; margin-top:-5px;">Выберите уровень, который лучше всего описывает вашу локацию.</p>
+        <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
+        <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
+        <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
         <table>
             <thead>
                 <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
@@ -492,18 +514,18 @@ if (!$is_preview) {
             </tbody>
         </table>
         <div class="note">
-            <strong>💡 Важно!</strong>
+            <strong><?php echo rr_icon('lightbulb'); ?> Важно!</strong>
             Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
         </div>
-        <p style="text-align: right; margin-top: 15px; color:#888; font-size:13px;">Подсказка всегда доступна по ❓</p>
+        <p class="traffic-modal-footnote">Подсказка всегда доступна по <?php echo rr_icon('help-circle'); ?></p>
     </div>
 </div>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО ДЛЯ ПРОСМОТРА ФОТО ★★★ -->
 <div class="photo-modal" id="photoModal">
     <div class="photo-modal-content">
-        <button class="photo-modal-close" onclick="closePhotoModal()">&times;</button>
-        <button class="photo-modal-prev" onclick="prevPhoto()">&#10094;</button>
-        <button class="photo-modal-next" onclick="nextPhoto()">&#10095;</button>
+        <button class="photo-modal-close" onclick="closePhotoModal()" aria-label="Закрыть">&times;</button>
+        <button class="photo-modal-prev" onclick="prevPhoto()" aria-label="Предыдущее фото">&#10094;</button>
+        <button class="photo-modal-next" onclick="nextPhoto()" aria-label="Следующее фото">&#10095;</button>
         <img id="modalPhoto" src="" alt="Фото">
         <div class="photo-modal-counter" id="photoCounter"></div>
     </div>
