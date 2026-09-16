@@ -30,3 +30,12 @@
 .accent-link.no-underline {
     text-decoration: none;
 }
+
+/* Иконки взамен эмодзи (includes/icons.php) — размер и вертикальное
+   выравнивание относительно окружающего текста, цвет — currentColor. */
+.rr-icon {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.15em;
+    flex-shrink: 0;
+}

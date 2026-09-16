@@ -211,7 +211,7 @@ $filterParams = array_filter($_GET, function ($k) {
         <form class="filters" method="GET">
             <div class="filters-row">
                 <div class="search-box">
-                    <span class="search-icon">🔍</span>
+                    <span class="search-icon"><?php echo rr_icon('search'); ?></span>
                     <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>">
                 </div>
 
@@ -240,19 +240,19 @@ $filterParams = array_filter($_GET, function ($k) {
 
                 <button type="submit" class="btn-filter">Найти</button>
                 <?php if ($search_query !== '' || $city !== '' || $space_type !== '' || $has_electricity || $has_wifi || $has_water || $traffic_min > 0 || $min_price !== '' || $max_price !== '' || $min_area !== '' || $max_area !== '' || $access_hours !== ''): ?>
-                    <a href="/pages/catalog.php" class="btn-reset">✕ Сбросить</a>
+                    <a href="/pages/catalog.php" class="btn-reset"><?php echo rr_icon('x'); ?> Сбросить</a>
                 <?php endif; ?>
             </div>
 
             <div class="filters-row filters-row-secondary">
                 <label class="chip-checkbox">
-                    <input type="checkbox" name="has_electricity" value="1" onchange="this.form.submit()" <?php echo $has_electricity ? 'checked' : ''; ?>> ⚡ Электричество
+                    <input type="checkbox" name="has_electricity" value="1" onchange="this.form.submit()" <?php echo $has_electricity ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
                 </label>
                 <label class="chip-checkbox">
-                    <input type="checkbox" name="has_wifi" value="1" onchange="this.form.submit()" <?php echo $has_wifi ? 'checked' : ''; ?>> 📶 Wi-Fi
+                    <input type="checkbox" name="has_wifi" value="1" onchange="this.form.submit()" <?php echo $has_wifi ? 'checked' : ''; ?>> <?php echo rr_icon('wifi'); ?> Wi-Fi
                 </label>
                 <label class="chip-checkbox">
-                    <input type="checkbox" name="has_water" value="1" onchange="this.form.submit()" <?php echo $has_water ? 'checked' : ''; ?>> 🚰 Вода
+                    <input type="checkbox" name="has_water" value="1" onchange="this.form.submit()" <?php echo $has_water ? 'checked' : ''; ?>> <?php echo rr_icon('droplet'); ?> Вода
                 </label>
 
                 <details class="more-filters">
@@ -328,44 +328,44 @@ $filterParams = array_filter($_GET, function ($k) {
                                 <div class="title">
                                     <?php echo htmlspecialchars($loc['title']); ?>
                                     <?php if ($loc['is_moderated'] == 1 && $loc['is_active'] == 1): ?>
-                                        <span class="verified-pill">✓ Проверено</span>
+                                        <span class="verified-pill"><?php echo rr_icon('check'); ?> Проверено</span>
                                     <?php endif; ?>
                                 </div>
                                 <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ <span class="price-unit">/ мес</span></div>
                                 <?php if ($locHasFullAccess): ?>
-                                    <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
+                                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
                                 <?php else: ?>
-                                    <div class="address">📍 <?php echo htmlspecialchars($loc['city']); ?> <span class="address-locked">· точный адрес по подписке</span></div>
+                                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city']); ?> <span class="address-locked">· точный адрес по подписке</span></div>
                                 <?php endif; ?>
 
                                 <div class="meta-row">
                                     <?php if (!empty($loc['space_type']) && isset($space_types[$loc['space_type']])): ?>
-                                        <span class="meta-tag">🏢 <?php echo htmlspecialchars($space_types[$loc['space_type']]); ?></span>
+                                        <span class="meta-tag"><?php echo rr_icon('building'); ?> <?php echo htmlspecialchars($space_types[$loc['space_type']]); ?></span>
                                     <?php endif; ?>
                                     <?php if ($loc['traffic_rating'] > 0): ?>
-                                        <span class="meta-tag">🚶 <?php echo $trafficLabels[(int)$loc['traffic_rating']] ?? ''; ?> трафик</span>
+                                        <span class="meta-tag"><?php echo rr_icon('walk'); ?> <?php echo $trafficLabels[(int)$loc['traffic_rating']] ?? ''; ?> трафик</span>
                                     <?php endif; ?>
                                     <?php if (!empty($loc['width']) && !empty($loc['depth'])): ?>
-                                        <span class="meta-tag">📐 <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
+                                        <span class="meta-tag"><?php echo rr_icon('square'); ?> <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
                                     <?php endif; ?>
                                 </div>
 
                                 <div class="badges">
                                     <span class="id-badge">RR-<?php echo str_pad($loc['id'], 5, '0', STR_PAD_LEFT); ?></span>
                                     <?php if ($loc['has_electricity']): ?>
-                                        <span class="amenity-badge electricity">⚡</span>
+                                        <span class="amenity-badge electricity"><?php echo rr_icon('bolt'); ?></span>
                                     <?php endif; ?>
                                     <?php if ($loc['has_wifi']): ?>
-                                        <span class="amenity-badge wifi">📶</span>
+                                        <span class="amenity-badge wifi"><?php echo rr_icon('wifi'); ?></span>
                                     <?php endif; ?>
                                     <?php if ($loc['has_water']): ?>
-                                        <span class="amenity-badge water">🚰</span>
+                                        <span class="amenity-badge water"><?php echo rr_icon('droplet'); ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
                         </a>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="btn-card-cta">
-                            <?php echo $locHasFullAccess ? '📩 Узнать подробнее' : '🔒 Узнать подробнее'; ?>
+                            <?php echo $locHasFullAccess ? rr_icon('arrow-right') . ' Узнать подробнее' : rr_icon('lock') . ' Узнать подробнее'; ?>
                         </a>
                     </div>
                 <?php endforeach; ?>
@@ -392,7 +392,7 @@ $filterParams = array_filter($_GET, function ($k) {
 
         <?php else: ?>
             <div class="empty">
-                <h3>😕 Ничего не найдено</h3>
+                <h3><?php echo rr_icon('frown'); ?> Ничего не найдено</h3>
                 <p>Попробуйте изменить параметры фильтра или <a href="/pages/add_location.php">добавьте свою локацию</a>.</p>
             </div>
         <?php endif; ?>

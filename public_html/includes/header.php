@@ -45,7 +45,7 @@
     <!-- Уведомления: колокольчик открывает превью последних, полная лента — на pages/notifications.php -->
     <div class="notification-bell-wrap">
         <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="Уведомления">
-            🔔
+            <?php echo rr_icon('bell'); ?>
             <span id="notificationBadge" class="notification-badge">0</span>
         </button>
         <div id="notificationDropdown" class="notif-dropdown">
@@ -62,7 +62,7 @@
 
     <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
         <!-- Админ -->
-        <a href="/admin/index.php" class="nav-link-spaced warning">⚙️ Админка</a>
+        <a href="/admin/index.php" class="nav-link-spaced warning"><?php echo rr_icon('shield'); ?> Админка</a>
         <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
     <?php else: ?>
         <!-- Обычный пользователь (оператор или собственник) -->
@@ -75,12 +75,12 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
 }
 ?>
 <a href="<?php echo $profileLink; ?>" class="nav-link-spaced">
-    👋 <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
+    <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
 </a>
         <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
-            <a href="/pages/add_location.php" class="nav-link-spaced accent">➕ Добавить место</a>
+            <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
         <?php endif; ?>
-        <a href="/pages/subscription.php" class="nav-link-spaced<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>">💳 Подписка</a>
+        <a href="/pages/subscription.php" class="nav-link-spaced<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>"><?php echo rr_icon('card'); ?> Подписка</a>
         <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
     <?php endif; ?>
 <?php else: ?>
@@ -88,7 +88,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
     <a href="/pages/login.php" class="nav-link-spaced">Вход</a>
     <a href="/pages/register.php" class="btn-nav">Регистрация</a>
 <?php endif; ?>
-                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему">🌙</button>
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему"><?php echo rr_icon('moon'); ?></button>
             </nav>
         </div>
     </header>
@@ -100,8 +100,10 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
             function isLight() {
                 return document.documentElement.getAttribute('data-theme') === 'light';
             }
+            var ICON_SUN = '<svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+            var ICON_MOON = '<svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>';
             function updateIcon() {
-                btn.textContent = isLight() ? '☀️' : '🌙';
+                btn.innerHTML = isLight() ? ICON_SUN : ICON_MOON;
             }
             updateIcon();
             btn.addEventListener('click', function() {
@@ -122,7 +124,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
                  здесь один раз, сразу после регистрации или запроса новой ссылки. -->
             <div class="verify-banner verify-banner-link">
                 <div class="container verify-banner-inner">
-                    <span class="verify-banner-icon">📧</span>
+                    <span class="verify-banner-icon"><?php echo rr_icon('mail'); ?></span>
                     <span class="verify-banner-text">
                         Письма пока не отправляются — вот ссылка для подтверждения email:
                         <a href="<?php echo htmlspecialchars($_SESSION['verify_link']); ?>"><?php echo htmlspecialchars($_SESSION['verify_link']); ?></a>
@@ -133,7 +135,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
         <?php elseif (empty($_SESSION['is_verified'])): ?>
             <div class="verify-banner">
                 <div class="container verify-banner-inner">
-                    <span class="verify-banner-icon">📧</span>
+                    <span class="verify-banner-icon"><?php echo rr_icon('mail'); ?></span>
                     <span class="verify-banner-text">Email ещё не подтверждён.</span>
                     <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>" class="verify-banner-link-action">Получить ссылку →</a>
                 </div>
@@ -143,7 +145,7 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
     <?php if (basename($_SERVER['SCRIPT_NAME']) !== 'how_it_works.php'): ?>
     <div class="howitworks-banner" id="howItWorksBanner">
         <div class="container howitworks-banner-inner">
-            <span class="howitworks-banner-icon">🎯</span>
+            <span class="howitworks-banner-icon"><?php echo rr_icon('info-circle'); ?></span>
             <span class="howitworks-banner-text">
                 Новый на RR? Найдите точку или сдайте своё место в аренду — вся сделка проходит прямо на платформе.
             </span>

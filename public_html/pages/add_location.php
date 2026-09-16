@@ -210,7 +210,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
     
     <div class="add-form">
             <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2>➕ Добавить новую локацию</h2>
+        <h2><?php echo rr_icon('plus-circle'); ?> Добавить новую локацию</h2>
         
         <?php if ($error): ?>
             <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
@@ -294,7 +294,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
             <div class="form-group">
                 <label class="traffic-rating-label">
                     Проходимость места
-                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
                 </label>
                 <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -326,13 +326,13 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 <label>Что есть на месте</label>
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="has_electricity" checked> ⚡ Электричество
+                        <input type="checkbox" name="has_electricity" checked> <?php echo rr_icon('bolt'); ?> Электричество
                     </label>
                     <label>
-                        <input type="checkbox" name="has_wifi"> 📶 Wi-Fi
+                        <input type="checkbox" name="has_wifi"> <?php echo rr_icon('wifi'); ?> Wi-Fi
                     </label>
                     <label>
-                        <input type="checkbox" name="has_water"> 🚰 Вода
+                        <input type="checkbox" name="has_water"> <?php echo rr_icon('droplet'); ?> Вода
                     </label>
                 </div>
             </div>
@@ -341,7 +341,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
             <div class="form-group">
                 <label>Фотографии места (до 5 шт)</label>
                 <div class="file-upload" onclick="document.getElementById('photoInput').click();">
-                    <span class="icon">📸</span>
+                    <span class="icon"><?php echo rr_icon('camera'); ?></span>
                     <div class="text">
                         Кликните или перетащите фото<br>
                         <span>Поддерживаются JPG, PNG, WEBP (до 5 МБ)</span>
@@ -360,7 +360,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
     <div class="modal-overlay" id="trafficHelpModal">
         <div class="modal-box">
             <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
-            <h3>🚶 Как оценить проходимость места?</h3>
+            <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
             <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
@@ -400,10 +400,10 @@ if (strpos($mainPhoto, 'new_') === 0) {
                 </tbody>
             </table>
             <div class="note">
-                <strong>💡 Важно!</strong>
+                <strong><?php echo rr_icon('lightbulb'); ?> Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p class="traffic-modal-footnote">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по <?php echo rr_icon('help-circle'); ?></p>
         </div>
     </div>
     
@@ -446,10 +446,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div class="upload-msg-ok">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok"><?php echo rr_icon('check'); ?> ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div class="upload-msg-error">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error"><?php echo rr_icon('x'); ?> ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;
@@ -498,7 +498,7 @@ fileInput.addEventListener('change', function(e) {
                     .then(data => {
                         if (data.length === 0 || data.error) {
                             suggestions.style.display = 'none';
-                            status.innerHTML = '⚠️ Город не найден. Уточните запрос.';
+                            status.innerHTML = '<?php echo rr_icon('warning'); ?> Город не найден. Уточните запрос.';
                             status.classList.add('status-error'); status.classList.remove('status-ok');
                             return;
                         }
@@ -514,7 +514,7 @@ fileInput.addEventListener('change', function(e) {
                                 hidden.value = cityName;
                                 selectedCity = cityName;
                                 suggestions.style.display = 'none';
-                                status.innerHTML = '✅ Выбран город: ' + cityName;
+                                status.innerHTML = '<?php echo rr_icon('check'); ?> Выбран город: ' + cityName;
                                 status.classList.add('status-ok'); status.classList.remove('status-error');
                                 input.setCustomValidity('');
                             });

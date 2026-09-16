@@ -251,7 +251,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
     
     <div class="add-form">
         <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2>✏️ Редактировать локацию</h2>
+        <h2><?php echo rr_icon('edit'); ?> Редактировать локацию</h2>
         
         <?php if ($error): ?>
             <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
@@ -331,7 +331,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
             <div class="form-group">
                 <label class="traffic-rating-label">
                     Проходимость места
-                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?">❓</span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
                 </label>
                 <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -363,13 +363,13 @@ if (strpos($mainPhoto, 'existing_') === 0) {
                 <label>Что есть на месте</label>
                 <div class="checkbox-group">
                     <label>
-                        <input type="checkbox" name="has_electricity" <?php echo $location['has_electricity'] ? 'checked' : ''; ?>> ⚡ Электричество
+                        <input type="checkbox" name="has_electricity" <?php echo $location['has_electricity'] ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
                     </label>
                     <label>
-                        <input type="checkbox" name="has_wifi" <?php echo $location['has_wifi'] ? 'checked' : ''; ?>> 📶 Wi-Fi
+                        <input type="checkbox" name="has_wifi" <?php echo $location['has_wifi'] ? 'checked' : ''; ?>> <?php echo rr_icon('wifi'); ?> Wi-Fi
                     </label>
                     <label>
-                        <input type="checkbox" name="has_water" <?php echo $location['has_water'] ? 'checked' : ''; ?>> 🚰 Вода
+                        <input type="checkbox" name="has_water" <?php echo $location['has_water'] ? 'checked' : ''; ?>> <?php echo rr_icon('droplet'); ?> Вода
                     </label>
                 </div>
             </div>
@@ -440,19 +440,19 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 <div class="photo-item pending-delete">
                     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
                     <div class="photo-delete-overlay">
-                        🗑️ Будет удалено
+                        <?php echo rr_icon('trash'); ?> Будет удалено
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
         <?php if (count($pending_delete_photos) > 0): ?>
             <div class="photo-notice danger">
-                ⚠️ Отмеченные фото будут удалены после модерации
+                <?php echo rr_icon('warning'); ?> Отмеченные фото будут удалены после модерации
             </div>
         <?php endif; ?>
         <?php if (count($pending_add_photos) > 0): ?>
             <div class="photo-notice info">
-                📷 Новые фото появятся после модерации
+                <?php echo rr_icon('camera'); ?> Новые фото появятся после модерации
             </div>
         <?php endif; ?>
     </div>
@@ -462,7 +462,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             <div class="form-group">
                 <label>Добавить новые фотографии (до 5 шт)</label>
                 <div class="file-upload" onclick="document.getElementById('photoInput').click();">
-                    <span class="icon">📸</span>
+                    <span class="icon"><?php echo rr_icon('camera'); ?></span>
                     <div class="text">
                         Кликните или перетащите фото<br>
                         <span>Поддерживаются JPG, PNG, WEBP (до 5 МБ)</span>
@@ -474,7 +474,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             </div>
             
             <div class="form-actions-row">
-                <button type="submit" class="btn-submit">💾 Сохранить изменения</button>
+                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
                 <a href="/pages/profile.php" class="btn-submit secondary">Отмена</a>
             </div>
         </form>
@@ -484,7 +484,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <div class="modal-overlay" id="trafficHelpModal">
         <div class="modal-box">
             <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
-            <h3>🚶 Как оценить проходимость места?</h3>
+            <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
             <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
             <table>
                 <thead>
@@ -524,10 +524,10 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 </tbody>
             </table>
             <div class="note">
-                <strong>💡 Важно!</strong>
+                <strong><?php echo rr_icon('lightbulb'); ?> Важно!</strong>
                 Оценивайте не только количество людей, но и <strong>время пребывания</strong> (стоят/ждут) и наличие <strong>альтернатив</strong> (конкуренты). Самые прибыльные места — где люди задерживаются на 10–30 минут.
             </div>
-            <p class="traffic-modal-footnote">Подсказка всегда доступна по ❓</p>
+            <p class="traffic-modal-footnote">Подсказка всегда доступна по <?php echo rr_icon('help-circle'); ?></p>
         </div>
     </div>
     
@@ -569,10 +569,10 @@ fileInput.addEventListener('change', function(e) {
 
     let message = '';
     if (validFiles.length > 0) {
-        message += `<div class="upload-msg-ok">✅ ${validFiles.length} файлов готовы</div>`;
+        message += `<div class="upload-msg-ok"><?php echo rr_icon('check'); ?> ${validFiles.length} файлов готовы</div>`;
     }
     if (invalidFiles.length > 0) {
-        message += `<div class="upload-msg-error">❌ ${invalidFiles.length} файлов превышают 5 МБ</div>`;
+        message += `<div class="upload-msg-error"><?php echo rr_icon('x'); ?> ${invalidFiles.length} файлов превышают 5 МБ</div>`;
         submitBtn.disabled = true;
     } else {
         submitBtn.disabled = false;

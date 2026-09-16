@@ -49,7 +49,7 @@ $latest_locations = $stmt->fetchAll();
         
         <!-- Свежие локации -->
         <section class="home-locations-preview">
-            <h2>🔥 Свежие предложения</h2>
+            <h2><?php echo rr_icon('flame'); ?> Свежие предложения</h2>
             <?php if (count($latest_locations) > 0): ?>
                 <div class="home-location-grid">
                     <?php foreach ($latest_locations as $loc): ?>
@@ -62,17 +62,17 @@ $latest_locations = $stmt->fetchAll();
                                 <?php endif; ?>
                                 <div class="info">
                                     <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
-                                    <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
+                                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
                                     
                                     <!-- ★★★ ID, площадь, трафик ★★★ -->
                                     <div class="meta-row">
                                         <span class="id-badge">ID: RR-<?php echo str_pad($loc['id'], 5, '0', STR_PAD_LEFT); ?></span>
                                         <?php if (!empty($loc['width']) && !empty($loc['depth'])): ?>
-                                            <span>📐 <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
+                                            <span><?php echo rr_icon('square'); ?> <?php echo round($loc['width'] * $loc['depth'], 2); ?> м²</span>
                                         <?php endif; ?>
                                         <?php if ($loc['traffic_rating'] > 0): ?>
                                             <span>
-                                                🚶 
+                                                <?php echo rr_icon('walk'); ?>
                                                 <?php for ($i = 1; $i <= 5; $i++): ?>
                                                     <span class="star <?php echo ($i <= $loc['traffic_rating']) ? 'filled' : ''; ?>">★</span>
                                                 <?php endfor; ?>
@@ -80,7 +80,7 @@ $latest_locations = $stmt->fetchAll();
                                         <?php endif; ?>
                                     </div>
                                                                         <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
-                                        🗓️ <?php echo formatDateRu($loc['updated_at']); ?>
+                                        <?php echo rr_icon('calendar'); ?> <?php echo formatDateRu($loc['updated_at']); ?>
                                     </div>
                                     
                                     <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ / мес</div>
