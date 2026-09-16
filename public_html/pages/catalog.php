@@ -191,7 +191,12 @@ $filterParams = array_filter($_GET, function ($k) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Каталог локаций — RR</title>
+    <title>Каталог локаций для вендинга — RR</title>
+    <meta name="description" content="Каталог мест под вендинговые автоматы: фильтры по городу, цене и типу помещения. Подберите точку для установки или сдайте своё помещение в аренду.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Каталог локаций для вендинга — RR">
+    <meta property="og:description" content="Места под вендинговые автоматы с фильтрами по городу, цене и типу помещения.">
+    <meta property="og:url" content="<?php echo htmlspecialchars(SITE_URL); ?>/pages/catalog.php">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>

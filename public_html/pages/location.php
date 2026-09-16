@@ -211,12 +211,34 @@ if (!$is_preview) {
     $pdo->prepare("UPDATE locations SET views = views + 1 WHERE id = ?")->execute([$id]);
 }
 ?>
+<?php
+// Описание и картинка для меню превью (Open Graph) — без них ссылка на
+// карточку, отправленная в мессенджер, разворачивается пустой, без текста
+// и фото. Своего описания у локации может не быть — тогда собираем короткое
+// из города и цены.
+$ogDescription = trim($location['description'] ?? '');
+if ($ogDescription === '') {
+    $ogDescription = 'Место под вендинговый автомат в г. ' . $location['city']
+        . ' — от ' . number_format((float) $location['price_month'], 0, '', ' ') . ' ₽/мес.';
+}
+$ogDescription = mb_substr($ogDescription, 0, 200, 'UTF-8');
+$ogImage = !empty($location['main_photo']) ? SITE_URL . '/' . $location['main_photo'] : null;
+$ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
+?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($location['title']); ?> — RR</title>
+    <meta name="description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?php echo htmlspecialchars($location['title']); ?>">
+    <meta property="og:description" content="<?php echo htmlspecialchars($ogDescription); ?>">
+    <meta property="og:url" content="<?php echo htmlspecialchars($ogUrl); ?>">
+    <?php if ($ogImage): ?>
+        <meta property="og:image" content="<?php echo htmlspecialchars($ogImage); ?>">
+    <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
