@@ -3,3 +3,8 @@ Disallow: /admin/
 Disallow: /api/
 Disallow: /uploads/revisions/
 Disallow: /uploads/service/
+
+# Sitemap: https://ВАШ-ДОМЕН/sitemap.php
+# Строка закомментирована, пока SITE_URL в config.php указывает на
+# заглушку riveg-rent.local — раскомментируйте и подставьте реальный домен,
+# как только сайт станет доступен по нему (заодно обновите SITE_URL).
