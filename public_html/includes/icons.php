@@ -45,6 +45,9 @@ const RR_ICONS = [
     'frown'         => '<circle cx="12" cy="12" r="9"/><path d="M8 15a4 4 0 0 1 8 0"/><path d="M9 9h.01M15 9h.01"/>',
     'flame'         => '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" fill="currentColor" stroke="none"/>',
     'warning'       => '<path d="M12 3l10 18H2L12 3z"/><path d="M12 10v4M12 17v.01"/>',
+    'chevron-down'  => '<path d="M6 9l6 6 6-6"/>',
+    'log-out'       => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>',
+    'layout-dashboard' => '<rect x="3" y="3" width="8" height="9" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/><rect x="13" y="12" width="8" height="9" rx="1"/><rect x="3" y="16" width="8" height="5" rx="1"/>',
 ];
 
 /**

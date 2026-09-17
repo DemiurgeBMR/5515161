@@ -60,29 +60,48 @@
         </div>
     </div>
 
-    <?php if (($_SESSION['user_role'] ?? null) === 'admin'): ?>
-        <!-- Админ -->
-        <a href="/admin/index.php" class="nav-link-spaced warning"><?php echo rr_icon('shield'); ?> Админка</a>
-        <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
-    <?php else: ?>
-        <!-- Обычный пользователь (оператор или собственник) -->
-<?php
-$profileLink = '/pages/profile.php';
-if (($_SESSION['user_role'] ?? null) === 'operator') {
-    $profileLink = '/pages/operator_dashboard.php';
-} elseif (($_SESSION['user_role'] ?? null) === 'admin') {
-    $profileLink = '/admin/index.php';
-}
-?>
-<a href="<?php echo $profileLink; ?>" class="nav-link-spaced">
-    <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Пользователь'); ?>
-</a>
-        <?php if (($_SESSION['user_role'] ?? null) === 'owner'): ?>
-            <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
-        <?php endif; ?>
-        <a href="/pages/subscription.php" class="nav-link-spaced<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>"><?php echo rr_icon('card'); ?> Подписка</a>
-        <a href="/pages/logout.php" class="nav-danger-link">Выйти</a>
+    <?php
+    $role = $_SESSION['user_role'] ?? null;
+    if ($role === 'operator') {
+        $profileLink = '/pages/operator_dashboard.php';
+        $profileLabel = 'Дашборд';
+        $profileIcon = 'layout-dashboard';
+        $roleLabel = 'Арендатор';
+    } elseif ($role === 'admin') {
+        $profileLink = '/admin/index.php';
+        $profileLabel = 'Админка';
+        $profileIcon = 'shield';
+        $roleLabel = 'Администратор';
+    } else {
+        $profileLink = '/pages/profile.php';
+        $profileLabel = 'Профиль';
+        $profileIcon = 'edit';
+        $roleLabel = 'Владелец';
+    }
+    ?>
+    <?php if ($role === 'owner'): ?>
+        <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
     <?php endif; ?>
+    <!-- Меню аккаунта: профиль/дашборд, подписка, выход — раньше были отдельными
+         ссылками вподряд и не помещались в шапку на узких экранах. -->
+    <div class="account-menu-wrap">
+        <button type="button" id="accountMenuBtn" class="account-menu-btn" aria-haspopup="true" aria-expanded="false">
+            <span class="account-menu-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Аккаунт'); ?></span>
+            <?php echo rr_icon('chevron-down', 'account-menu-chevron'); ?>
+        </button>
+        <div id="accountMenuDropdown" class="account-dropdown">
+            <div class="account-dd-header">
+                <div class="account-dd-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Аккаунт'); ?></div>
+                <div class="account-dd-role"><?php echo htmlspecialchars($roleLabel); ?></div>
+            </div>
+            <a href="<?php echo $profileLink; ?>" class="account-dd-item"><?php echo rr_icon($profileIcon); ?> <?php echo htmlspecialchars($profileLabel); ?></a>
+            <?php if ($role !== 'admin'): ?>
+                <a href="/pages/subscription.php" class="account-dd-item<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>"><?php echo rr_icon('card'); ?> Подписка</a>
+            <?php endif; ?>
+            <div class="account-dd-divider"></div>
+            <a href="/pages/logout.php" class="account-dd-item danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
+        </div>
+    </div>
 <?php else: ?>
     <!-- Гость -->
     <a href="/pages/login.php" class="nav-link-spaced">Вход</a>
@@ -115,6 +134,24 @@ if (($_SESSION['user_role'] ?? null) === 'operator') {
                 }
                 try { localStorage.setItem(KEY, next); } catch (e) {}
                 updateIcon();
+            });
+        })();
+    </script>
+    <script>
+        (function() {
+            var btn = document.getElementById('accountMenuBtn');
+            var dropdown = document.getElementById('accountMenuDropdown');
+            if (!btn || !dropdown) return;
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var isOpen = dropdown.classList.toggle('open');
+                btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                    dropdown.classList.remove('open');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
             });
         })();
     </script>

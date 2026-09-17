@@ -185,7 +185,7 @@ $(document).ready(function () {
             }
         });
         document.addEventListener('click', function (e) {
-            if (!dropdown.contains(e.target) && e.target !== bellBtn) {
+            if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
                 dropdown.classList.remove('open');
             }
         });
