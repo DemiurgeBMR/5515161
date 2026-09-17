@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
-        <h2>🔑 Новый пароль</h2>
+        <h2><?php echo rr_icon('key'); ?> Новый пароль</h2>
 
         <?php if (!$tokenValid): ?>
             <div class="error" role="alert">Ссылка недействительна или срок её действия истёк.</div>

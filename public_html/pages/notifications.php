@@ -69,7 +69,7 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="notifications-page">
     <div class="notif-page-head">
-        <h2>🔔 Уведомления</h2>
+        <h2><?php echo rr_icon('bell'); ?> Уведомления</h2>
         <?php if ($unreadTotal > 0): ?>
             <a href="?mark_all=1&csrf=<?php echo urlencode(csrf_token()); ?><?php echo $category !== '' ? '&category=' . urlencode($category) : ''; ?>" class="notif-mark-all">Прочитать всё (<?php echo $unreadTotal; ?>)</a>
         <?php endif; ?>
@@ -79,7 +79,7 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
         <a href="/pages/notifications.php" class="<?php echo $category === '' ? 'active' : ''; ?>">Все</a>
         <?php foreach (NOTIFICATION_CATEGORIES as $catKey => $catMeta): ?>
             <a href="?category=<?php echo urlencode($catKey); ?>" class="<?php echo $category === $catKey ? 'active' : ''; ?>">
-                <?php echo $catMeta['icon']; ?> <?php echo htmlspecialchars($catMeta['label']); ?>
+                <?php echo rr_icon($catMeta['icon']); ?> <?php echo htmlspecialchars($catMeta['label']); ?>
             </a>
         <?php endforeach; ?>
     </div>
@@ -94,13 +94,13 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
                     <div class="notif-day-divider"><?php echo htmlspecialchars($day); ?></div>
                 <?php endif; ?>
                 <?php
-                    $meta = NOTIFICATION_META[$n['type']] ?? ['icon' => 'ℹ️'];
+                    $meta = NOTIFICATION_META[$n['type']] ?? ['icon' => 'info-circle'];
                     $isUnread = $n['read_at'] === null;
                 ?>
                 <div class="notif-item<?php echo $isUnread ? ' unread' : ''; ?>"
                      data-id="<?php echo $n['id']; ?>"
                      data-link="<?php echo htmlspecialchars($n['link'] ?? ''); ?>">
-                    <span class="notif-item-icon"><?php echo $meta['icon']; ?></span>
+                    <span class="notif-item-icon"><?php echo rr_icon($meta['icon']); ?></span>
                     <div class="notif-item-body">
                         <div class="notif-item-message"><?php echo nl2br(htmlspecialchars($n['message'])); ?></div>
                         <div class="notif-item-time"><?php echo date('d.m.Y H:i', strtotime($n['created_at'])); ?></div>

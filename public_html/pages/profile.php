@@ -131,15 +131,15 @@ unset($_SESSION['flash']);
         <aside class="profile-sidebar">
             <div class="avatar" style="background: <?php echo htmlspecialchars($avatar_color, ENT_QUOTES); ?>;" onclick="openModal()" title="Сменить цвет аватара">
                 <?php echo $first_letter; ?>
-                <span class="hint">🔄 Сменить цвет</span>
+                <span class="hint"><?php echo rr_icon('refresh'); ?> Сменить цвет</span>
             </div>
             <div class="user-info">
                 <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
                 <div class="user-role">
                     <?php if ($user_role === 'owner'): ?>
-                        <span class="badge badge-owner">🏢 Собственник</span>
+                        <span class="badge badge-owner"><?php echo rr_icon('building'); ?> Собственник</span>
                     <?php else: ?>
-                        <span class="badge badge-operator">🤝 Оператор</span>
+                        <span class="badge badge-operator"><?php echo rr_icon('check'); ?> Оператор</span>
                     <?php endif; ?>
                 </div>
                 <div class="user-email"><?php echo htmlspecialchars($user['email'] ?? ''); ?></div>
@@ -162,17 +162,17 @@ unset($_SESSION['flash']);
 
 <div class="profile-actions">
     <?php if ($user_role === 'owner'): ?>
-        <a href="/pages/add_location.php" class="btn-action primary">➕ Добавить локацию</a>
+        <a href="/pages/add_location.php" class="btn-action primary"><?php echo rr_icon('plus-circle'); ?> Добавить локацию</a>
     <?php else: ?>
-        <a href="/pages/catalog.php" class="btn-action primary">🔍 Найти локации</a>
+        <a href="/pages/catalog.php" class="btn-action primary"><?php echo rr_icon('search'); ?> Найти локации</a>
     <?php endif; ?>
-    <a href="/pages/edit_profile.php" class="btn-action secondary">✏️ Редактировать профиль</a>
-    <a href="/pages/events_calendar.php" class="btn-action secondary">📅 Выезды</a>
-    <a href="/pages/documents.php" class="btn-action secondary">📄 Документы</a>
-    <a href="/pages/owner_applications.php" class="btn-action secondary">📩 Заявки</a>
-    <a href="/pages/owner_operators.php" class="btn-action secondary">👥 Мои операторы</a>
-    <a href="/pages/subscription.php" class="btn-action secondary">💳 Подписка</a>
-    <a href="/pages/logout.php" class="btn-action danger">🚪 Выйти</a>
+    <a href="/pages/edit_profile.php" class="btn-action secondary"><?php echo rr_icon('edit'); ?> Редактировать профиль</a>
+    <a href="/pages/events_calendar.php" class="btn-action secondary"><?php echo rr_icon('calendar'); ?> Выезды</a>
+    <a href="/pages/documents.php" class="btn-action secondary"><?php echo rr_icon('file-text'); ?> Документы</a>
+    <a href="/pages/owner_applications.php" class="btn-action secondary"><?php echo rr_icon('mail'); ?> Заявки</a>
+    <a href="/pages/owner_operators.php" class="btn-action secondary"><?php echo rr_icon('users'); ?> Мои операторы</a>
+    <a href="/pages/subscription.php" class="btn-action secondary"><?php echo rr_icon('card'); ?> Подписка</a>
+    <a href="/pages/logout.php" class="btn-action danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
 </div>
         </aside>
 
@@ -182,7 +182,7 @@ unset($_SESSION['flash']);
                 <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
             <?php endif; ?>
 
-            <h2>📋 Мои локации</h2>
+            <h2><?php echo rr_icon('list'); ?> Мои локации</h2>
 
             <!-- Вкладки -->
             <div class="tabs">
@@ -210,48 +210,48 @@ unset($_SESSION['flash']);
                                 </div>
                                 <div class="card-body">
                                     <div class="card-title"><?php echo htmlspecialchars($loc['title']); ?></div>
-                                    <div class="card-address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
+                                    <div class="card-address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
                                     <div class="card-price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ / мес</div>
 <div class="card-status">
 <?php if ($loc['pending_revisions_count'] > 0): ?>
     <!-- Здесь теперь проверяем, является ли локация новой -->
     <?php if (!$loc['is_moderated']): ?>
-        <span class="status-badge status-pending">⏳ На модерации (новая)</span>
+        <span class="status-badge status-pending"><?php echo rr_icon('clock'); ?> На модерации (новая)</span>
         <div class="status-hint">Объявление проверяется перед публикацией</div>
     <?php else: ?>
-        <span class="status-badge status-pending-changes">⏳ Ожидает модерации (правки)</span>
+        <span class="status-badge status-pending-changes"><?php echo rr_icon('clock'); ?> Ожидает модерации (правки)</span>
         <div class="status-hint">Текущая версия активна до проверки</div>
     <?php endif; ?>
 <?php elseif (!$loc['is_moderated']): ?>
     <!-- Сюда попадаем, если is_moderated=0 и ревизий нет (отозвано) -->
-    <span class="status-badge status-hidden">📄 Отозвано (черновик)</span>
+    <span class="status-badge status-hidden"><?php echo rr_icon('file-text'); ?> Отозвано (черновик)</span>
     <div class="status-hint">Вы отозвали правки, объявление не будет опубликовано</div>
 <?php elseif ($loc['is_occupied']): ?>
-    <span class="status-badge status-occupied">🔒 Занято оператором</span>
+    <span class="status-badge status-occupied"><?php echo rr_icon('lock'); ?> Занято оператором</span>
     <div class="status-hint">Скрыто из каталога — за локацией закреплён оператор</div>
 <?php elseif ($loc['is_active']): ?>
-    <span class="status-badge status-active">✅ Активно</span>
+    <span class="status-badge status-active"><?php echo rr_icon('check'); ?> Активно</span>
 <?php else: ?>
-    <span class="status-badge status-hidden">🚫 Скрыто</span>
+    <span class="status-badge status-hidden"><?php echo rr_icon('ban'); ?> Скрыто</span>
 <?php endif; ?>
 </div>
                                 </div>
                             </a>
 <div class="card-actions">
     <?php if ($loc['pending_revisions_count'] > 0): ?>
-        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" data-rr-confirm="Отозвать правки и перейти к редактированию?" data-rr-confirm-ok="Отозвать">✏️ Отозвать и редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" data-rr-confirm="Отозвать правки и перейти к редактированию?" data-rr-confirm-ok="Отозвать"><?php echo rr_icon('edit'); ?> Отозвать и редактировать</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
     <?php elseif (!$loc['is_moderated']): ?>
-        <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
+        <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit"><?php echo rr_icon('edit'); ?> Редактировать</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
     <?php else: ?>
-        <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit">✏️ Редактировать</a>
+        <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-edit"><?php echo rr_icon('edit'); ?> Редактировать</a>
         <?php if ($loc['is_active'] == 1): ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Скрыть?" data-rr-confirm-ok="Скрыть">🙈 Скрыть</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Скрыть?" data-rr-confirm-ok="Скрыть"><?php echo rr_icon('eye-off'); ?> Скрыть</a>
         <?php else: ?>
-            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Показать?" data-rr-confirm-ok="Показать">👁️ Показать</a>
+            <a href="/pages/owner_actions.php?action=toggle&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-toggle" data-rr-confirm="Показать?" data-rr-confirm-ok="Показать"><?php echo rr_icon('eye'); ?> Показать</a>
         <?php endif; ?>
-        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
+        <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
     <?php endif; ?>
 </div>
                         </div>
@@ -260,11 +260,11 @@ unset($_SESSION['flash']);
             <?php else: ?>
                 <div class="empty-locations">
                     <?php if ($filter === 'pending'): ?>
-                        <p>✅ Нет локаций на модерации</p>
+                        <p><?php echo rr_icon('check'); ?> Нет локаций на модерации</p>
                         <p><a href="?filter=all">Посмотреть все локации</a></p>
                     <?php else: ?>
                         <p>У вас пока нет добавленных локаций.</p>
-                        <p><a href="/pages/add_location.php">➕ Добавить первую локацию</a></p>
+                        <p><a href="/pages/add_location.php"><?php echo rr_icon('plus-circle'); ?> Добавить первую локацию</a></p>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
@@ -274,7 +274,7 @@ unset($_SESSION['flash']);
     <!-- МОДАЛЬНОЕ ОКНО ДЛЯ ВЫБОРА ЦВЕТА -->
     <div class="modal-overlay" id="avatarModal">
         <div class="modal">
-            <h3>🎨 Выберите цвет аватара</h3>
+            <h3>Выберите цвет аватара</h3>
             <form method="POST" id="avatarForm">
                 <?php echo csrf_field(); ?>
                 <div class="color-grid">

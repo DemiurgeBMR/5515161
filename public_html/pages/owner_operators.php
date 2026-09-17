@@ -51,16 +51,16 @@ $operators = $stmt->fetchAll();
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="oo-container">
     <a href="/pages/profile.php" class="back-link">← Назад</a>
-    <h2>👥 Мои операторы</h2>
+    <h2><?php echo rr_icon('users'); ?> Мои операторы</h2>
     <p class="page-intro spaced">Операторы, закреплённые за вашими локациями.</p>
 
     <?php if (isset($_SESSION['flash'])): ?>
-        <div class="flash-message<?php echo strpos($_SESSION['flash'], '✅') !== false ? '' : ' flash-error'; ?>">
+        <div class="flash-message<?php echo strpos($_SESSION['flash'], 'Успешно') !== false ? '' : ' flash-error'; ?>">
             <?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?>
         </div>
     <?php endif; ?>
 
-    <button class="btn-add" id="addAssignmentBtn">➕ Закрепить оператора</button>
+    <button class="btn-add" id="addAssignmentBtn"><?php echo rr_icon('plus-circle'); ?> Закрепить оператора</button>
 
     <?php if (count($assignments) > 0): ?>
         <div class="assignments-table">
@@ -99,7 +99,7 @@ $operators = $stmt->fetchAll();
 <div class="modal-overlay" id="addModal">
     <div class="modal-box">
         <button class="close-btn" onclick="closeModal()" aria-label="Закрыть">&times;</button>
-        <h3>➕ Закрепить оператора</h3>
+        <h3><?php echo rr_icon('plus-circle'); ?> Закрепить оператора</h3>
         <form id="addForm">
             <div class="form-group">
                 <label for="locationSelect">Локация</label>

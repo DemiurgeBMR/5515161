@@ -59,13 +59,13 @@ $remaining = (int) $pdo->query("
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="admin-container">
-        <h1>🌍 Геокодирование локаций</h1>
+        <h1><?php echo rr_icon('globe'); ?> Геокодирование локаций</h1>
 
         <div class="nav-admin">
-            <a href="/admin/index.php">📋 На модерацию</a>
-            <a href="/admin/locations.php">📍 Все локации</a>
-            <a href="/admin/users.php">👥 Пользователи</a>
-            <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
+            <a href="/admin/index.php"><?php echo rr_icon('list'); ?> На модерацию</a>
+            <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
+            <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
+            <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
         </div>
 
         <p>Эта страница проставляет координаты локациям, добавленным до появления карты
@@ -85,7 +85,7 @@ $remaining = (int) $pdo->query("
                 </button>
             </form>
         <?php else: ?>
-            <p>🎉 Все локации с адресом уже имеют координаты.</p>
+            <p><?php echo rr_icon('check'); ?> Все локации с адресом уже имеют координаты.</p>
         <?php endif; ?>
 
         <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>

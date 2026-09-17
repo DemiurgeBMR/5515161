@@ -531,7 +531,7 @@ fileInput.addEventListener('change', function(e) {
                 if (!selectedCity) {
                     const val = input.value.trim();
                     if (val.length > 0) {
-                        status.innerHTML = 'ℹ️ Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.';
+                        status.innerHTML = '<?php echo rr_icon('info-circle'); ?> Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.';
                         status.classList.add('status-ok'); status.classList.remove('status-error');
                     }
                 }

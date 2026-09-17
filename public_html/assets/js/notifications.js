@@ -19,6 +19,27 @@ $(document).ready(function () {
         system: '#9a9aa5'
     };
 
+    // Зеркало нужного подмножества includes/icons.php — сервер присылает имя
+    // иконки (а не эмодзи) в поле notif.icon, здесь оно превращается в SVG.
+    var ICON_PATHS = {
+        'message-circle': '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+        'calendar': '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+        'check': '<path d="M4 12l5 5L20 6"/>',
+        'wrench': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+        'shield': '<path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/>',
+        'info-circle': '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.01"/>',
+        'warning': '<path d="M12 3l10 18H2L12 3z"/><path d="M12 10v4M12 17v.01"/>',
+        'refresh': '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
+        'x': '<path d="M5 5l14 14M19 5L5 19"/>',
+        'mail': '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M3 6l9 7 9-7"/>'
+    };
+
+    function iconSvg(name) {
+        var inner = ICON_PATHS[name] || ICON_PATHS['info-circle'];
+        return '<svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+            'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+    }
+
     function escapeHtml(text) {
         var div = document.createElement('div');
         div.textContent = text == null ? '' : String(text);
@@ -59,7 +80,7 @@ $(document).ready(function () {
         }
 
         var color = CATEGORY_COLORS[notif.category] || CATEGORY_COLORS.system;
-        var avatarContent = notif.icon;
+        var avatarContent = iconSvg(notif.icon);
         var titleText = 'Уведомление';
 
         if (notif.category === 'chat' && notif.data && notif.data.sender_name) {
@@ -144,7 +165,7 @@ $(document).ready(function () {
         dropdownList.innerHTML = items.map(function (n) {
             var color = CATEGORY_COLORS[n.category] || CATEGORY_COLORS.system;
             return '<a href="' + escapeHtml(n.link || '#') + '" class="notif-dd-item' + (n.is_unread ? ' unread' : '') + '" data-id="' + n.id + '">' +
-                '<span class="notif-dd-icon" style="background:' + color + '">' + n.icon + '</span>' +
+                '<span class="notif-dd-icon" style="background:' + color + '">' + iconSvg(n.icon) + '</span>' +
                 '<span class="notif-dd-body">' +
                     '<span class="notif-dd-text">' + escapeHtml(n.message) + '</span>' +
                     '<span class="notif-dd-time">' + getTimeAgo(n.created_at) + '</span>' +

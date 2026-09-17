@@ -54,7 +54,7 @@ $isSubscribed = !empty($_SESSION['has_subscription']);
 
     <div class="subscription-container">
         <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2>💳 Подписка</h2>
+        <h2><?php echo rr_icon('card'); ?> Подписка</h2>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
@@ -62,7 +62,7 @@ $isSubscribed = !empty($_SESSION['has_subscription']);
 
         <div class="subscription-card">
             <div class="subscription-status <?php echo $isSubscribed ? 'active' : 'inactive'; ?>">
-                <?php echo $isSubscribed ? '✅ Подписка активна' : '⛔ Подписка не оформлена'; ?>
+                <?php echo $isSubscribed ? rr_icon('check') . ' Подписка активна' : rr_icon('x') . ' Подписка не оформлена'; ?>
             </div>
 
             <p class="subscription-description">
@@ -71,8 +71,8 @@ $isSubscribed = !empty($_SESSION['has_subscription']);
             </p>
 
             <ul class="subscription-benefits">
-                <li>🗺️ Интерактивная карта с точками локаций (без подписки — только список «город → сколько точек»)</li>
-                <li>📍 Точный адрес локации на её карточке (без подписки — только город)</li>
+                <li><?php echo rr_icon('map-pin'); ?> Интерактивная карта с точками локаций (без подписки — только список «город → сколько точек»)</li>
+                <li><?php echo rr_icon('map-pin'); ?> Точный адрес локации на её карточке (без подписки — только город)</li>
             </ul>
 
             <form method="POST">

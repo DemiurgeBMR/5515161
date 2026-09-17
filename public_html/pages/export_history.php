@@ -85,7 +85,7 @@ if ($format === 'pdf') {
     if (!file_exists($tfpdfPath)) {
         http_response_code(500);
         echo '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>PDF недоступен</title></head><body style="font-family:sans-serif; max-width:600px; margin:60px auto; padding:0 20px;">';
-        echo '<h2>⚠️ Экспорт в PDF пока не настроен</h2>';
+        echo '<h2>' . rr_icon('warning') . ' Экспорт в PDF пока не настроен</h2>';
         echo '<p>Для генерации PDF на сервере нужна библиотека <b>tFPDF</b> (умеет кириллицу, в отличие от обычного FPDF).</p>';
         echo '<ol>';
         echo '<li>Скачай архив: <a href="https://github.com/dejanmarkovic/tFPDF" target="_blank">github.com/dejanmarkovic/tFPDF</a></li>';
@@ -102,7 +102,7 @@ if ($format === 'pdf') {
     if (!class_exists('tFPDF')) {
         http_response_code(500);
         echo '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>PDF недоступен</title></head><body style="font-family:sans-serif; max-width:600px; margin:60px auto; padding:0 20px;">';
-        echo '<h2>⚠️ Файл tfpdf.php подключился, но класс tFPDF не определился</h2>';
+        echo '<h2>' . rr_icon('warning') . ' Файл tfpdf.php подключился, но класс tFPDF не определился</h2>';
         echo '<p>Обычно это значит, что скачался не сам PHP-код, а HTML-страница GitHub — открой файл в блокноте: он должен начинаться с <code>&lt;?php</code>, а не с <code>&lt;!DOCTYPE html&gt;</code>.</p>';
         echo '<p><a href="javascript:history.back()">← Назад</a></p>';
         echo '</body></html>';

@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
 
     <div class="ep-page">
         <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h1 class="ep-title">✏️ Настройки аккаунта</h1>
+        <h1 class="ep-title"><?php echo rr_icon('edit'); ?> Настройки аккаунта</h1>
 
         <?php if ($error): ?>
             <div class="error" role="alert"><?php echo $error; ?></div>
@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             <?php echo csrf_field(); ?>
 
             <div class="ep-card">
-                <h2 class="ep-card-title">👤 Личные данные</h2>
+                <h2 class="ep-card-title"><?php echo rr_icon('users'); ?> Личные данные</h2>
                 <div class="form-group">
                     <label>Имя *</label>
                     <input type="text" name="full_name" required value="<?php echo htmlspecialchars($user['full_name']); ?>">
@@ -198,10 +198,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                     <label>Email *</label>
                     <input type="email" name="email" required value="<?php echo htmlspecialchars($user['email']); ?>">
                     <?php if ($user['is_verified']): ?>
-                        <span class="ep-field-hint ep-field-hint-ok">✓ Подтверждён</span>
+                        <span class="ep-field-hint ep-field-hint-ok"><?php echo rr_icon('check'); ?> Подтверждён</span>
                     <?php else: ?>
                         <span class="ep-field-hint ep-field-hint-warn">
-                            ✉️ Не подтверждён — ссылка есть в шапке сайта,
+                            <?php echo rr_icon('mail'); ?> Не подтверждён — ссылка есть в шапке сайта,
                             <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>">получить новую</a>
                         </span>
                     <?php endif; ?>
@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             </div>
 
             <div class="ep-card">
-                <h2 class="ep-card-title">🔑 Смена пароля</h2>
+                <h2 class="ep-card-title"><?php echo rr_icon('key'); ?> Смена пароля</h2>
                 <p class="ep-card-hint">Оставьте эти два поля пустыми, если не хотите менять пароль.</p>
                 <div class="form-row">
                     <div class="form-group">
@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             </div>
 
             <div class="ep-card">
-                <h2 class="ep-card-title">🔐 Безопасность входа</h2>
+                <h2 class="ep-card-title"><?php echo rr_icon('lock'); ?> Безопасность входа</h2>
                 <label class="ep-toggle">
                     <input type="checkbox" name="two_factor_enabled" <?php echo $user['two_factor_enabled'] ? 'checked' : ''; ?>>
                     <span class="ep-toggle-track"><span class="ep-toggle-thumb"></span></span>
@@ -236,12 +236,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             </div>
 
             <div class="ep-card ep-card-confirm">
-                <h2 class="ep-card-title">✅ Подтверждение</h2>
+                <h2 class="ep-card-title"><?php echo rr_icon('check'); ?> Подтверждение</h2>
                 <div class="form-group">
                     <label>Текущий пароль *</label>
                     <input type="password" name="current_password" required placeholder="Введите текущий пароль, чтобы сохранить изменения">
                 </div>
-                <button type="submit" class="btn-submit">💾 Сохранить изменения</button>
+                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
             </div>
         </form>
 
@@ -256,16 +256,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             <?php echo csrf_field(); ?>
             <input type="hidden" name="update_notification_prefs" value="1">
             <div class="ep-card">
-                <h2 class="ep-card-title">🔔 Уведомления</h2>
+                <h2 class="ep-card-title"><?php echo rr_icon('bell'); ?> Уведомления</h2>
                 <p class="ep-card-hint">Какие уведомления присылать — не влияет на пароль, менять можно без его ввода.</p>
                 <?php foreach (NOTIFICATION_CATEGORIES as $catKey => $catMeta): ?>
                     <label class="ep-toggle ep-toggle-compact">
                         <input type="checkbox" name="notif_cat_<?php echo htmlspecialchars($catKey); ?>" <?php echo $categoryEnabled[$catKey] ? 'checked' : ''; ?>>
                         <span class="ep-toggle-track"><span class="ep-toggle-thumb"></span></span>
-                        <span class="ep-toggle-label"><?php echo $catMeta['icon']; ?> <?php echo htmlspecialchars($catMeta['label']); ?></span>
+                        <span class="ep-toggle-label"><?php echo rr_icon($catMeta['icon']); ?> <?php echo htmlspecialchars($catMeta['label']); ?></span>
                     </label>
                 <?php endforeach; ?>
-                <button type="submit" class="btn-submit">💾 Сохранить настройки уведомлений</button>
+                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить настройки уведомлений</button>
             </div>
         </form>
     </div>

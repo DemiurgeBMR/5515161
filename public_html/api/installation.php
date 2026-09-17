@@ -287,8 +287,8 @@ switch ($action) {
         $link = '/pages/events_calendar.php?event_id=' . $event_id;
         $type = $is_emergency ? 'emergency_event' : 'event_requested';
         $message = $is_emergency
-            ? '🚨 Срочный выезд запрошен для точки ' . $lo['location_title']
-            : '📅 Запрошен визит (' . ($eventTypeLabels[$event_type] ?? $event_type) . ') для точки ' . $lo['location_title'];
+            ? 'Срочный выезд запрошен для точки ' . $lo['location_title']
+            : 'Запрошен визит (' . ($eventTypeLabels[$event_type] ?? $event_type) . ') для точки ' . $lo['location_title'];
         notify($pdo, $receiver_id, $type, $message, $link, ['event_id' => $event_id]);
         // =========================
 
@@ -339,7 +339,7 @@ switch ($action) {
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
         $link = '/pages/events_calendar.php?event_id=' . $event_id;
-        notify($pdo, $receiver_id, 'event_confirmed', '✅ Дата выезда подтверждена', $link, ['event_id' => $event_id]);
+        notify($pdo, $receiver_id, 'event_confirmed', 'Дата выезда подтверждена', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -466,7 +466,7 @@ switch ($action) {
                 $pdo,
                 $receiver_id,
                 'event_rescheduled',
-                '🔄 Дата выезда изменена',
+                'Дата выезда изменена',
                 $link,
                 ['event_id' => $event_id]
             );
@@ -519,7 +519,7 @@ switch ($action) {
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
         $link = '/pages/events_calendar.php?event_id=' . $event_id;
-        notify($pdo, $receiver_id, 'event_cancelled', '❌ Выезд отменён', $link, ['event_id' => $event_id]);
+        notify($pdo, $receiver_id, 'event_cancelled', 'Выезд отменён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true]);
@@ -559,7 +559,7 @@ switch ($action) {
         // ===== УВЕДОМЛЕНИЕ =====
         $receiver_id = ($user_id == $event['operator_id']) ? $event['owner_id'] : $event['operator_id'];
         $link = '/pages/events_calendar.php?event_id=' . $event_id;
-        notify($pdo, $receiver_id, 'event_completed', '✅ Выезд завершён', $link, ['event_id' => $event_id]);
+        notify($pdo, $receiver_id, 'event_completed', 'Выезд завершён', $link, ['event_id' => $event_id]);
         // =========================
 
         echo json_encode(['success' => true, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
@@ -723,7 +723,7 @@ switch ($action) {
             // Уведомление владельцу — постфактум, без запроса на подтверждение
             $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
-            $message = '🔧 Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
+            $message = 'Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
             notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);
 
             echo json_encode(['success' => true, 'log_id' => $log_id, 'machine_id' => $machine_id, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);

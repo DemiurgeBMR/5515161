@@ -42,17 +42,17 @@ unset($_SESSION['flash']);
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
     <div class="admin-container">
-        <h1>👑 Админ-панель</h1>
+        <h1><?php echo rr_icon('shield'); ?> Админ-панель</h1>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
         <?php endif; ?>
 
         <div class="nav-admin">
-            <a href="/admin/index.php">📋 На модерацию</a>
-            <a href="/admin/locations.php">📍 Все локации</a>
-            <a href="/admin/users.php">👥 Пользователи</a>
-            <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
+            <a href="/admin/index.php"><?php echo rr_icon('list'); ?> На модерацию</a>
+            <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
+            <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
+            <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
         </div>
         
         <div class="admin-stats">
@@ -70,7 +70,7 @@ unset($_SESSION['flash']);
             </div>
         </div>
         
-        <h2>📌 Локации, ожидающие модерации</h2>
+        <h2><?php echo rr_icon('clock'); ?> Локации, ожидающие модерации</h2>
         
         <?php if (count($pending) > 0): ?>
             <div class="admin-table">
@@ -97,13 +97,13 @@ unset($_SESSION['flash']);
                                 <td><?php echo $loc['pending_revisions']; ?></td>
                                 <td class="actions">
                                     <!-- Просмотр всех ревизий -->
-                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
+                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view"><?php echo rr_icon('list'); ?> Правки</a>
                                     <!-- Одобрить все правки (применяет последнюю) -->
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
                                     <!-- Отклонить все правки -->
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
                                     <!-- Просмотр на сайте -->
-                                    <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
+                                    <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view"><?php echo rr_icon('eye'); ?></a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -112,7 +112,7 @@ unset($_SESSION['flash']);
             </div>
         <?php else: ?>
             <div class="empty-pending">
-                <h3>✅ Всё чисто!</h3>
+                <h3><?php echo rr_icon('check'); ?> Всё чисто!</h3>
                 <p>Нет локаций, ожидающих модерации.</p>
             </div>
         <?php endif; ?>

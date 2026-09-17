@@ -54,40 +54,40 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="calendar-header">
         <div class="calendar-title-block">
             <a href="<?php echo $backLink; ?>" class="cal-back-link">← Назад</a>
-            <h1 class="calendar-title">📅 Выезды и обслуживание</h1>
+            <h1 class="calendar-title"><?php echo rr_icon('calendar'); ?> Выезды и обслуживание</h1>
             <p class="calendar-subtitle">Планирование, согласование и история обслуживания точек</p>
         </div>
         <div class="calendar-actions">
-            <button class="action-btn" id="historyBtn">📜 История и экспорт</button>
+            <button class="action-btn" id="historyBtn"><?php echo rr_icon('file-text'); ?> История и экспорт</button>
             <button class="action-btn" id="refreshCalendarBtn">↻ Обновить</button>
-            <button class="action-btn primary" id="newEventBtn">＋ Новый выезд</button>
+            <button class="action-btn primary" id="newEventBtn"><?php echo rr_icon('plus-circle'); ?> Новый выезд</button>
         </div>
     </div>
 
     <div class="calendar-stats">
         <div class="stat-card" data-filter="today" id="statToday">
-            <div class="stat-icon today">📅</div>
+            <div class="stat-icon today"><?php echo rr_icon('calendar'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="todayCount">0</div>
                 <div class="stat-label">Событий сегодня</div>
             </div>
         </div>
         <div class="stat-card" data-filter="pending" id="statPending">
-            <div class="stat-icon pending">⏳</div>
+            <div class="stat-icon pending"><?php echo rr_icon('clock'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="pendingCount">0</div>
                 <div class="stat-label">Ожидают подтверждения</div>
             </div>
         </div>
         <div class="stat-card" data-filter="emergency" id="statEmergency">
-            <div class="stat-icon emergency">🚨</div>
+            <div class="stat-icon emergency"><?php echo rr_icon('warning'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="emergencyCount">0</div>
                 <div class="stat-label">Срочных выездов</div>
             </div>
         </div>
         <div class="stat-card" id="statCompleted">
-            <div class="stat-icon completed">✅</div>
+            <div class="stat-icon completed"><?php echo rr_icon('check'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="completedCount">0</div>
                 <div class="stat-label">Выполнено за месяц</div>
@@ -98,7 +98,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="calendar-toolbar">
         <div class="toolbar-left">
             <div class="cal-search-box">
-                <span class="search-icon">🔎</span>
+                <span class="search-icon"><?php echo rr_icon('search'); ?></span>
                 <input type="text" id="eventSearch" placeholder="Поиск по точке, городу, оператору...">
             </div>
         </div>
@@ -113,16 +113,16 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             </select>
             <select class="filter-select" id="statusFilter">
                 <option value="all">Все статусы</option>
-                <option value="requested">⏳ Ожидают</option>
-                <option value="reviewing">🔄 На рассмотрении</option>
-                <option value="confirmed">✅ Подтверждены</option>
-                <option value="completed">✔️ Завершены</option>
-                <option value="cancelled">⛔ Отменены</option>
-                <option value="quicklog">📝 Постфактум-отметки</option>
+                <option value="requested">Ожидают</option>
+                <option value="reviewing">На рассмотрении</option>
+                <option value="confirmed">Подтверждены</option>
+                <option value="completed">Завершены</option>
+                <option value="cancelled">Отменены</option>
+                <option value="quicklog">Постфактум-отметки</option>
             </select>
             <select class="filter-select" id="emergencyFilter">
                 <option value="all">Все выезды</option>
-                <option value="emergency">🚨 Только срочные</option>
+                <option value="emergency">Только срочные</option>
                 <option value="normal">Обычные</option>
             </select>
             <?php if ($role === 'owner'): ?>
@@ -197,7 +197,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <div class="cal-form-group">
                 <label class="emergency-toggle" for="isEmergency">
                     <input type="checkbox" id="isEmergency">
-                    <span>🚨 Срочный выезд</span>
+                    <span><?php echo rr_icon('warning'); ?> Срочный выезд</span>
                 </label>
             </div>
             <div class="cal-form-group cal-hidden" id="emergencyGroup">
@@ -232,7 +232,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="cal-modal-box">
         <div class="cal-modal-header">
             <div>
-                <h3 class="cal-modal-title">✏️ Изменить время</h3>
+                <h3 class="cal-modal-title"><?php echo rr_icon('edit'); ?> Изменить время</h3>
                 <p class="cal-modal-subtitle">Выберите новую дату и время</p>
             </div>
             <button type="button" class="cal-close-btn" onclick="closeRescheduleModal()" aria-label="Закрыть">×</button>
@@ -256,7 +256,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="cal-modal-box">
         <div class="cal-modal-header">
             <div>
-                <h3 class="cal-modal-title">✔️ Завершить выезд</h3>
+                <h3 class="cal-modal-title"><?php echo rr_icon('check'); ?> Завершить выезд</h3>
                 <p class="cal-modal-subtitle">Можно приложить фото подтверждения</p>
             </div>
             <button type="button" class="cal-close-btn" onclick="closeCompleteModal()" aria-label="Закрыть">×</button>
@@ -293,10 +293,10 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 
 <!-- ===== КОНТЕКСТНОЕ МЕНЮ ===== -->
 <div class="context-menu" id="contextMenu">
-    <div class="menu-item" id="ctxView">📍 Открыть точку</div>
-    <div class="menu-item" id="ctxConfirm">✅ Подтвердить</div>
-    <div class="menu-item" id="ctxComplete">✔️ Завершить выезд</div>
-    <div class="menu-item danger" id="ctxDelete">🗑️ Отменить выезд</div>
+    <div class="menu-item" id="ctxView"><?php echo rr_icon('map-pin'); ?> Открыть точку</div>
+    <div class="menu-item" id="ctxConfirm"><?php echo rr_icon('check'); ?> Подтвердить</div>
+    <div class="menu-item" id="ctxComplete"><?php echo rr_icon('check'); ?> Завершить выезд</div>
+    <div class="menu-item danger" id="ctxDelete"><?php echo rr_icon('trash'); ?> Отменить выезд</div>
 </div>
 
 <script>
@@ -383,11 +383,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getStatusIcon(status) {
-        const map = {
-            'requested': '🟡', 'reviewing': '🟠', 'confirmed': '🔵',
-            'completed': '🟢', 'cancelled': '⚫', 'quicklog': '📝'
+        if (status === 'quicklog') return '<?php echo rr_icon('edit'); ?>';
+        const colors = {
+            'requested': '#f1c40f', 'reviewing': '#e67e22', 'confirmed': '#3498db',
+            'completed': '#2ecc71', 'cancelled': '#7f8c8d'
         };
-        return map[status] || '⚪';
+        return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (colors[status] || '#bbb') + '"></span>';
     }
 
     function formatLocalDate(date) {
@@ -640,7 +641,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const container = document.getElementById('todayEvents');
         if (todayItems.length === 0) {
-            container.innerHTML = `<div class="today-empty">🎉 Сегодня событий нет</div>`;
+            container.innerHTML = `<div class="today-empty"><?php echo rr_icon('check'); ?> Сегодня событий нет</div>`;
             return;
         }
 
@@ -649,12 +650,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const time = item.start.substring(11, 16);
             let statusClass = 'status-' + props.status;
             if (props.is_emergency) statusClass = 'status-emergency';
-            const icon = props.kind === 'quicklog' ? '📝 ' : (props.is_emergency ? '🚨 ' : '');
+            const icon = props.kind === 'quicklog' ? '<?php echo rr_icon('edit'); ?> ' : (props.is_emergency ? '<?php echo rr_icon('warning'); ?> ' : '');
             return `
                 <div class="today-event" onclick="openEventFromSidebar('${item.id}')">
                     <div class="today-event-time">${icon}${time}</div>
                     <div class="today-event-title">${escapeHtml(props.location_title || item.title)}</div>
-                    <div class="today-event-city">📍 ${escapeHtml(props.city || '')}${props.operator_name && ROLE === 'owner' ? ' · ' + escapeHtml(props.operator_name) : ''}</div>
+                    <div class="today-event-city"><?php echo rr_icon('map-pin'); ?> ${escapeHtml(props.city || '')}${props.operator_name && ROLE === 'owner' ? ' · ' + escapeHtml(props.operator_name) : ''}</div>
                     <span class="today-event-status ${statusClass}">${getStatusIcon(props.status)} ${getStatusText(props.status)}</span>
                 </div>
             `;
@@ -726,7 +727,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 8. СОЗДАНИЕ (запрос визита)
     // ============================================================
     function openCreateModal(date, time) {
-        document.getElementById('modalTitle').textContent = '📅 Запросить визит';
+        document.getElementById('modalTitle').textContent = 'Запросить визит';
         document.getElementById('modalSub').textContent = 'Дата: ' + formatReadableDate(date);
         document.getElementById('modalLocationOperator').value = '';
         document.getElementById('modalEventType').value = 'maintenance';
@@ -782,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(data => {
                 if (data.success) {
                     closeModal();
-                    showToast(isEmergency ? '🚨 Срочный визит запрошен' : '✅ Визит запрошен', 'success');
+                    showToast(isEmergency ? 'Срочный визит запрошен' : 'Визит запрошен', 'success');
                     calendar.refetchEvents();
                 } else {
                     showFormError(errorEl, data.error || 'Ошибка создания запроса');
@@ -853,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const props = event.extendedProps;
 
         if (props.kind === 'quicklog') {
-            document.getElementById('detailsTitle').textContent = '📝 Постфактум-отметка';
+            document.getElementById('detailsTitle').textContent = 'Постфактум-отметка';
             document.getElementById('detailsSubtitle').textContent = props.location_title + (props.city ? ' • ' + props.city : '');
             let html = `
                 <div class="detail-grid">
@@ -868,13 +869,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 html += `<div class="detail-item spaced"><div class="detail-label">Комментарий</div><div class="detail-value">${escapeHtml(props.comment)}</div></div>`;
             }
             html += renderPhotosBlock(props.photos);
-            html += `<div class="detail-actions"><button class="cal-btn-primary full" onclick="openRelatedPage()">📍 Открыть точку</button></div>`;
+            html += `<div class="detail-actions"><button class="cal-btn-primary full" onclick="openRelatedPage()"><?php echo rr_icon('map-pin'); ?> Открыть точку</button></div>`;
             document.getElementById('detailsContent').innerHTML = html;
             detailsModal.classList.add('active');
             return;
         }
 
-        document.getElementById('detailsTitle').textContent = props.is_emergency ? '🚨 Срочный выезд' : ('📅 ' + (eventTypeLabels[props.event_type] || props.event_type));
+        document.getElementById('detailsTitle').textContent = props.is_emergency ? 'Срочный выезд' : (eventTypeLabels[props.event_type] || props.event_type);
         document.getElementById('detailsSubtitle').textContent = props.location_title + (props.city ? ' • ' + props.city : '');
 
         let statusClass = 'status-' + props.status;
@@ -910,7 +911,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (props.is_emergency) {
             html += `
                 <div class="emergency-reason">
-                    <div class="emergency-reason-title">🚨 Причина срочности</div>
+                    <div class="emergency-reason-title"><?php echo rr_icon('warning'); ?> Причина срочности</div>
                     <div class="emergency-reason-text">${escapeHtml(props.emergency_comment || 'Причина не указана')}</div>
                 </div>
             `;
@@ -919,22 +920,22 @@ document.addEventListener('DOMContentLoaded', function () {
         html += renderPhotosBlock(props.photos);
 
         html += `<div class="detail-actions">`;
-        html += `<button class="cal-btn-primary full" onclick="openRelatedPage()">${props.application_id ? '💬 Открыть заявку' : '📍 Открыть точку'}</button>`;
+        html += `<button class="cal-btn-primary full" onclick="openRelatedPage()">${props.application_id ? '<?php echo rr_icon('message-circle'); ?> Открыть заявку' : '<?php echo rr_icon('map-pin'); ?> Открыть точку'}</button>`;
 
         const isRequester = String(props.requested_by) === String(USER_ID);
         const isPending = props.status === 'requested' || props.status === 'reviewing';
 
         if (isPending && !isRequester) {
-            html += `<button class="cal-btn-primary" onclick="confirmActiveEvent()">✅ Подтвердить</button>`;
+            html += `<button class="cal-btn-primary" onclick="confirmActiveEvent()"><?php echo rr_icon('check'); ?> Подтвердить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-primary" onclick="openRescheduleModal()">✏️ Изменить время</button>`;
+            html += `<button class="cal-btn-primary" onclick="openRescheduleModal()"><?php echo rr_icon('edit'); ?> Изменить время</button>`;
         }
         if (props.status === 'confirmed') {
-            html += `<button class="cal-btn-primary" onclick="completeActiveEvent()">✔️ Завершить</button>`;
+            html += `<button class="cal-btn-primary" onclick="completeActiveEvent()"><?php echo rr_icon('check'); ?> Завершить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-danger" onclick="cancelActiveEvent()">🗑️ Отменить</button>`;
+            html += `<button class="cal-btn-danger" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить</button>`;
         }
         html += `</div>`;
 
@@ -1009,7 +1010,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.success) {
                     closeRescheduleModal();
                     closeDetailsModal();
-                    showToast('✅ Дата выезда обновлена', 'success');
+                    showToast('Дата выезда обновлена', 'success');
                     calendar.refetchEvents();
                 } else {
                     showFormError(errorEl, data.error || 'Ошибка изменения даты');
@@ -1045,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!activeEvent) return;
         sendEventAction('confirm', activeEvent.extendedProps.dbId, function() {
             closeDetailsModal();
-            showToast('✅ Визит подтверждён', 'success');
+            showToast('Визит подтверждён', 'success');
             calendar.refetchEvents();
         });
     };
@@ -1124,9 +1125,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (data.success) {
                 closeCompleteModal();
                 closeDetailsModal();
-                showToast('✅ Выезд завершён', 'success');
+                showToast('Выезд завершён', 'success');
                 if (data.photo_errors && data.photo_errors.length > 0) {
-                    showToast('⚠️ Не все фото сохранились: ' + data.photo_errors.join('; '), 'warning');
+                    showToast('Не все фото сохранились: ' + data.photo_errors.join('; '), 'warning');
                 }
                 calendar.refetchEvents();
             } else {

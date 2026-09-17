@@ -23,18 +23,18 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="docs-container">
     <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>
-    <h2>📄 Документы</h2>
+    <h2><?php echo rr_icon('file-text'); ?> Документы</h2>
     <p class="page-intro spaced">Шаблоны документов, которые могут понадобиться при работе с точками.</p>
 
     <div class="warning-box">
-        <b>⚠ Это черновики-шаблоны, а не готовые юридические документы</b>
+        <b><?php echo rr_icon('warning'); ?> Это черновики-шаблоны, а не готовые юридические документы</b>
         Перед использованием в реальных сделках обязательно проверьте документ у практикующего юриста —
         с учётом вашей юрисдикции, формы собственности сторон и актуального законодательства.
     </div>
 
     <div class="doc-card">
         <div class="doc-info">
-            <div class="icon">📝</div>
+            <div class="icon"><?php echo rr_icon('edit'); ?></div>
             <div class="title">Договор о размещении и обслуживании вендингового автомата</div>
             <div class="desc">
                 Типовой договор между владельцем локации и оператором: предмет, порядок оплаты
@@ -43,7 +43,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             </div>
         </div>
         <a class="btn-download" href="/assets/documents/dogovor_razmeschenie_vendinga.docx" download>
-            ⬇️ Скачать .docx
+            <?php echo rr_icon('download'); ?> Скачать .docx
         </a>
     </div>
 </div>
