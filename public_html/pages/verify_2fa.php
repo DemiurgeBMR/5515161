@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
-        <h2>🔐 Подтверждение входа</h2>
+        <h2><?php echo rr_icon('lock'); ?> Подтверждение входа</h2>
         <p class="auth-note">
             На аккаунте включена двухфакторная аутентификация — введите код, чтобы завершить вход.
         </p>

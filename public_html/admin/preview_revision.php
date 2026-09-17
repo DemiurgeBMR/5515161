@@ -115,7 +115,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
         <a href="/admin/view_revisions.php?id=<?php echo $location['id']; ?>" class="btn-back">← Назад к списку ревизий</a>
         
         <div class="changes-card">
-            <h2>📋 Ревизия #<?php echo $revision['id']; ?> для объявления #<?php echo $location['id']; ?></h2>
+            <h2><?php echo rr_icon('list'); ?> Ревизия #<?php echo $revision['id']; ?> для объявления #<?php echo $location['id']; ?></h2>
             <p class="revision-meta">
                 Объявление: <strong><?php echo htmlspecialchars($location['title']); ?></strong><br>
                 Создана: <?php echo date('d.m.Y H:i', strtotime($revision['created_at'])); ?>
@@ -162,11 +162,11 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             ?>
             <?php if ($hasPhotoChanges): ?>
                 <div class="change-row photo-row">
-                    <div class="change-label full-width">📷 Фотографии</div>
+                    <div class="change-label full-width"><?php echo rr_icon('camera'); ?> Фотографии</div>
                     <div class="photo-section">
                         <?php if (!empty($newPhotoPaths)): ?>
                             <div class="photo-group">
-                                <strong class="photo-group-title added">➕ Будут добавлены:</strong>
+                                <strong class="photo-group-title added"><?php echo rr_icon('plus-circle'); ?> Будут добавлены:</strong>
                                 <div class="photo-grid">
                                     <?php foreach ($newPhotoPaths as $path): ?>
                                         <div class="photo-item photo-add">
@@ -185,7 +185,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                             $delPhotos = $stmtDel->fetchAll(PDO::FETCH_COLUMN);
                         ?>
                             <div class="photo-group">
-                                <strong class="photo-group-title removed">❌ Будут удалены:</strong>
+                                <strong class="photo-group-title removed"><?php echo rr_icon('x'); ?> Будут удалены:</strong>
                                 <div class="photo-grid">
                                     <?php foreach ($delPhotos as $path): ?>
                                         <div class="photo-item photo-delete">
@@ -207,8 +207,8 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             <?php endif; ?>
 
             <div class="change-actions">
-                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить эту ревизию?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
-                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить эту ревизию?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
+                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить эту ревизию?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
+                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить эту ревизию?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
             </div>
         </div>
     </div>

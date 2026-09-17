@@ -74,17 +74,17 @@ unset($_SESSION['flash']);
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="admin-container">
-        <h1>👑 Админ-панель</h1>
+        <h1><?php echo rr_icon('shield'); ?> Админ-панель</h1>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
         <?php endif; ?>
 
         <div class="nav-admin">
-            <a href="/admin/index.php">📋 На модерацию</a>
-            <a href="/admin/locations.php">📍 Все локации</a>
-            <a href="/admin/users.php">👥 Пользователи</a>
-            <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
+            <a href="/admin/index.php"><?php echo rr_icon('list'); ?> На модерацию</a>
+            <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
+            <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
+            <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
         </div>
 
         <div class="admin-stats">
@@ -106,7 +106,7 @@ unset($_SESSION['flash']);
             </div>
         </div>
 
-        <h2>👥 Все пользователи</h2>
+        <h2><?php echo rr_icon('users'); ?> Все пользователи</h2>
 
         <form method="GET" class="admin-users-filter">
             <input type="text" name="q" placeholder="Имя или email..." value="<?php echo htmlspecialchars($search); ?>">
@@ -144,22 +144,22 @@ unset($_SESSION['flash']);
                                 <td><?php echo htmlspecialchars($u['email']); ?></td>
                                 <td>
                                     <?php
-                                    $roleLabels = ['owner' => '🏢 Владелец', 'operator' => '🤝 Оператор', 'admin' => '👑 Админ'];
+                                    $roleLabels = ['owner' => rr_icon('building') . ' Владелец', 'operator' => rr_icon('check') . ' Оператор', 'admin' => rr_icon('shield') . ' Админ'];
                                     echo $roleLabels[$u['role']] ?? htmlspecialchars($u['role']);
                                     ?>
                                 </td>
                                 <td>
                                     <?php if ($u['is_banned']): ?>
-                                        <span class="user-status-pill user-status-banned" title="<?php echo htmlspecialchars($u['banned_reason'] ?? ''); ?>">🚫 Заблокирован</span>
+                                        <span class="user-status-pill user-status-banned" title="<?php echo htmlspecialchars($u['banned_reason'] ?? ''); ?>"><?php echo rr_icon('ban'); ?> Заблокирован</span>
                                     <?php endif; ?>
                                     <?php if ($u['locked_until'] && strtotime($u['locked_until']) > time()): ?>
-                                        <span class="user-status-pill user-status-locked">⏳ Временная блокировка</span>
+                                        <span class="user-status-pill user-status-locked"><?php echo rr_icon('clock'); ?> Временная блокировка</span>
                                     <?php endif; ?>
                                     <span class="user-status-pill <?php echo $u['is_verified'] ? 'user-status-verified' : 'user-status-unverified'; ?>">
-                                        <?php echo $u['is_verified'] ? '✓ Email подтверждён' : '✉️ Email не подтверждён'; ?>
+                                        <?php echo $u['is_verified'] ? rr_icon('check') . ' Email подтверждён' : rr_icon('mail') . ' Email не подтверждён'; ?>
                                     </span>
                                     <?php if ($u['two_factor_enabled']): ?>
-                                        <span class="user-status-pill user-status-2fa">🔐 2FA</span>
+                                        <span class="user-status-pill user-status-2fa"><?php echo rr_icon('lock'); ?> 2FA</span>
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo formatDate($u['created_at']); ?></td>
@@ -168,15 +168,15 @@ unset($_SESSION['flash']);
                                         <span class="you-note">Это вы</span>
                                     <?php else: ?>
                                         <?php if ($u['is_banned']): ?>
-                                            <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать">✅ Разблокировать</a>
+                                            <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать"><?php echo rr_icon('check'); ?> Разблокировать</a>
                                         <?php else: ?>
-                                            <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Заблокировать пользователя? Он не сможет войти в аккаунт." data-rr-confirm-ok="Заблокировать" data-rr-confirm-danger>🚫 Заблокировать</a>
+                                            <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Заблокировать пользователя? Он не сможет войти в аккаунт." data-rr-confirm-ok="Заблокировать" data-rr-confirm-danger><?php echo rr_icon('ban'); ?> Заблокировать</a>
                                         <?php endif; ?>
 
                                         <?php if ($u['role'] !== 'admin'): ?>
-                                            <a href="/admin/user_actions.php?action=make_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Сделать администратором?" data-rr-confirm-ok="Сделать">👑 В админы</a>
+                                            <a href="/admin/user_actions.php?action=make_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Сделать администратором?" data-rr-confirm-ok="Сделать"><?php echo rr_icon('shield'); ?> В админы</a>
                                         <?php elseif ($total_admins > 1): ?>
-                                            <a href="/admin/user_actions.php?action=remove_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Снять права администратора?" data-rr-confirm-ok="Снять">👤 Снять админку</a>
+                                            <a href="/admin/user_actions.php?action=remove_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Снять права администратора?" data-rr-confirm-ok="Снять"><?php echo rr_icon('x'); ?> Снять админку</a>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
@@ -205,7 +205,7 @@ unset($_SESSION['flash']);
             <?php endif; ?>
         <?php else: ?>
             <div class="empty-pending">
-                <h3>😕 Никого не нашлось</h3>
+                <h3><?php echo rr_icon('frown'); ?> Никого не нашлось</h3>
                 <p>Попробуйте изменить фильтр.</p>
             </div>
         <?php endif; ?>

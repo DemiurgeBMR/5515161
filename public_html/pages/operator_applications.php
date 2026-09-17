@@ -28,13 +28,13 @@ $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 
 $statusLabels = [
-    'pending'    => '⏳ Ожидает',
-    'negotiating' => '🤝 В переговорах',
-    'agreed'     => '✅ Договорённость',
-    'placed'     => '📍 Размещено',
-    'cancelled'  => '❌ Отменена',
-    'approved'   => '✅ Закрепление подтверждено',
-    'rejected'   => '❌ Закрепление отклонено',
+    'pending'    => rr_icon('clock') . ' Ожидает',
+    'negotiating' => rr_icon('check') . ' В переговорах',
+    'agreed'     => rr_icon('check') . ' Договорённость',
+    'placed'     => rr_icon('map-pin') . ' Размещено',
+    'cancelled'  => rr_icon('x') . ' Отменена',
+    'approved'   => rr_icon('check') . ' Закрепление подтверждено',
+    'rejected'   => rr_icon('x') . ' Закрепление отклонено',
 ];
 ?>
 <!DOCTYPE html>
@@ -49,7 +49,7 @@ $statusLabels = [
     <?php include __DIR__ . '/../includes/header.php'; ?>
     <div class="page-container-1000">
         <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
-        <h2>📋 Мои заявки на аренду</h2>
+        <h2><?php echo rr_icon('list'); ?> Мои заявки на аренду</h2>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
@@ -99,7 +99,7 @@ $statusLabels = [
                                 </td>
                                 <td><?php echo date('d.m.Y', strtotime($app['created_at'])); ?></td>
                                 <td>
-                                    <a href="/pages/application_chat.php?application_id=<?php echo $app['id']; ?>" class="btn-view">💬 Чат</a>
+                                    <a href="/pages/application_chat.php?application_id=<?php echo $app['id']; ?>" class="btn-view"><?php echo rr_icon('message-circle'); ?> Чат</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

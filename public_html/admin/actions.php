@@ -214,9 +214,9 @@ function notifyLocationModeration($pdo, $locationId, $approved) {
     }
     $link = '/pages/location.php?id=' . $locationId;
     if ($approved) {
-        notify($pdo, $loc['owner_id'], 'revision_approved', '✅ Правки для «' . $loc['title'] . '» одобрены и опубликованы', $link, ['location_id' => $locationId]);
+        notify($pdo, $loc['owner_id'], 'revision_approved', 'Правки для «' . $loc['title'] . '» одобрены и опубликованы', $link, ['location_id' => $locationId]);
     } else {
-        notify($pdo, $loc['owner_id'], 'revision_rejected', '📄 Правки для «' . $loc['title'] . '» отклонены модератором', $link, ['location_id' => $locationId]);
+        notify($pdo, $loc['owner_id'], 'revision_rejected', 'Правки для «' . $loc['title'] . '» отклонены модератором', $link, ['location_id' => $locationId]);
     }
 }
 

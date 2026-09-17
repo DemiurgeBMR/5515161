@@ -66,14 +66,14 @@ function runMaintenanceReminders($pdo) {
         // Напоминание оператору — с призывом к действию
         $operatorLink = '/pages/operator_locations.php?highlight_machine=' . $row['machine_id'];
         if (!recentReminderExists($pdo, $row['operator_id'], 'maintenance_due', $operatorLink)) {
-            $msg = '⚠️ Точка «' . $row['location_title'] . '» (' . $row['city'] . ') не обслуживалась ' . $days . ' дн.';
+            $msg = 'Точка «' . $row['location_title'] . '» (' . $row['city'] . ') не обслуживалась ' . $days . ' дн.';
             notify($pdo, $row['operator_id'], 'maintenance_due', $msg, $operatorLink, ['machine_id' => $row['machine_id']]);
         }
 
         // Информирование владельца — для контроля за оператором
         $ownerLink = '/pages/service_history.php?location_id=' . $row['machine_id'];
         if (!recentReminderExists($pdo, $row['owner_id'], 'maintenance_due_owner', $ownerLink)) {
-            $msg = 'ℹ️ Оператор не обслуживал точку «' . $row['location_title'] . '» ' . $days . ' дн.';
+            $msg = 'Оператор не обслуживал точку «' . $row['location_title'] . '» ' . $days . ' дн.';
             notify($pdo, $row['owner_id'], 'maintenance_due_owner', $msg, $ownerLink, ['machine_id' => $row['machine_id']]);
         }
     }

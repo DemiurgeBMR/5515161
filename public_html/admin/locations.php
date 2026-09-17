@@ -66,17 +66,17 @@ unset($_SESSION['flash']);
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
     <div class="admin-container">
-        <h1>📍 Все локации</h1>
+        <h1><?php echo rr_icon('map-pin'); ?> Все локации</h1>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
         <?php endif; ?>
 
         <div class="nav-admin">
-            <a href="/admin/index.php">📋 На модерацию</a>
-            <a href="/admin/locations.php">📍 Все локации</a>
-            <a href="/admin/users.php">👥 Пользователи</a>
-            <a href="/admin/geocode_backfill.php">🌍 Геокодирование</a>
+            <a href="/admin/index.php"><?php echo rr_icon('list'); ?> На модерацию</a>
+            <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
+            <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
+            <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
         </div>
         
         <div class="filters">
@@ -109,33 +109,33 @@ unset($_SESSION['flash']);
                             <td><?php echo htmlspecialchars($loc['owner_name']); ?></td>
                             <td>
                                 <?php if ($loc['pending_revisions'] > 0): ?>
-                                    <span class="status pending">⏳ Ожидает правок</span>
+                                    <span class="status pending"><?php echo rr_icon('clock'); ?> Ожидает правок</span>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
-                                    <span class="status pending">⏳ Новая (не одобрена)</span>
+                                    <span class="status pending"><?php echo rr_icon('clock'); ?> Новая (не одобрена)</span>
                                 <?php elseif ($loc['is_active'] == 1): ?>
-                                    <span class="status active">✅ Активна</span>
+                                    <span class="status active"><?php echo rr_icon('check'); ?> Активна</span>
                                 <?php else: ?>
-                                    <span class="status hidden">🚫 Скрыта</span>
+                                    <span class="status hidden"><?php echo rr_icon('ban'); ?> Скрыта</span>
                                 <?php endif; ?>
                             </td>
                             <td class="actions">
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
-                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view">📋 Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить">✅ Одобрить</a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить">❌ Отклонить</a>
+                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view"><?php echo rr_icon('list'); ?> Правки</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
-                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить</a>
+                                    <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
                                 <?php else: ?>
                                     <!-- Уже опубликованная -->
                                     <?php if ($loc['is_active'] == 1): ?>
-                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" data-rr-confirm="Скрыть локацию?" data-rr-confirm-ok="Скрыть">🔒 Скрыть</a>
+                                        <a href="/admin/actions.php?action=hide&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-hide" data-rr-confirm="Скрыть локацию?" data-rr-confirm-ok="Скрыть"><?php echo rr_icon('lock'); ?> Скрыть</a>
                                     <?php else: ?>
-                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Показать локацию?" data-rr-confirm-ok="Показать">🔓 Показать</a>
+                                        <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Показать локацию?" data-rr-confirm-ok="Показать"><?php echo rr_icon('unlock'); ?> Показать</a>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view">👁️</a>
+                                <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view"><?php echo rr_icon('eye'); ?></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

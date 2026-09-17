@@ -92,7 +92,7 @@ if (!$hasSubscription) {
 
     <div class="map-page">
         <div class="map-toolbar">
-            <h1>🗺️ Карта локаций</h1>
+            <h1><?php echo rr_icon('map-pin'); ?> Карта локаций</h1>
             <form method="GET" class="map-filter">
                 <input type="text" name="city" placeholder="Фильтр по городу..." value="<?php echo htmlspecialchars($city); ?>">
                 <button type="submit" class="btn-filter">Найти</button>
@@ -116,7 +116,7 @@ if (!$hasSubscription) {
 
         <?php if (!$hasSubscription): ?>
             <div class="map-paywall">
-                <div class="map-paywall-icon">🔒</div>
+                <div class="map-paywall-icon"><?php echo rr_icon('lock'); ?></div>
                 <h3>Карта с точками доступна по подписке</h3>
                 <p>Без подписки видно только количество локаций по городам. Включите подписку, чтобы увидеть точки на карте и точные адреса локаций.</p>
                 <a href="/pages/subscription.php" class="btn-filter">Оформить подписку</a>
@@ -140,7 +140,7 @@ if (!$hasSubscription) {
                 </div>
             <?php else: ?>
                 <div class="empty spaced">
-                    <h3>😕 Пока ничего нет</h3>
+                    <h3><?php echo rr_icon('frown'); ?> Пока ничего нет</h3>
                     <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
                 </div>
             <?php endif; ?>
@@ -149,7 +149,7 @@ if (!$hasSubscription) {
 
             <?php if (count($mapPoints) === 0): ?>
                 <div class="empty spaced">
-                    <h3>😕 На карте пока ничего нет</h3>
+                    <h3><?php echo rr_icon('frown'); ?> На карте пока ничего нет</h3>
                     <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
                 </div>
             <?php endif; ?>
@@ -189,7 +189,7 @@ if (!$hasSubscription) {
                 '<div class="map-popup">' +
                     '<img src="' + escapeHtml(loc.photo) + '" alt="">' +
                     '<div class="map-popup-title">' + escapeHtml(loc.title) + '</div>' +
-                    '<div class="map-popup-address">📍 ' + escapeHtml(loc.city + ', ' + loc.address) + '</div>' +
+                    '<div class="map-popup-address"><?php echo rr_icon('map-pin'); ?> ' + escapeHtml(loc.city + ', ' + loc.address) + '</div>' +
                     (loc.traffic > 0 ? '<div class="map-popup-traffic">' + stars + '</div>' : '') +
                     '<div class="map-popup-price">' + priceLabel + '</div>' +
                     '<a href="' + escapeHtml(loc.url) + '" class="map-popup-link">Подробнее →</a>' +

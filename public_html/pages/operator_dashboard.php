@@ -153,36 +153,36 @@ $eventTypeLabels = [
         <aside class="dashboard-sidebar">
             <div class="avatar"><?php echo mb_strtoupper(mb_substr($user_name, 0, 1, 'UTF-8')); ?></div>
             <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
-            <div class="user-role">🤝 Арендатор</div>
+            <div class="user-role"><?php echo rr_icon('check'); ?> Арендатор</div>
 
             <nav class="dashboard-nav">
                 <a href="/pages/operator_dashboard.php" class="active">
-                    <i>📊</i> Дашборд
+                    <i><?php echo rr_icon('layout-dashboard'); ?></i> Дашборд
                 </a>
                 <a href="/pages/operator_applications.php">
-                    <i>📋</i> Мои заявки <span class="badge"><?php echo $bookings_count; ?></span>
+                    <i><?php echo rr_icon('list'); ?></i> Мои заявки <span class="badge"><?php echo $bookings_count; ?></span>
                 </a>
                 <a href="/pages/operator_locations.php">
-                    <i>📍</i> Мои точки <span class="badge"><?php echo $locations_count; ?></span>
+                    <i><?php echo rr_icon('map-pin'); ?></i> Мои точки <span class="badge"><?php echo $locations_count; ?></span>
                 </a>
                 <a href="/pages/events_calendar.php">
-                    <i>📅</i> Выезды
+                    <i><?php echo rr_icon('calendar'); ?></i> Выезды
                 </a>
                 <a href="/pages/documents.php">
-                    <i>📄</i> Документы
+                    <i><?php echo rr_icon('file-text'); ?></i> Документы
                 </a>
                 <a href="/pages/edit_profile.php">
-                    <i>⚙️</i> Настройки
+                    <i><?php echo rr_icon('settings'); ?></i> Настройки
                 </a>
                 <a href="/pages/logout.php" class="logout-link">
-                    <i>🚪</i> Выйти
+                    <i><?php echo rr_icon('log-out'); ?></i> Выйти
                 </a>
             </nav>
         </aside>
 
         <main class="dashboard-main">
             <div class="welcome-text">
-                👋 Добро пожаловать, <strong><?php echo htmlspecialchars($user_name); ?></strong>!
+                Добро пожаловать, <strong><?php echo htmlspecialchars($user_name); ?></strong>!
             </div>
 
             <div class="dash-stats-grid">
@@ -206,7 +206,7 @@ $eventTypeLabels = [
 
             <div class="next-visit-card">
                 <?php if ($nearest_visit): ?>
-                    <div class="next-visit-icon">📅</div>
+                    <div class="next-visit-icon"><?php echo rr_icon('calendar'); ?></div>
                     <div class="next-visit-body">
                         <div class="next-visit-title">
                             Ближайший визит — <?php echo $eventTypeLabels[$nearest_visit['event_type']] ?? $nearest_visit['event_type']; ?>
@@ -218,7 +218,7 @@ $eventTypeLabels = [
                     </div>
                     <a href="/pages/events_calendar.php" class="next-visit-link">Календарь →</a>
                 <?php else: ?>
-                    <div class="next-visit-icon">🗓️</div>
+                    <div class="next-visit-icon"><?php echo rr_icon('calendar'); ?></div>
                     <div class="next-visit-body">
                         <div class="next-visit-title">Визитов не запланировано</div>
                         <div class="next-visit-sub">Подтверждённых выездов на ближайшее время нет.</div>
@@ -227,20 +227,20 @@ $eventTypeLabels = [
                 <?php endif; ?>
             </div>
 
-            <h3>🚀 Быстрые действия</h3>
+            <h3><?php echo rr_icon('bolt'); ?> Быстрые действия</h3>
             <div class="quick-actions">
-                <a href="/pages/catalog.php" class="btn">🔍 Найти локации</a>
+                <a href="/pages/catalog.php" class="btn"><?php echo rr_icon('search'); ?> Найти локации</a>
             </div>
 
-            <h3 class="attention-heading">🔔 Требует внимания</h3>
+            <h3 class="attention-heading"><?php echo rr_icon('bell'); ?> Требует внимания</h3>
             <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $unread_messages_count === 0): ?>
-                <div class="attention-empty">✅ Всё под контролем — срочных дел нет.</div>
+                <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
             <?php else: ?>
                 <div class="attention-groups">
                     <?php if ($maintenance_due_count > 0): ?>
                         <div class="attention-group">
                             <div class="attention-group-head">
-                                <span>⚠️ Обслуживание (<?php echo $maintenance_due_count; ?>)</span>
+                                <span><?php echo rr_icon('warning'); ?> Обслуживание (<?php echo $maintenance_due_count; ?>)</span>
                                 <a href="/pages/operator_locations.php">Все точки →</a>
                             </div>
                             <ul class="attention-list">
@@ -259,7 +259,7 @@ $eventTypeLabels = [
                     <?php if ($pending_visits_count > 0): ?>
                         <div class="attention-group">
                             <div class="attention-group-head">
-                                <span>📅 Ждут подтверждения (<?php echo $pending_visits_count; ?>)</span>
+                                <span><?php echo rr_icon('calendar'); ?> Ждут подтверждения (<?php echo $pending_visits_count; ?>)</span>
                                 <a href="/pages/events_calendar.php">Календарь →</a>
                             </div>
                             <ul class="attention-list">
@@ -269,7 +269,7 @@ $eventTypeLabels = [
                                             <?php echo htmlspecialchars($eventTypeLabels[$v['event_type']] ?? $v['event_type']); ?> —
                                             <?php echo htmlspecialchars($v['title'] . ', ' . $v['city']); ?>,
                                             <?php echo formatDateRu($v['proposed_datetime']); ?>
-                                            <?php echo $v['is_emergency'] ? ' 🚨' : ''; ?>
+                                            <?php echo $v['is_emergency'] ? ' ' . rr_icon('warning') : ''; ?>
                                         </a>
                                     </li>
                                 <?php endforeach; ?>
@@ -280,7 +280,7 @@ $eventTypeLabels = [
                     <?php if ($unread_messages_count > 0): ?>
                         <div class="attention-group">
                             <div class="attention-group-head">
-                                <span>💬 Ждут ответа (<?php echo $unread_messages_count; ?>)</span>
+                                <span><?php echo rr_icon('message-circle'); ?> Ждут ответа (<?php echo $unread_messages_count; ?>)</span>
                                 <a href="/pages/operator_applications.php">Все заявки →</a>
                             </div>
                             <ul class="attention-list">

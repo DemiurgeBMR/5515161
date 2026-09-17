@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="reg-page">
         <div class="reg-container">
             <div class="reg-hero">
-                <span class="reg-badge">🚀 Присоединяйтесь к RR</span>
+                <span class="reg-badge"><?php echo rr_icon('bolt'); ?> Присоединяйтесь к RR</span>
                 <h1>Начните с RR</h1>
                 <p class="reg-subtitle">
                     Найдите точку для вендинга или сдайте своё место в аренду — переписка и вся
@@ -97,17 +97,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="reg-features">
                 <div class="reg-feature">
-                    <span class="reg-feature-icon">📩</span>
+                    <span class="reg-feature-icon"><?php echo rr_icon('mail'); ?></span>
                     <div class="reg-feature-title">Бесплатная регистрация</div>
                     <div class="reg-feature-text">Без скрытых платежей за создание аккаунта</div>
                 </div>
                 <div class="reg-feature">
-                    <span class="reg-feature-icon">💬</span>
+                    <span class="reg-feature-icon"><?php echo rr_icon('message-circle'); ?></span>
                     <div class="reg-feature-title">Общение через платформу</div>
                     <div class="reg-feature-text">Никаких звонков вслепую — всё в чате</div>
                 </div>
                 <div class="reg-feature">
-                    <span class="reg-feature-icon">🛡️</span>
+                    <span class="reg-feature-icon"><?php echo rr_icon('shield'); ?></span>
                     <div class="reg-feature-title">Модерация объявлений</div>
                     <div class="reg-feature-text">Проверяем локации перед публикацией в каталоге</div>
                 </div>
@@ -122,13 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="reg-role-picker">
                     <label class="reg-role-card<?php echo $role === 'operator' ? ' active' : ''; ?>" data-role="operator">
                         <input type="radio" name="role" value="operator" <?php echo $role === 'operator' ? 'checked' : ''; ?>>
-                        <span class="reg-role-icon">🤝</span>
+                        <span class="reg-role-icon"><?php echo rr_icon('check'); ?></span>
                         <span class="reg-role-title">Я оператор</span>
                         <span class="reg-role-text">Ищу локацию для вендинга</span>
                     </label>
                     <label class="reg-role-card<?php echo $role === 'owner' ? ' active' : ''; ?>" data-role="owner">
                         <input type="radio" name="role" value="owner" <?php echo $role === 'owner' ? 'checked' : ''; ?>>
-                        <span class="reg-role-icon">🏢</span>
+                        <span class="reg-role-icon"><?php echo rr_icon('building'); ?></span>
                         <span class="reg-role-title">Я владелец</span>
                         <span class="reg-role-text">Сдаю место под автомат</span>
                     </label>
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="reg-step-line"></div>
                     <div class="reg-step" data-step="done">
-                        <span class="reg-step-num">✓</span>
+                        <span class="reg-step-num"><?php echo rr_icon('check'); ?></span>
                         <span class="reg-step-label">Готово</span>
                     </div>
                 </div>
@@ -181,15 +181,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2>Готово к регистрации</h2>
 
                     <ul class="reg-done-list operator-only">
-                        <li><span class="reg-done-icon">🔍</span> Сразу после регистрации откроется каталог — ищите точки по городу, типу помещения и проходимости.</li>
-                        <li><span class="reg-done-icon">🔒</span> Чтобы написать владельцу и увидеть точный адрес, потребуется подписка — оформляется в один клик в личном кабинете.</li>
-                        <li><span class="reg-done-icon">💬</span> Вся переписка и договорённости — прямо в чате на платформе.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('search'); ?></span> Сразу после регистрации откроется каталог — ищите точки по городу, типу помещения и проходимости.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('lock'); ?></span> Чтобы написать владельцу и увидеть точный адрес, потребуется подписка — оформляется в один клик в личном кабинете.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('message-circle'); ?></span> Вся переписка и договорённости — прямо в чате на платформе.</li>
                     </ul>
 
                     <ul class="reg-done-list owner-only">
-                        <li><span class="reg-done-icon">➕</span> Сразу после регистрации добавьте первую локацию в личном кабинете — фото, адрес, цена аренды и другие детали.</li>
-                        <li><span class="reg-done-icon">🛡️</span> Перед публикацией в каталоге объявление проверит администратор.</li>
-                        <li><span class="reg-done-icon">🤝</span> RR пока не принимает оплату за вас — аренда обсуждается и переводится напрямую между вами и оператором. Приём платежей через платформу мы добавим позже.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('plus-circle'); ?></span> Сразу после регистрации добавьте первую локацию в личном кабинете — фото, адрес, цена аренды и другие детали.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('shield'); ?></span> Перед публикацией в каталоге объявление проверит администратор.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('check'); ?></span> RR пока не принимает оплату за вас — аренда обсуждается и переводится напрямую между вами и оператором. Приём платежей через платформу мы добавим позже.</li>
                     </ul>
 
                     <div class="reg-panel-actions">

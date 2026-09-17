@@ -51,7 +51,7 @@ $exportQuery = http_build_query(array_filter($filters));
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="history-container">
     <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>
-    <h2>📜 История обслуживания</h2>
+    <h2><?php echo rr_icon('file-text'); ?> История обслуживания</h2>
 
     <form class="filters-bar" method="GET">
         <div class="filter-group">
@@ -96,8 +96,8 @@ $exportQuery = http_build_query(array_filter($filters));
     </form>
 
     <div class="export-bar">
-        <a class="btn-export" href="/pages/export_history.php?format=csv&<?php echo $exportQuery; ?>">⬇️ Экспорт CSV (Excel)</a>
-        <a class="btn-export" href="/pages/export_history.php?format=pdf&<?php echo $exportQuery; ?>">⬇️ Экспорт PDF</a>
+        <a class="btn-export" href="/pages/export_history.php?format=csv&<?php echo $exportQuery; ?>"><?php echo rr_icon('download'); ?> Экспорт CSV (Excel)</a>
+        <a class="btn-export" href="/pages/export_history.php?format=pdf&<?php echo $exportQuery; ?>"><?php echo rr_icon('download'); ?> Экспорт PDF</a>
     </div>
 
     <p class="summary-line">Найдено записей: <?php echo count($rows); ?></p>
@@ -123,13 +123,13 @@ $exportQuery = http_build_query(array_filter($filters));
                             <td><?php echo htmlspecialchars($row['location_title'] . ' (' . $row['city'] . ')'); ?></td>
                             <td>
                                 <?php echo htmlspecialchars(serviceEventTypeLabel($row['event_type'])); ?>
-                                <?php if ($row['is_emergency']): ?><span class="emergency-tag"> 🚨 срочно</span><?php endif; ?>
+                                <?php if ($row['is_emergency']): ?><span class="emergency-tag"> <?php echo rr_icon('warning'); ?> срочно</span><?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($row['source_type'] === 'log'): ?>
-                                    <span class="source-badge source-log">📝 постфактум</span>
+                                    <span class="source-badge source-log"><?php echo rr_icon('edit'); ?> постфактум</span>
                                 <?php else: ?>
-                                    <span class="source-badge source-event">✅ согласовано</span>
+                                    <span class="source-badge source-event"><?php echo rr_icon('check'); ?> согласовано</span>
                                 <?php endif; ?>
                             </td>
                             <?php if ($role === 'owner'): ?><td><?php echo htmlspecialchars($row['operator_name']); ?></td><?php endif; ?>

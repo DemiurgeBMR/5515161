@@ -53,7 +53,7 @@ function daysSince($dateString) {
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="locations-container">
     <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
-    <h2>📍 Мои закреплённые точки</h2>
+    <h2><?php echo rr_icon('map-pin'); ?> Мои закреплённые точки</h2>
     <p class="page-intro spaced">Локации, за которыми вы закреплены, и вендинги, которые на них установлены.</p>
 
     <?php if (count($locations) > 0): ?>
@@ -66,23 +66,23 @@ function daysSince($dateString) {
                 $badgeText = 'Нет данных об обслуживании';
             } elseif (isServiceOverdue($days)) {
                 $badgeClass = 'service-due';
-                $badgeText = '⚠️ Требует обслуживания (' . $days . ' дн. назад)';
+                $badgeText = rr_icon('warning') . ' Требует обслуживания (' . $days . ' дн. назад)';
             } else {
                 $badgeClass = 'service-ok';
-                $badgeText = '✅ Обслужено ' . $days . ' дн. назад';
+                $badgeText = rr_icon('check') . ' Обслужено ' . $days . ' дн. назад';
             }
         ?>
             <div class="ol-location-card">
                 <div class="top-row">
                     <div class="location-info">
                         <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
-                        <div class="address">📍 <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
-                        <div class="owner">👤 Владелец: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
-                        <div class="badge-assigned">✅ Закреплён</div>
+                        <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
+                        <div class="owner"><?php echo rr_icon('users'); ?> Владелец: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
+                        <div class="badge-assigned"><?php echo rr_icon('check'); ?> Закреплён</div>
                     </div>
                     <div class="location-actions">
-                        <a href="/pages/location.php?id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-edit-machine">👁️ Локация</a>
-                        <a href="/pages/operator_vending_events.php?location_id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-calendar">📅 Календарь</a>
+                        <a href="/pages/location.php?id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-edit-machine"><?php echo rr_icon('eye'); ?> Локация</a>
+                        <a href="/pages/operator_vending_events.php?location_id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-calendar"><?php echo rr_icon('calendar'); ?> Календарь</a>
                     </div>
                 </div>
 
@@ -98,20 +98,20 @@ function daysSince($dateString) {
                             <span class="service-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
                         </div>
                         <div class="machine-actions">
-                            <button class="ol-btn-action btn-service" data-lo-id="<?php echo $loc['id']; ?>" onclick="openServiceModal(this)">🔧 Отметить обслуживание</button>
+                            <button class="ol-btn-action btn-service" data-lo-id="<?php echo $loc['id']; ?>" onclick="openServiceModal(this)"><?php echo rr_icon('wrench'); ?> Отметить обслуживание</button>
                             <button class="ol-btn-action btn-edit-machine"
                                     data-lo-id="<?php echo $loc['id']; ?>"
                                     data-machine-type="<?php echo htmlspecialchars($loc['machine_type']); ?>"
                                     data-model="<?php echo htmlspecialchars($loc['model'] ?? ''); ?>"
                                     data-serial="<?php echo htmlspecialchars($loc['serial_number'] ?? ''); ?>"
                                     data-installed="<?php echo htmlspecialchars($loc['installed_at'] ?? ''); ?>"
-                                    onclick="openMachineModal(this)">✏️ Изменить данные</button>
+                                    onclick="openMachineModal(this)"><?php echo rr_icon('edit'); ?> Изменить данные</button>
                         </div>
                     </div>
                 <?php else: ?>
                     <div class="machine-box empty-machine">
                         <span class="empty-machine-note">Вендинг на этой точке ещё не указан.</span>
-                        <button class="ol-btn-action btn-add-machine" data-lo-id="<?php echo $loc['id']; ?>" onclick="openMachineModal(this)">➕ Указать вендинг</button>
+                        <button class="ol-btn-action btn-add-machine" data-lo-id="<?php echo $loc['id']; ?>" onclick="openMachineModal(this)"><?php echo rr_icon('plus-circle'); ?> Указать вендинг</button>
                     </div>
                 <?php endif; ?>
             </div>
@@ -128,7 +128,7 @@ function daysSince($dateString) {
 <div class="modal-overlay" id="machineModal">
     <div class="modal-box">
         <button class="close-btn" onclick="closeMachineModal()" aria-label="Закрыть">&times;</button>
-        <h3 id="machineModalTitle">➕ Указать вендинг</h3>
+        <h3 id="machineModalTitle">Указать вендинг</h3>
         <form id="machineForm">
             <input type="hidden" id="machineLoId">
             <div class="form-group">
@@ -164,7 +164,7 @@ function daysSince($dateString) {
 <div class="modal-overlay" id="serviceModal">
     <div class="modal-box">
         <button class="close-btn" onclick="closeServiceModal()" aria-label="Закрыть">&times;</button>
-        <h3>🔧 Отметить обслуживание</h3>
+        <h3><?php echo rr_icon('wrench'); ?> Отметить обслуживание</h3>
         <form id="serviceForm">
             <input type="hidden" id="serviceLoId">
             <div class="form-group">
@@ -204,7 +204,7 @@ function openMachineModal(btn) {
     document.getElementById('machineModel').value = d.model || '';
     document.getElementById('machineSerial').value = d.serial || '';
     document.getElementById('machineInstalledAt').value = d.installed || '';
-    document.getElementById('machineModalTitle').textContent = d.machineType ? '✏️ Изменить данные вендинга' : '➕ Указать вендинг';
+    document.getElementById('machineModalTitle').textContent = d.machineType ? 'Изменить данные вендинга' : 'Указать вендинг';
     document.getElementById('machineError').style.display = 'none';
     document.getElementById('machineModal').classList.add('active');
 }

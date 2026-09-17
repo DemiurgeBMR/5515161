@@ -22,7 +22,7 @@ rr_enforce_rate_limit($pdo, 'get_notifications:' . $user_id, 60, 60);
  * вписанных в текст сообщения при создании (как было раньше).
  */
 function enrichNotification($row) {
-    $meta = NOTIFICATION_META[$row['type']] ?? ['category' => $row['category'], 'icon' => 'ℹ️'];
+    $meta = NOTIFICATION_META[$row['type']] ?? ['category' => $row['category'], 'icon' => 'info-circle'];
     $row['icon'] = $meta['icon'];
     $row['is_unread'] = $row['read_at'] === null;
     $row['data'] = $row['data'] ? json_decode($row['data'], true) : null;

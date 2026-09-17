@@ -417,9 +417,9 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
     <div class="photo-pending-note">
         <?php if ($isPendingAdd): ?>
-            ⏳ Добавится после модерации
+            <?php echo rr_icon('clock'); ?> Добавится после модерации
         <?php elseif ($isMain): ?>
-            ⭐ Главное
+            Главное
         <?php endif; ?>
     </div>
     <?php if (!$isPendingAdd): ?>

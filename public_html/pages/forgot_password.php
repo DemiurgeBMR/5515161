@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="register-form">
         <a href="/pages/login.php" class="back-link">← Назад ко входу</a>
-        <h2>🔑 Восстановление пароля</h2>
+        <h2><?php echo rr_icon('key'); ?> Восстановление пароля</h2>
 
         <?php if ($error): ?>
             <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>

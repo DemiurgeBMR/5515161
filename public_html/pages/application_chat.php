@@ -85,13 +85,13 @@ function formatDateSeparator($dateStr) {
 }
 
 $statusLabels = [
-    'pending' => '⏳ Ожидает',
-    'negotiating' => '🤝 В переговорах',
-    'agreed' => '✅ Договорённость',
-    'placed' => '📍 Размещено',
-    'cancelled' => '❌ Отменена',
-    'approved' => '✅ Закрепление подтверждено',
-    'rejected' => '❌ Закрепление отклонено',
+    'pending' => 'Ожидает',
+    'negotiating' => 'В переговорах',
+    'agreed' => 'Договорённость',
+    'placed' => 'Размещено',
+    'cancelled' => 'Отменена',
+    'approved' => 'Закрепление подтверждено',
+    'rejected' => 'Закрепление отклонено',
 ];
 
 $currentPublicStatus = $application['status'];
@@ -202,7 +202,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         </div>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <div class="chat-empty"><span class="chat-empty-icon">💬</span>Сообщений пока нет. Начните переписку первым.</div>
+                    <div class="chat-empty"><span class="chat-empty-icon"><?php echo rr_icon('message-circle'); ?></span>Сообщений пока нет. Начните переписку первым.</div>
                 <?php endif; ?>
             </div>
 
@@ -260,8 +260,8 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                     Оператор просит закрепить его за этой локацией.
                 </p>
                 <div class="modal-buttons">
-                    <button type="button" id="approveAssignmentBtn" class="chat-btn-primary">✅ Одобрить</button>
-                    <button type="button" id="rejectAssignmentBtn" class="btn-danger">❌ Отклонить</button>
+                    <button type="button" id="approveAssignmentBtn" class="chat-btn-primary">Одобрить</button>
+                    <button type="button" id="rejectAssignmentBtn" class="btn-danger">Отклонить</button>
                 </div>
                 <div id="assignmentRequestStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
@@ -274,14 +274,14 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 <p class="sidebar-note">
                     Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
                 </p>
-                <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">📩 Запросить закрепление</button>
+                <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">Запросить закрепление</button>
                 <div id="requestAssignmentStatus" class="status-message" role="status" aria-live="polite"></div>
             </div>
             <?php elseif ($is_operator && $isAssignmentRequest && $currentPublicStatus === 'pending'): ?>
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
                 <p class="sidebar-note">
-                    ⏳ Запрос на закрепление отправлен, ожидайте решения владельца.
+                    <?php echo rr_icon('clock'); ?> Запрос на закрепление отправлен, ожидайте решения владельца.
                 </p>
             </div>
             <?php endif; ?>
@@ -292,7 +292,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 <div class="status-wrapper">
                     <div class="status-selector <?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? 'inactive' : ''; ?>" id="statusSelector" data-active="<?php echo ($currentPublicStatus !== 'cancelled' || $canChangeCancel) ? '1' : '0'; ?>">
                         <span class="chat-status-badge status-<?php echo $displayStatus; ?>" id="currentStatusBadge">
-                            <?php echo $statusLabels[$displayStatus] ?? '⏳ Ожидает'; ?>
+                            <?php echo $statusLabels[$displayStatus] ?? 'Ожидает'; ?>
                         </span>
                         <span class="status-arrow<?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? ' chat-hidden' : ''; ?>" id="statusArrow">▼</span>
                     </div>
@@ -311,7 +311,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                 ?>
                     <?php if ($isCollapsible): ?>
                         <button type="button" class="event-summary-pill" id="eventSummaryToggle">
-                            <span class="event-summary-icon">✅</span>
+                            <span class="event-summary-icon"><?php echo rr_icon('check'); ?></span>
                             <span class="event-summary-text">
                                 <?php echo date('d.m.Y H:i', strtotime($current_event['confirmed_datetime'])); ?> · Подтверждено
                             </span>
@@ -319,22 +319,22 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         </button>
                     <?php endif; ?>
                     <div class="event-card<?php echo $isCollapsible ? ' chat-hidden' : ''; ?>" id="eventCardBody">
-                        <span class="event-icon"><?php echo $current_event['is_emergency'] ? '🚨' : '📅'; ?></span>
+                        <span class="event-icon"><?php echo $current_event['is_emergency'] ? rr_icon('warning') : rr_icon('calendar'); ?></span>
                         <div class="event-body">
                             <div class="event-header">
                                 <span class="event-status">
                                     <?php
                                         $eventStatuses = [
-                                            'requested' => '⏳ Ожидает подтверждения',
-                                            'reviewing' => '🔄 Предложена другая дата',
-                                            'confirmed' => '✅ Подтверждено',
-                                            'rescheduled' => '🔄 Перенесено'
+                                            'requested' => rr_icon('clock') . ' Ожидает подтверждения',
+                                            'reviewing' => rr_icon('refresh') . ' Предложена другая дата',
+                                            'confirmed' => rr_icon('check') . ' Подтверждено',
+                                            'rescheduled' => rr_icon('refresh') . ' Перенесено'
                                         ];
                                         echo $eventStatuses[$current_event['status']] ?? $current_event['status'];
                                     ?>
                                 </span>
                                 <?php if ($current_event['is_emergency']): ?>
-                                    <span class="event-emergency">🚨 Срочно</span>
+                                    <span class="event-emergency"><?php echo rr_icon('warning'); ?> Срочно</span>
                                 <?php endif; ?>
                             </div>
                             <div class="event-datetime">
@@ -344,35 +344,35 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                                 ?>
                             </div>
                             <?php if ($current_event['emergency_comment']): ?>
-                                <div class="event-comment">💬 <?php echo htmlspecialchars($current_event['emergency_comment']); ?></div>
+                                <div class="event-comment"><?php echo rr_icon('message-circle'); ?> <?php echo htmlspecialchars($current_event['emergency_comment']); ?></div>
                             <?php endif; ?>
                             <div class="event-actions">
                                 <?php if ($current_event['status'] === 'requested' || $current_event['status'] === 'reviewing'): ?>
                                     <?php if ($current_event['requested_by'] != $user_id): ?>
-                                        <button class="btn-event confirm-btn" data-event-id="<?php echo $current_event['id']; ?>">✅ Подтвердить</button>
-                                        <button class="btn-event reschedule-btn" data-event-id="<?php echo $current_event['id']; ?>">✏️ Другое время</button>
+                                        <button class="btn-event confirm-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('check'); ?> Подтвердить</button>
+                                        <button class="btn-event reschedule-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('edit'); ?> Другое время</button>
                                     <?php else: ?>
                                         <?php if ($current_event['status'] === 'reviewing'): ?>
-                                            <button class="btn-event reschedule-btn" data-event-id="<?php echo $current_event['id']; ?>">✏️ Другое время</button>
+                                            <button class="btn-event reschedule-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('edit'); ?> Другое время</button>
                                         <?php endif; ?>
-                                        <button class="btn-event cancel-btn" data-event-id="<?php echo $current_event['id']; ?>">❌ Отменить</button>
+                                        <button class="btn-event cancel-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('x'); ?> Отменить</button>
                                     <?php endif; ?>
                                 <?php elseif ($current_event['status'] === 'confirmed'): ?>
-                                    <button class="btn-event complete-btn" data-event-id="<?php echo $current_event['id']; ?>">✅ Завершить</button>
-                                    <button class="btn-event cancel-btn" data-event-id="<?php echo $current_event['id']; ?>">❌ Отменить</button>
+                                    <button class="btn-event complete-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('check'); ?> Завершить</button>
+                                    <button class="btn-event cancel-btn" data-event-id="<?php echo $current_event['id']; ?>"><?php echo rr_icon('x'); ?> Отменить</button>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed' && $hasActiveAssignment): ?>
                     <div class="event-card">
-                        <span class="event-icon">📅</span>
+                        <span class="event-icon"><?php echo rr_icon('calendar'); ?></span>
                         <div class="event-body">
                             <div class="event-empty">Дата выезда пока не назначена</div>
                             <div class="event-actions">
-                                <button class="btn-event propose-btn" id="proposeDateBtn">📅 Предложить дату</button>
+                                <button class="btn-event propose-btn" id="proposeDateBtn"><?php echo rr_icon('calendar'); ?> Предложить дату</button>
                                 <?php if (!$is_operator): ?>
-                                    <button class="btn-event emergency-btn" id="emergencyBtn">🚨 Срочный выезд</button>
+                                    <button class="btn-event emergency-btn" id="emergencyBtn"><?php echo rr_icon('warning'); ?> Срочный выезд</button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -388,14 +388,14 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Действия</p>
                 <div class="sidebar-action-row">
-                    <span>🔔 Уведомления</span>
+                    <span><?php echo rr_icon('bell'); ?> Уведомления</span>
                     <label class="switch">
                         <input type="checkbox" id="notifSwitch" <?php echo $notifications_enabled ? 'checked' : ''; ?>>
                         <span class="slider round"></span>
                     </label>
                 </div>
                 <div class="sidebar-action-row danger-link">
-                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" data-rr-confirm="Удалить заявку и всю переписку безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger>🗑️ Удалить чат</a>
+                    <a href="/pages/delete_application.php?id=<?php echo $application['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" data-rr-confirm="Удалить заявку и всю переписку безвозвратно?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить чат</a>
                 </div>
             </div>
         </div>
@@ -407,7 +407,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
     <div class="chat-modal-box">
         <div class="modal-header">
             <div>
-                <h3 class="modal-title" id="modalTitle">📅 Выберите дату и время</h3>
+                <h3 class="modal-title" id="modalTitle">Выберите дату и время</h3>
                 <p class="modal-subtitle">Укажите время выезда</p>
             </div>
             <button class="close-btn" onclick="closeDateModal()" aria-label="Закрыть">×</button>
@@ -513,24 +513,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(function(data) {
                     if (data.success) {
                         assignmentRequestStatus.style.color = '#2ecc71';
-                        assignmentRequestStatus.textContent = '✅ Готово, обновляем страницу...';
+                        assignmentRequestStatus.textContent = 'Готово, обновляем страницу...';
                         setTimeout(function() { location.reload(); }, 700);
                     } else {
                         assignmentRequestStatus.style.color = '#e74c3c';
-                        assignmentRequestStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                        assignmentRequestStatus.textContent = data.error || 'Ошибка';
                         approveAssignmentBtn.disabled = false;
                         rejectAssignmentBtn.disabled = false;
-                        approveAssignmentBtn.textContent = '✅ Одобрить';
-                        rejectAssignmentBtn.textContent = '❌ Отклонить';
+                        approveAssignmentBtn.textContent = 'Одобрить';
+                        rejectAssignmentBtn.textContent = 'Отклонить';
                     }
                 })
                 .catch(function() {
                     assignmentRequestStatus.style.color = '#e74c3c';
-                    assignmentRequestStatus.textContent = '❌ Ошибка соединения';
+                    assignmentRequestStatus.textContent = 'Ошибка соединения';
                     approveAssignmentBtn.disabled = false;
                     rejectAssignmentBtn.disabled = false;
-                    approveAssignmentBtn.textContent = '✅ Одобрить';
-                    rejectAssignmentBtn.textContent = '❌ Отклонить';
+                    approveAssignmentBtn.textContent = 'Одобрить';
+                    rejectAssignmentBtn.textContent = 'Отклонить';
                 });
         });
     }
@@ -562,20 +562,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(function(data) {
                         if (data.success) {
                             requestAssignmentStatus.style.color = '#2ecc71';
-                            requestAssignmentStatus.textContent = '✅ Запрос отправлен, обновляем страницу...';
+                            requestAssignmentStatus.textContent = 'Запрос отправлен, обновляем страницу...';
                             setTimeout(function() { location.reload(); }, 800);
                         } else {
                             requestAssignmentStatus.style.color = '#e74c3c';
-                            requestAssignmentStatus.textContent = '❌ ' + (data.error || 'Ошибка');
+                            requestAssignmentStatus.textContent = data.error || 'Ошибка';
                             requestAssignmentBtn.disabled = false;
-                            requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                            requestAssignmentBtn.textContent = 'Запросить закрепление';
                         }
                     })
                     .catch(function() {
                         requestAssignmentStatus.style.color = '#e74c3c';
-                        requestAssignmentStatus.textContent = '❌ Ошибка соединения';
+                        requestAssignmentStatus.textContent = 'Ошибка соединения';
                         requestAssignmentBtn.disabled = false;
-                        requestAssignmentBtn.textContent = '📩 Запросить закрепление';
+                        requestAssignmentBtn.textContent = 'Запросить закрепление';
                     });
             });
         });
@@ -699,11 +699,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var detailsToggleDot = document.getElementById('detailsToggleDot');
 
     var allStatuses = {
-        'pending': '⏳ Ожидает',
-        'negotiating': '🤝 В переговорах',
-        'agreed': '✅ Договорённость',
-        'placed': '📍 Размещено',
-        'cancelled': '❌ Отменена'
+        'pending': 'Ожидает',
+        'negotiating': 'В переговорах',
+        'agreed': 'Договорённость',
+        'placed': 'Размещено',
+        'cancelled': 'Отменена'
     };
     var publicStatus = '<?php echo $currentPublicStatus; ?>';
     var currentMyTag = '<?php echo $my_tag; ?>';
@@ -712,7 +712,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var currentUser = <?php echo $user_id; ?>;
 
     function updateStatusDisplay(newStatus) {
-        var label = allStatuses[newStatus] || '⏳ Ожидает';
+        var label = allStatuses[newStatus] || 'Ожидает';
         currentBadge.className = 'chat-status-badge status-' + newStatus;
         currentBadge.textContent = label;
 
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('proposeDateBtn')?.addEventListener('click', function() {
-        document.getElementById('modalTitle').textContent = '📅 Предложить дату выезда';
+        document.getElementById('modalTitle').textContent = 'Предложить дату выезда';
         document.getElementById('modalAction').value = 'propose';
         document.getElementById('modalEventId').value = 0;
         document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');
@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('emergencyBtn')?.addEventListener('click', function() {
-        document.getElementById('modalTitle').textContent = '🚨 Срочный выезд';
+        document.getElementById('modalTitle').textContent = 'Срочный выезд';
         document.getElementById('modalAction').value = 'emergency';
         document.getElementById('modalEventId').value = 0;
         document.getElementById('emergencyCommentGroup').classList.remove('chat-hidden');
@@ -865,7 +865,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.reschedule-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var eventId = this.dataset.eventId;
-            document.getElementById('modalTitle').textContent = '✏️ Предложить другое время';
+            document.getElementById('modalTitle').textContent = 'Предложить другое время';
             document.getElementById('modalAction').value = 'reschedule';
             document.getElementById('modalEventId').value = eventId;
             document.getElementById('emergencyCommentGroup').classList.add('chat-hidden');

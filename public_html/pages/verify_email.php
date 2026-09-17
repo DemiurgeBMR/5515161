@@ -33,7 +33,7 @@ if ($user) {
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
-        <h2>📧 Подтверждение email</h2>
+        <h2><?php echo rr_icon('mail'); ?> Подтверждение email</h2>
 
         <?php if ($success): ?>
             <div class="success" role="status">Email подтверждён, спасибо!</div>

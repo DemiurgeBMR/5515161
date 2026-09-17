@@ -32,7 +32,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
             <div class="hiw-columns">
                 <div class="hiw-column<?php echo $role === 'owner' ? ' hiw-column-active' : ''; ?>">
                     <div class="hiw-column-header">
-                        <span class="hiw-column-icon">🏢</span>
+                        <span class="hiw-column-icon"><?php echo rr_icon('building'); ?></span>
                         <div>
                             <h2>Владельцам площадей</h2>
                             <p>Сдайте свободное место под вендинг и получайте доход с аренды</p>
@@ -77,13 +77,13 @@ $isLoggedIn = isset($_SESSION['user_id']);
                     <?php if (!$isLoggedIn): ?>
                         <a href="/pages/register.php?role=owner" class="btn-contact btn-block">Стать владельцем</a>
                     <?php elseif ($role === 'owner'): ?>
-                        <a href="/pages/add_location.php" class="btn-contact btn-block">➕ Добавить локацию</a>
+                        <a href="/pages/add_location.php" class="btn-contact btn-block"><?php echo rr_icon('plus-circle'); ?> Добавить локацию</a>
                     <?php endif; ?>
                 </div>
 
                 <div class="hiw-column<?php echo $role === 'operator' ? ' hiw-column-active' : ''; ?>">
                     <div class="hiw-column-header">
-                        <span class="hiw-column-icon">🥤</span>
+                        <span class="hiw-column-icon"><?php echo rr_icon('square'); ?></span>
                         <div>
                             <h2>Операторам вендинга</h2>
                             <p>Находите точки с подходящей проходимостью и размещайте автоматы</p>
@@ -127,7 +127,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
                     <?php if (!$isLoggedIn): ?>
                         <a href="/pages/register.php?role=operator" class="btn-contact btn-block">Стать оператором</a>
                     <?php elseif ($role === 'operator'): ?>
-                        <a href="/pages/catalog.php" class="btn-contact btn-block">🔍 Искать локации</a>
+                        <a href="/pages/catalog.php" class="btn-contact btn-block"><?php echo rr_icon('search'); ?> Искать локации</a>
                     <?php endif; ?>
                 </div>
             </div>

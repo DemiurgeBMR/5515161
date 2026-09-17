@@ -673,32 +673,36 @@ function formatDateRu($date) {
 // в текст сообщения при создании и жили в 3 разных файлах, из-за чего часть
 // типов не имела иконки вообще. Добавляя новый тип уведомления — сначала
 // впиши его сюда, notify() откажет на неизвестном типе.
+// 'icon' — имя из includes/icons.php (RR_ICONS), а не эмодзи: значение уходит
+// и в PHP-рендер (через rr_icon()), и в JSON для notifications.js, где ему
+// соответствует свой мини-набор SVG-путей (ICON_PATHS) — держать оба в
+// синхроне при добавлении новой иконки сюда.
 const NOTIFICATION_CATEGORIES = [
-    'chat'        => ['icon' => '💬', 'label' => 'Сообщения'],
-    'visits'      => ['icon' => '📅', 'label' => 'Визиты и обслуживание'],
-    'assignment'  => ['icon' => '🤝', 'label' => 'Заявки и закрепления'],
-    'maintenance' => ['icon' => '🔧', 'label' => 'Обслуживание точек'],
-    'moderation'  => ['icon' => '🛡️', 'label' => 'Модерация'],
-    'system'      => ['icon' => 'ℹ️', 'label' => 'Системные'],
+    'chat'        => ['icon' => 'message-circle', 'label' => 'Сообщения'],
+    'visits'      => ['icon' => 'calendar',       'label' => 'Визиты и обслуживание'],
+    'assignment'  => ['icon' => 'check',          'label' => 'Заявки и закрепления'],
+    'maintenance' => ['icon' => 'wrench',         'label' => 'Обслуживание точек'],
+    'moderation'  => ['icon' => 'shield',         'label' => 'Модерация'],
+    'system'      => ['icon' => 'info-circle',    'label' => 'Системные'],
 ];
 
 const NOTIFICATION_META = [
-    'new_message'          => ['category' => 'chat',        'icon' => '💬'],
-    'event_requested'      => ['category' => 'visits',      'icon' => '📅'],
-    'emergency_event'      => ['category' => 'visits',      'icon' => '🚨'],
-    'event_confirmed'      => ['category' => 'visits',      'icon' => '✅'],
-    'event_rescheduled'    => ['category' => 'visits',      'icon' => '🔄'],
-    'event_cancelled'      => ['category' => 'visits',      'icon' => '❌'],
-    'event_completed'      => ['category' => 'visits',      'icon' => '🏁'],
-    'quick_service'        => ['category' => 'maintenance', 'icon' => '🔧'],
-    'maintenance_due'      => ['category' => 'maintenance', 'icon' => '⚠️'],
-    'maintenance_due_owner'=> ['category' => 'maintenance', 'icon' => 'ℹ️'],
-    'operator_assigned'    => ['category' => 'assignment',  'icon' => '🤝'],
-    'assignment_request'   => ['category' => 'assignment',  'icon' => '📨'],
-    'assignment_approved'  => ['category' => 'assignment',  'icon' => '✅'],
-    'assignment_rejected'  => ['category' => 'assignment',  'icon' => '❌'],
-    'revision_approved'    => ['category' => 'moderation',  'icon' => '✅'],
-    'revision_rejected'    => ['category' => 'moderation',  'icon' => '📄'],
+    'new_message'          => ['category' => 'chat',        'icon' => 'message-circle'],
+    'event_requested'      => ['category' => 'visits',      'icon' => 'calendar'],
+    'emergency_event'      => ['category' => 'visits',      'icon' => 'warning'],
+    'event_confirmed'      => ['category' => 'visits',      'icon' => 'check'],
+    'event_rescheduled'    => ['category' => 'visits',      'icon' => 'refresh'],
+    'event_cancelled'      => ['category' => 'visits',      'icon' => 'x'],
+    'event_completed'      => ['category' => 'visits',      'icon' => 'check'],
+    'quick_service'        => ['category' => 'maintenance', 'icon' => 'wrench'],
+    'maintenance_due'      => ['category' => 'maintenance', 'icon' => 'warning'],
+    'maintenance_due_owner'=> ['category' => 'maintenance', 'icon' => 'info-circle'],
+    'operator_assigned'    => ['category' => 'assignment',  'icon' => 'check'],
+    'assignment_request'   => ['category' => 'assignment',  'icon' => 'mail'],
+    'assignment_approved'  => ['category' => 'assignment',  'icon' => 'check'],
+    'assignment_rejected'  => ['category' => 'assignment',  'icon' => 'x'],
+    'revision_approved'    => ['category' => 'moderation',  'icon' => 'check'],
+    'revision_rejected'    => ['category' => 'moderation',  'icon' => 'x'],
 ];
 
 /**
