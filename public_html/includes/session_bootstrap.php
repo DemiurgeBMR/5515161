@@ -53,7 +53,7 @@ function rr_send_security_headers() {
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com",
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com",
         "img-src 'self' data: https://*.tile.openstreetmap.org",
-        "font-src 'self' https://cdn.jsdelivr.net https://unpkg.com",
+        "font-src 'self' data: https://cdn.jsdelivr.net https://unpkg.com",
         "connect-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
