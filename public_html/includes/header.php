@@ -42,24 +42,6 @@
                 <a href="/pages/how_it_works.php">Как это работает</a>
 
 <?php if (isset($_SESSION['user_id'])): ?>
-    <!-- Уведомления: колокольчик открывает превью последних, полная лента — на pages/notifications.php -->
-    <div class="notification-bell-wrap">
-        <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="Уведомления">
-            <?php echo rr_icon('bell'); ?>
-            <span id="notificationBadge" class="notification-badge">0</span>
-        </button>
-        <div id="notificationDropdown" class="notif-dropdown">
-            <div class="notif-dd-header">
-                <span>Уведомления</span>
-                <a href="#" id="notifDdMarkAll">Прочитать всё</a>
-            </div>
-            <div id="notificationDropdownList" class="notif-dd-list">
-                <div class="notif-dd-empty">Загрузка…</div>
-            </div>
-            <a href="/pages/notifications.php" class="notif-dd-footer">Смотреть все →</a>
-        </div>
-    </div>
-
     <?php
     $role = $_SESSION['user_role'] ?? null;
     if ($role === 'operator') {
@@ -106,6 +88,26 @@
     <!-- Гость -->
     <a href="/pages/login.php" class="nav-link-spaced">Вход</a>
     <a href="/pages/register.php" class="btn-nav">Регистрация</a>
+<?php endif; ?>
+<?php if (isset($_SESSION['user_id'])): ?>
+    <!-- Уведомления: колокольчик открывает превью последних, полная лента — на pages/notifications.php.
+         Рядом с переключателем темы — оба маленькие круглые кнопки-иконки в конце шапки. -->
+    <div class="notification-bell-wrap">
+        <button type="button" id="notificationBellBtn" class="notification-bell" aria-label="Уведомления">
+            <?php echo rr_icon('bell'); ?>
+            <span id="notificationBadge" class="notification-badge">0</span>
+        </button>
+        <div id="notificationDropdown" class="notif-dropdown">
+            <div class="notif-dd-header">
+                <span>Уведомления</span>
+                <a href="#" id="notifDdMarkAll">Прочитать всё</a>
+            </div>
+            <div id="notificationDropdownList" class="notif-dd-list">
+                <div class="notif-dd-empty">Загрузка…</div>
+            </div>
+            <a href="/pages/notifications.php" class="notif-dd-footer">Смотреть все →</a>
+        </div>
+    </div>
 <?php endif; ?>
                 <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему"><?php echo rr_icon('moon'); ?></button>
             </nav>

@@ -196,25 +196,40 @@
     color: #0d3d16;
 }
 
-/* ===== КОЛОКОЛЬЧИК УВЕДОМЛЕНИЙ + ВЫПАДАЮЩАЯ ПАНЕЛЬ ===== */
+/* ===== КОЛОКОЛЬЧИК УВЕДОМЛЕНИЙ + ВЫПАДАЮЩАЯ ПАНЕЛЬ =====
+   Стоит вплотную к переключателю темы (см. .theme-toggle-btn) — та же
+   круглая кнопка-иконка, чтобы смотрелись единой парой в конце шапки. */
 .notification-bell-wrap {
     position: relative;
-    margin-right: 15px;
+}
+.notification-bell-wrap + .theme-toggle-btn {
+    margin-left: 10px;
 }
 .notification-bell {
     position: relative;
-    background: none;
-    border: none;
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
     color: var(--text, #f2f2f5);
-    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 16px;
     cursor: pointer;
     padding: 0;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+}
+.notification-bell:hover {
+    border-color: var(--border-strong, #3a3a45);
 }
 .notification-badge {
     position: absolute;
-    top: -8px;
-    right: -10px;
+    top: -6px;
+    right: -6px;
     background: var(--accent);
     color: #fff;
     border-radius: 50%;
