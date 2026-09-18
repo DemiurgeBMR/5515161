@@ -349,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const completeModal = document.getElementById('completeModal');
     const photoLightbox = document.getElementById('photoLightbox');
     const contextMenu = document.getElementById('contextMenu');
-    const operatorFilterEl = document.getElementById('operatorFilter'); // только у владельца
+    const operatorFilterEl = document.getElementById('operatorFilter'); // только у собственника
 
     // ============================================================
     // 3. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function () {
     calendar.render();
 
     // ============================================================
-    // 5. ФИЛЬТР ПО ОПЕРАТОРУ (только владелец) — заполняется из загруженных данных
+    // 5. ФИЛЬТР ПО ОПЕРАТОРУ (только собственник) — заполняется из загруженных данных
     // ============================================================
     function populateOperatorFilter() {
         if (!operatorFilterEl) return;
@@ -892,7 +892,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (ROLE === 'owner') {
             html += `<div class="detail-item"><div class="detail-label">Оператор</div><div class="detail-value">${escapeHtml(props.operator_name || '—')}</div></div>`;
         } else {
-            html += `<div class="detail-item"><div class="detail-label">Владелец</div><div class="detail-value">${escapeHtml(props.owner_name || '—')}</div></div>`;
+            html += `<div class="detail-item"><div class="detail-label">Собственник</div><div class="detail-value">${escapeHtml(props.owner_name || '—')}</div></div>`;
         }
         html += `</div>`;
 

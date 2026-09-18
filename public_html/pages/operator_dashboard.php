@@ -78,7 +78,7 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $total_rent = (float) $stmt->fetchColumn();
 
-// Непрочитанные сообщения от владельцев, сгруппированные по заявке — это
+// Непрочитанные сообщения от собственников, сгруппированные по заявке — это
 // и карточка "Ждут ответа", и список конкретных диалогов для to-do.
 $stmt = $pdo->prepare("
     SELECT a.id as application_id, l.title, l.city, u.full_name as owner_name,
@@ -112,7 +112,7 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $nearest_visit = $stmt->fetch();
 
-// Визиты, предложенные владельцем и ждущие подтверждения оператора —
+// Визиты, предложенные собственником и ждущие подтверждения оператора —
 // подтвердить своё же предложение нельзя (см. api/installation.php action=confirm),
 // поэтому в "требует внимания" попадают только чужие, ещё не подтверждённые.
 $stmt = $pdo->prepare("

@@ -37,11 +37,27 @@
 }
 
 .logo {
-    font-size: 28px;
-    font-weight: bold;
-    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
-    letter-spacing: -1px;
+}
+.logo-mark {
+    height: 34px;
+    width: auto;
+    display: block;
+}
+/* Тёмная тема — по умолчанию (:root без data-theme) — показывает белую
+   версию значка; светлая (:root[data-theme="light"]) — чёрную. Тот же
+   принцип, что и у переключателя темы, но без JS: чистый CSS по атрибуту,
+   который уже выставляется синхронно в <head> до отрисовки. */
+.logo-mark-for-light {
+    display: none;
+}
+:root[data-theme="light"] .logo-mark-for-dark {
+    display: none;
+}
+:root[data-theme="light"] .logo-mark-for-light {
+    display: block;
 }
 
 .nav {

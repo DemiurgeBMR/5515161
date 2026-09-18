@@ -21,7 +21,7 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 $pdo = getDbConnection();
 rr_enforce_rate_limit($pdo, 'operator_assign:' . $user_id, 60, 60);
 
-// Проверка прав: только владельцы и операторы имеют доступ
+// Проверка прав: только собственники и операторы имеют доступ
 $role = $_SESSION['user_role'] ?? '';
 
 if (!in_array($role, ['owner', 'operator'])) {
@@ -33,9 +33,9 @@ if (!in_array($role, ['owner', 'operator'])) {
 try {
 
 switch ($action) {
-    // 1. Владелец закрепляет оператора за своей локацией
+    // 1. Собственник закрепляет оператора за своей локацией
     case 'assign':
-        // Проверяем, что пользователь – владелец
+        // Проверяем, что пользователь – собственник
         if ($role !== 'owner') {
             http_response_code(403);
             echo json_encode(['error' => 'Only owners can assign operators']);
@@ -50,7 +50,7 @@ switch ($action) {
             exit;
         }
 
-        // Проверяем, что локация принадлежит этому владельцу
+        // Проверяем, что локация принадлежит этому собственнику
         $stmt = $pdo->prepare("SELECT owner_id FROM locations WHERE id = ?");
         $stmt->execute([$location_id]);
         $loc = $stmt->fetch();
@@ -138,7 +138,7 @@ switch ($action) {
         $stmt = $pdo->prepare("UPDATE applications SET assignment_requested = 1 WHERE id = ?");
         $stmt->execute([$application_id]);
 
-        // Уведомление владельцу
+        // Уведомление собственнику
         $link = '/pages/application_chat.php?application_id=' . $application_id;
         $message = 'Оператор запросил закрепление за локацией ' . $app['location_title'];
         notify($pdo, $app['owner_id'], 'assignment_request', $message, $link, ['application_id' => $application_id]);
@@ -146,7 +146,7 @@ switch ($action) {
         echo json_encode(['success' => true, 'application_id' => $application_id]);
         break;
 
-    // 3. Владелец подтверждает закрепление (одобряет заявку)
+    // 3. Собственник подтверждает закрепление (одобряет заявку)
     case 'approve':
         if ($role !== 'owner') {
             http_response_code(403);
@@ -160,7 +160,7 @@ switch ($action) {
             exit;
         }
 
-        // Проверяем, что заявка принадлежит этому владельцу и статус pending
+        // Проверяем, что заявка принадлежит этому собственнику и статус pending
         $stmt = $pdo->prepare("SELECT a.*, l.title as location_title FROM applications a JOIN locations l ON a.location_id = l.id WHERE a.id = ? AND a.owner_id = ? AND a.status = 'pending'");
         $stmt->execute([$application_id, $user_id]);
         $app = $stmt->fetch();
@@ -179,13 +179,13 @@ switch ($action) {
 
         // Уведомление оператору
         $link = '/pages/location.php?id=' . $app['location_id'];
-        $message = 'Владелец подтвердил ваше закрепление за локацией ' . $app['location_title'];
+        $message = 'Собственник подтвердил ваше закрепление за локацией ' . $app['location_title'];
         notify($pdo, $app['operator_id'], 'assignment_approved', $message, $link, ['application_id' => $application_id]);
 
         echo json_encode(['success' => true, 'message' => 'Assignment approved']);
         break;
 
-    // 4. Владелец отклоняет закрепление
+    // 4. Собственник отклоняет закрепление
     case 'reject':
         if ($role !== 'owner') {
             http_response_code(403);
@@ -212,13 +212,13 @@ switch ($action) {
 
         // Уведомление оператору
         $link = '/pages/catalog.php';
-        $message = 'Владелец отклонил ваше закрепление за локацией ' . $app['location_title'];
+        $message = 'Собственник отклонил ваше закрепление за локацией ' . $app['location_title'];
         notify($pdo, $app['operator_id'], 'assignment_rejected', $message, $link, ['application_id' => $application_id]);
 
         echo json_encode(['success' => true, 'message' => 'Assignment rejected']);
         break;
 
-    // 5. Владелец открепляет оператора
+    // 5. Собственник открепляет оператора
     case 'unassign':
         if ($role !== 'owner') {
             http_response_code(403);
@@ -232,7 +232,7 @@ switch ($action) {
             exit;
         }
 
-        // Проверяем, что эта запись принадлежит владельцу
+        // Проверяем, что эта запись принадлежит собственнику
         $stmt = $pdo->prepare("SELECT id, operator_id, location_id FROM location_operators WHERE id = ? AND owner_id = ?");
         $stmt->execute([$location_operator_id, $user_id]);
         $record = $stmt->fetch();
@@ -250,7 +250,7 @@ switch ($action) {
         echo json_encode(['success' => true, 'message' => 'Operator unassigned']);
         break;
 
-    // 6. Получить список операторов, доступных владельцу (для закрепления)
+    // 6. Получить список операторов, доступных собственнику (для закрепления)
     case 'get_available_operators':
         if ($role !== 'owner') {
             http_response_code(403);
@@ -271,7 +271,7 @@ switch ($action) {
         echo json_encode(['operators' => $operators]);
         break;
 
-    // 7. Получить список закреплённых операторов для владельца (со всеми данными)
+    // 7. Получить список закреплённых операторов для собственника (со всеми данными)
     case 'get_assigned':
         if ($role !== 'owner') {
             http_response_code(403);
@@ -303,7 +303,7 @@ switch ($action) {
         echo json_encode(['error' => 'Invalid location ID']);
         exit;
     }
-    // Проверяем, что локация принадлежит этому владельцу
+    // Проверяем, что локация принадлежит этому собственнику
     $stmt = $pdo->prepare("SELECT owner_id FROM locations WHERE id = ?");
     $stmt->execute([$location_id]);
     $loc = $stmt->fetch();

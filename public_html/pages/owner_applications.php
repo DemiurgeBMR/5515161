@@ -71,7 +71,7 @@ $statusLabels = [
                     </thead>
                     <tbody>
                         <?php foreach ($applications as $app):
-                            // ★★★ Определяем, какой статус показывать этому владельцу ★★★
+                            // ★★★ Определяем, какой статус показывать этому собственнику ★★★
                             // status хранит и финальные статусы запроса на закрепление
                             // (approved/rejected из api/operator_assign.php), которые
                             // нужно показывать напрямую — иначе такие заявки выглядели
@@ -79,7 +79,7 @@ $statusLabels = [
                             if (in_array($app['status'], ['cancelled', 'approved', 'rejected'], true)) {
                                 $displayStatus = $app['status'];
                             } else {
-                                // Используем личный тег владельца, если есть, иначе 'pending'
+                                // Используем личный тег собственника, если есть, иначе 'pending'
                                 $displayStatus = $app['owner_tag'] ? $app['owner_tag'] : 'pending';
                             }
                         ?>

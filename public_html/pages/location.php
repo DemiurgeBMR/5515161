@@ -16,7 +16,7 @@ if ($id <= 0) {
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $user_id = $_SESSION['user_id'] ?? 0;
 
-// Имя владельца показываем только подписчикам (см. $hasFullAccess ниже) —
+// Имя собственника показываем только подписчикам (см. $hasFullAccess ниже) —
 // сам JOIN безобиден, это просто SELECT, скрытие происходит в шаблоне.
 if ($is_admin) {
     $sql = "
@@ -28,7 +28,7 @@ if ($is_admin) {
     ";
     $params = [$id];
 } else {
-    // Для обычных пользователей: показываем, если активно ИЛИ если это владелец (даже неактивное)
+    // Для обычных пользователей: показываем, если активно ИЛИ если это собственник (даже неактивное)
     $sql = "
         SELECT l.*, ow.full_name as owner_name,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
@@ -50,27 +50,27 @@ if (!$location) {
     exit;
 }
 
-// ★★★ Флаг предпросмотра для владельца ★★★
+// ★★★ Флаг предпросмотра для собственника ★★★
 $is_preview = false;
 if ($location) {
-    // Если объявление не активно или не промодерировано, и пользователь - владелец или админ
+    // Если объявление не активно или не промодерировано, и пользователь - собственник или админ
     if (($location['is_active'] == 0 || $location['is_moderated'] == 0) && ($is_admin || ($user_id == $location['owner_id']))) {
         $is_preview = true;
     }
 }
 
-// ★★★ Точный адрес, имя владельца и возможность написать ему — по подписке
-// (или владельцу/админу своей же локации), без неё — только город
+// ★★★ Точный адрес, имя собственника и возможность написать ему — по подписке
+// (или собственнику/админу своей же локации), без неё — только город
 // (см. pages/subscription.php) ★★★
 $isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
 $hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
 
 // ★★★ Локация уже занята активно закреплённым оператором? ★★★
-// Как только владелец закрепил оператора за точкой, она перестаёт быть
+// Как только собственник закрепил оператора за точкой, она перестаёт быть
 // свободной для аренды — каталог/карта/рекомендации её больше не
 // показывают (см. pages/catalog.php, pages/map.php), а здесь, по прямой
-// ссылке, вместо приглашения написать владельцу — статус "занято" для всех,
-// кроме владельца, самого закреплённого оператора и админа.
+// ссылке, вместо приглашения написать собственнику — статус "занято" для всех,
+// кроме собственника, самого закреплённого оператора и админа.
 $stmt = $pdo->prepare("SELECT operator_id FROM location_operators WHERE location_id = ? AND status = 'active' LIMIT 1");
 $stmt->execute([$id]);
 $assignedOperatorId = $stmt->fetchColumn();
@@ -78,13 +78,13 @@ $isOccupied = $assignedOperatorId !== false;
 $isAssignedOperator = $isOccupied && isset($_SESSION['user_id']) && $_SESSION['user_id'] == $assignedOperatorId;
 
 // Аудитория бокового блока — гости (предложим войти) и операторы, которые
-// не владеют этой локацией: самому владельцу и другим владельцам, листающим
+// не владеют этой локацией: самому собственнику и другим собственникам, листающим
 // чужую локацию, писать самому себе/друг другу через аренду незачем.
 $sidebarAudience = !$is_admin && !$isOwnListing
     && (!isset($_SESSION['user_id']) || $_SESSION['user_role'] === 'operator');
 
 // Если точка уже занята — этой же аудитории (кроме самого закреплённого
-// оператора) вместо приглашения написать владельцу показываем статус
+// оператора) вместо приглашения написать собственнику показываем статус
 // "занято" (см. шаблон ниже); писать по уже занятой точке незачем.
 $showInquiryBlock = $sidebarAudience && (!$isOccupied || $isAssignedOperator);
 $showOccupiedBadge = $sidebarAudience && $isOccupied && !$isAssignedOperator;
@@ -94,7 +94,7 @@ $showInquirySidebar = $showInquiryBlock || $showOccupiedBadge;
 // вообще попадает в публичный каталог (см. catalog.php), поэтому в самом
 // каталоге она будет стоять всегда, а здесь корректно пропадёт для
 // черновика/ожидающего модерации объявления, которое видит только его
-// владелец или админ в режиме предпросмотра.
+// собственник или админ в режиме предпросмотра.
 $isVerified = ($location['is_moderated'] == 1 && $location['is_active'] == 1);
 
 // ★★★ ВЫЧИСЛЯЕМ ПЛОЩАДЬ ★★★
@@ -205,7 +205,7 @@ $stmt_photos->execute([$id]);
 $photos = $stmt_photos->fetchAll();
 
 // Увеличиваем счётчик просмотров — но не в режиме предпросмотра, иначе
-// владелец/админ, листающий свой ещё не опубликованный черновик, накручивал
+// собственник/админ, листающий свой ещё не опубликованный черновик, накручивал
 // бы публичную статистику просмотров до того, как объявление вообще стало видно.
 if (!$is_preview) {
     $pdo->prepare("UPDATE locations SET views = views + 1 WHERE id = ?")->execute([$id]);
@@ -395,7 +395,7 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
         <aside class="inquiry-sidebar">
             <div class="inquiry-card">
                 <h3>Заинтересовала локация?</h3>
-                <p class="inquiry-sub">С подпиской можно написать владельцу напрямую в один клик.</p>
+                <p class="inquiry-sub">С подпиской можно написать собственнику напрямую в один клик.</p>
 
                 <div class="inquiry-price-row">
                     <span>Аренда в месяц</span>
@@ -406,7 +406,7 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                     <a href="/pages/login.php" class="btn-contact btn-block">Войдите, чтобы связаться</a>
                 <?php elseif ($hasFullAccess): ?>
                     <div class="inquiry-owner">
-                        <span>Владелец</span>
+                        <span>Собственник</span>
                         <strong><?php echo htmlspecialchars($location['owner_name']); ?></strong>
                     </div>
                     <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block"><?php echo rr_icon('arrow-right'); ?> Отправить заявку на аренду</a>
@@ -415,9 +415,9 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                 <?php endif; ?>
 
                 <ul class="inquiry-points">
-                    <li><?php echo rr_icon('message-circle'); ?> RR передаёт ваше обращение владельцу — звонить самому не нужно</li>
-                    <li><?php echo rr_icon('check'); ?> Условия аренды обсуждаются напрямую в чате с владельцем</li>
-                    <li><?php echo rr_icon('lock'); ?> Подписка открывает имя и контакт владельца на всех локациях</li>
+                    <li><?php echo rr_icon('message-circle'); ?> RR передаёт ваше обращение собственнику — звонить самому не нужно</li>
+                    <li><?php echo rr_icon('check'); ?> Условия аренды обсуждаются напрямую в чате с собственником</li>
+                    <li><?php echo rr_icon('lock'); ?> Подписка открывает имя и контакт собственника на всех локациях</li>
                 </ul>
             </div>
         </aside>

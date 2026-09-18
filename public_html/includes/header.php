@@ -18,6 +18,8 @@
         })();
     </script>
     <title><?php echo SITE_NAME; ?></title>
+    <link rel="icon" type="image/png" href="/assets/images/brand/logo-mark-black.png" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/png" href="/assets/images/brand/logo-mark-white.png" media="(prefers-color-scheme: dark)">
     <link rel="stylesheet" href="/assets/css/style.css">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- FullCalendar -->
@@ -34,7 +36,10 @@
     <a href="#main-content" class="skip-link">Перейти к содержимому</a>
     <header class="header">
         <div class="container">
-            <a href="/" class="logo">RR</a>
+            <a href="/" class="logo" aria-label="<?php echo SITE_NAME; ?>">
+                <img src="/assets/images/brand/logo-mark-white.png" alt="RR" class="logo-mark logo-mark-for-dark">
+                <img src="/assets/images/brand/logo-mark-black.png" alt="RR" class="logo-mark logo-mark-for-light">
+            </a>
             
             <nav class="nav">
                 <a href="/pages/catalog.php">Локации</a>
@@ -58,7 +63,7 @@
         $profileLink = '/pages/profile.php';
         $profileLabel = 'Профиль';
         $profileIcon = 'edit';
-        $roleLabel = 'Владелец';
+        $roleLabel = 'Собственник';
     }
     ?>
     <?php if ($role === 'owner'): ?>

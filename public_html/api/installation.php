@@ -183,7 +183,7 @@ $eventTypeLabels = [
 ];
 
 switch ($action) {
-    // 1. Запросить визит (обе стороны равноправны — и оператор, и владелец)
+    // 1. Запросить визит (обе стороны равноправны — и оператор, и собственник)
     case 'request':
         $location_operator_id = (int)($_POST['location_operator_id'] ?? 0);
         $datetime = $_POST['datetime'] ?? '';
@@ -218,7 +218,7 @@ switch ($action) {
             $location_operator_id = (int)($stmt->fetchColumn() ?: 0);
 
             if ($location_operator_id <= 0) {
-                echo json_encode(['error' => 'Нельзя запланировать выезд: владелец ещё не закрепил оператора за этой локацией']);
+                echo json_encode(['error' => 'Нельзя запланировать выезд: собственник ещё не закрепил оператора за этой локацией']);
                 exit;
             }
         }
@@ -720,7 +720,7 @@ switch ($action) {
             // чтобы не держать транзакцию открытой на время работы с файлами
             $photosResult = saveServicePhotos('log', $log_id, 'photos');
 
-            // Уведомление владельцу — постфактум, без запроса на подтверждение
+            // Уведомление собственнику — постфактум, без запроса на подтверждение
             $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
             $message = 'Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];

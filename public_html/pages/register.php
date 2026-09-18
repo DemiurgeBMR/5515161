@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label class="reg-role-card<?php echo $role === 'owner' ? ' active' : ''; ?>" data-role="owner">
                         <input type="radio" name="role" value="owner" <?php echo $role === 'owner' ? 'checked' : ''; ?>>
                         <span class="reg-role-icon"><?php echo rr_icon('building'); ?></span>
-                        <span class="reg-role-title">Я владелец</span>
+                        <span class="reg-role-title">Я собственник</span>
                         <span class="reg-role-text">Сдаю место под автомат</span>
                     </label>
                 </div>
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <ul class="reg-done-list operator-only">
                         <li><span class="reg-done-icon"><?php echo rr_icon('search'); ?></span> Сразу после регистрации откроется каталог — ищите точки по городу, типу помещения и проходимости.</li>
-                        <li><span class="reg-done-icon"><?php echo rr_icon('lock'); ?></span> Чтобы написать владельцу и увидеть точный адрес, потребуется подписка — оформляется в один клик в личном кабинете.</li>
+                        <li><span class="reg-done-icon"><?php echo rr_icon('lock'); ?></span> Чтобы написать собственнику и увидеть точный адрес, потребуется подписка — оформляется в один клик в личном кабинете.</li>
                         <li><span class="reg-done-icon"><?php echo rr_icon('message-circle'); ?></span> Вся переписка и договорённости — прямо в чате на платформе.</li>
                     </ul>
 

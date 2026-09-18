@@ -8,12 +8,12 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
     exit;
 }
 
-// Отправка первой заявки владельцу — часть того же платного доступа, что и
-// точный адрес/имя владельца на карточке локации (см. pages/location.php).
+// Отправка первой заявки собственнику — часть того же платного доступа, что и
+// точный адрес/имя собственника на карточке локации (см. pages/location.php).
 // Проверяем и здесь, а не только скрываем кнопку в шаблоне, иначе доступ
 // обходился бы прямой ссылкой на эту страницу.
 if (!currentUserHasSubscription()) {
-    $_SESSION['flash'] = 'Чтобы отправить заявку владельцу, оформите подписку.';
+    $_SESSION['flash'] = 'Чтобы отправить заявку собственнику, оформите подписку.';
     header('Location: /pages/subscription.php');
     exit;
 }
@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
     $message = trim($_POST['message'] ?? '');
 
     if (empty($message)) {
-        $error = 'Пожалуйста, напишите сообщение владельцу.';
+        $error = 'Пожалуйста, напишите сообщение собственнику.';
     } else {
         try {
             $pdo->beginTransaction();
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
 
         <form method="POST">
             <div class="form-group">
-                <label>Сообщение владельцу *</label>
+                <label>Сообщение собственнику *</label>
                 <textarea name="message" required rows="5" placeholder="Расскажите о себе, опыте работы, предложениях по аренде..."></textarea>
             </div>
             <button type="submit" class="btn-submit">Отправить заявку</button>

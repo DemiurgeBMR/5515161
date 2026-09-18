@@ -70,7 +70,7 @@ function runMaintenanceReminders($pdo) {
             notify($pdo, $row['operator_id'], 'maintenance_due', $msg, $operatorLink, ['machine_id' => $row['machine_id']]);
         }
 
-        // Информирование владельца — для контроля за оператором
+        // Информирование собственника — для контроля за оператором
         $ownerLink = '/pages/service_history.php?location_id=' . $row['machine_id'];
         if (!recentReminderExists($pdo, $row['owner_id'], 'maintenance_due_owner', $ownerLink)) {
             $msg = 'Оператор не обслуживал точку «' . $row['location_title'] . '» ' . $days . ' дн.';

@@ -94,7 +94,7 @@ unset($_SESSION['flash']);
             </div>
             <div class="stat-box">
                 <div class="number"><?php echo $total_owners; ?></div>
-                <div class="label">Владельцев</div>
+                <div class="label">Собственников</div>
             </div>
             <div class="stat-box">
                 <div class="number"><?php echo $total_operators; ?></div>
@@ -112,7 +112,7 @@ unset($_SESSION['flash']);
             <input type="text" name="q" placeholder="Имя или email..." value="<?php echo htmlspecialchars($search); ?>">
             <select name="role">
                 <option value="">Все роли</option>
-                <option value="owner" <?php echo $roleFilter === 'owner' ? 'selected' : ''; ?>>Владельцы</option>
+                <option value="owner" <?php echo $roleFilter === 'owner' ? 'selected' : ''; ?>>Собственники</option>
                 <option value="operator" <?php echo $roleFilter === 'operator' ? 'selected' : ''; ?>>Операторы</option>
                 <option value="admin" <?php echo $roleFilter === 'admin' ? 'selected' : ''; ?>>Админы</option>
             </select>
@@ -144,7 +144,7 @@ unset($_SESSION['flash']);
                                 <td><?php echo htmlspecialchars($u['email']); ?></td>
                                 <td>
                                     <?php
-                                    $roleLabels = ['owner' => rr_icon('building') . ' Владелец', 'operator' => rr_icon('check') . ' Оператор', 'admin' => rr_icon('shield') . ' Админ'];
+                                    $roleLabels = ['owner' => rr_icon('building') . ' Собственник', 'operator' => rr_icon('check') . ' Оператор', 'admin' => rr_icon('shield') . ' Админ'];
                                     echo $roleLabels[$u['role']] ?? htmlspecialchars($u['role']);
                                     ?>
                                 </td>

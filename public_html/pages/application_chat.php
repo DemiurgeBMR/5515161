@@ -59,7 +59,7 @@ $other_party = $is_operator ? $application['owner_name'] : $application['operato
 // Запрос на закрепление — это отметка на уже открытой заявке/чате
 // (api/operator_assign.php, action=request ставит applications.assignment_requested=1),
 // а не отдельная заявка. Оператор решает сам, когда его отправить, прямо
-// из переписки; владельцу здесь же показываются кнопки "Одобрить"/"Отклонить",
+// из переписки; собственнику здесь же показываются кнопки "Одобрить"/"Отклонить",
 // пока запрос не рассмотрен.
 $isAssignmentRequest = !empty($application['assignment_requested']);
 $canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator;
@@ -168,7 +168,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                             $isOwn = ($msg['sender_id'] == $user_id);
                             $isOperatorMsg = ($msg['sender_id'] == $application['operator_id']);
                             $senderFullName = $isOperatorMsg ? $application['operator_name'] : $application['owner_name'];
-                            $senderLabel = $senderFullName . ($isOperatorMsg ? ' (Оператор)' : ' (Владелец)');
+                            $senderLabel = $senderFullName . ($isOperatorMsg ? ' (Оператор)' : ' (Собственник)');
                             $msgDate = date('Y-m-d', strtotime($msg['created_at']));
                             $showDateSeparator = ($msgDate !== $prevDate);
                             $isGrouped = (!$showDateSeparator && $msg['sender_id'] == $prevSenderId);
@@ -253,7 +253,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             </div>
 
             <?php if ($canDecideAssignment): ?>
-            <!-- запрос на закрепление за локацией — решение владельца -->
+            <!-- запрос на закрепление за локацией — решение собственника -->
             <div class="sidebar-section" id="assignmentRequestBlock">
                 <p class="sidebar-section-title">Запрос на закрепление</p>
                 <p class="sidebar-note">
@@ -272,7 +272,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <div class="sidebar-section" id="requestAssignmentBlock">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
                 <p class="sidebar-note">
-                    Если договорились с владельцем — отправьте запрос на закрепление за этой локацией.
+                    Если договорились с собственником — отправьте запрос на закрепление за этой локацией.
                 </p>
                 <button type="button" id="requestAssignmentBtn" class="chat-btn-primary">Запросить закрепление</button>
                 <div id="requestAssignmentStatus" class="status-message" role="status" aria-live="polite"></div>
@@ -281,7 +281,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Закрепление за локацией</p>
                 <p class="sidebar-note">
-                    <?php echo rr_icon('clock'); ?> Запрос на закрепление отправлен, ожидайте решения владельца.
+                    <?php echo rr_icon('clock'); ?> Запрос на закрепление отправлен, ожидайте решения собственника.
                 </p>
             </div>
             <?php endif; ?>
@@ -378,7 +378,7 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
                         </div>
                     </div>
                 <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
-                    <div class="event-empty">Планировать выезд можно после того, как владелец закрепит оператора за этой локацией.</div>
+                    <div class="event-empty">Планировать выезд можно после того, как собственник закрепит оператора за этой локацией.</div>
                 <?php else: ?>
                     <div class="event-empty">Нет активных событий.</div>
                 <?php endif; ?>
@@ -546,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (requestAssignmentBtn) {
         requestAssignmentBtn.addEventListener('click', function() {
-            rrConfirm('Отправить владельцу запрос на закрепление за этой локацией?', { okText: 'Отправить' }).then(function(ok) {
+            rrConfirm('Отправить собственнику запрос на закрепление за этой локацией?', { okText: 'Отправить' }).then(function(ok) {
                 if (!ok) return;
 
                 requestAssignmentBtn.disabled = true;
@@ -601,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function appendMessage(msg, isOwn) {
         var isOperatorMsg = (msg.sender_id == operatorId);
         var senderFullName = isOperatorMsg ? operatorName : ownerName;
-        var senderLabel = senderFullName + (isOperatorMsg ? ' (Оператор)' : ' (Владелец)');
+        var senderLabel = senderFullName + (isOperatorMsg ? ' (Оператор)' : ' (Собственник)');
         var date = new Date(msg.created_at * 1000);
         var time = date.toLocaleString('ru-RU', { hour: '2-digit', minute: '2-digit' });
 

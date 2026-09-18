@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'owner') {
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
 
-// Получаем все активные закрепления владельца
+// Получаем все активные закрепления собственника
 $stmt = $pdo->prepare("
     SELECT lo.*, l.title as location_title, l.city, u.full_name as operator_name
     FROM location_operators lo
@@ -23,12 +23,12 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $assignments = $stmt->fetchAll();
 
-// Получаем список всех локаций владельца (для выбора при создании)
+// Получаем список всех локаций собственника (для выбора при создании)
 $stmt = $pdo->prepare("SELECT id, title, city FROM locations WHERE owner_id = ? ORDER BY title");
 $stmt->execute([$user_id]);
 $locations = $stmt->fetchAll();
 
-// Получаем список всех операторов, которые подавали заявки владельцу (для выбора)
+// Получаем список всех операторов, которые подавали заявки собственнику (для выбора)
 $stmt = $pdo->prepare("
     SELECT DISTINCT u.id, u.full_name
     FROM users u

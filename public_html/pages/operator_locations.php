@@ -77,7 +77,7 @@ function daysSince($dateString) {
                     <div class="location-info">
                         <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
                         <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
-                        <div class="owner"><?php echo rr_icon('users'); ?> Владелец: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
+                        <div class="owner"><?php echo rr_icon('users'); ?> Собственник: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
                         <div class="badge-assigned"><?php echo rr_icon('check'); ?> Закреплён</div>
                     </div>
                     <div class="location-actions">
