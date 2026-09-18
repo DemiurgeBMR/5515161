@@ -37,8 +37,8 @@
     <header class="header">
         <div class="container">
             <a href="/" class="logo" aria-label="<?php echo SITE_NAME; ?>">
-                <img src="/assets/images/brand/logo-mark-white.png" alt="RR" class="logo-mark logo-mark-for-dark">
-                <img src="/assets/images/brand/logo-mark-black.png" alt="RR" class="logo-mark logo-mark-for-light">
+                <img src="/assets/images/brand/logo-full-white.png" alt="Riveg Rent" class="logo-mark logo-mark-for-dark">
+                <img src="/assets/images/brand/logo-full-black.png" alt="Riveg Rent" class="logo-mark logo-mark-for-light">
             </a>
             
             <nav class="nav">
