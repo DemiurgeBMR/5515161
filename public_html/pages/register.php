@@ -19,6 +19,11 @@ $role = $_POST['role'] ?? ((($_GET['role'] ?? '') === 'owner') ? 'owner' : 'oper
 if (!in_array($role, ['owner', 'operator'], true)) {
     $role = 'operator';
 }
+// Согласие на обработку персональных данных — с 1 сентября 2025 обязано быть
+// отдельным чекбоксом, а не пунктом внутри общего согласия с условиями
+// сервиса, поэтому оба флажка проверяются и хранятся раздельно.
+$privacyConsent = !empty($_POST['privacy_consent']);
+$termsConsent = !empty($_POST['terms_consent']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
@@ -31,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Некорректный email адрес';
     } elseif (strlen($password) < 6) {
         $error = 'Пароль должен быть не менее 6 символов';
+    } elseif (!$privacyConsent) {
+        $error = 'Необходимо дать согласие на обработку персональных данных';
+    } elseif (!$termsConsent) {
+        $error = 'Необходимо принять условия пользовательского соглашения';
     } else {
         try {
             $pdo = getDbConnection();
@@ -42,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("
-                    INSERT INTO users (email, password, full_name, phone, role)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT INTO users (email, password, full_name, phone, role, privacy_consent_at)
+                    VALUES (?, ?, ?, ?, ?, NOW())
                 ");
                 $stmt->execute([$email, $hashed_password, $full_name, $phone, $role]);
                 $user_id = $pdo->lastInsertId();
@@ -192,6 +201,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <li><span class="reg-done-icon"><?php echo rr_icon('check'); ?></span> RR пока не принимает оплату за вас — аренда обсуждается и переводится напрямую между вами и оператором. Приём платежей через платформу мы добавим позже.</li>
                     </ul>
 
+                    <div class="reg-consents">
+                        <label class="reg-consent">
+                            <input type="checkbox" name="privacy_consent" value="1" required <?php echo $privacyConsent ? 'checked' : ''; ?>>
+                            <span>Даю согласие на обработку персональных данных в соответствии с
+                                <a href="/pages/privacy_policy.php" target="_blank" rel="noopener">Политикой обработки персональных данных</a></span>
+                        </label>
+                        <label class="reg-consent">
+                            <input type="checkbox" name="terms_consent" value="1" required <?php echo $termsConsent ? 'checked' : ''; ?>>
+                            <span>Принимаю условия <a href="/pages/terms.php" target="_blank" rel="noopener">Пользовательского соглашения</a></span>
+                        </label>
+                    </div>
+
                     <div class="reg-panel-actions">
                         <button type="button" class="reg-btn-back reg-back">← Назад</button>
                         <button type="submit" class="btn-submit">Завершить регистрацию</button>
@@ -268,6 +289,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             btn.addEventListener('click', function() {
                 showPanel('1');
             });
+        });
+
+        form.addEventListener('submit', function(e) {
+            var donePanel = form.querySelector('.reg-panel[data-panel="done"]');
+            if (donePanel && !panelIsValid(donePanel)) {
+                e.preventDefault();
+            }
         });
 
         applyRoleClass();

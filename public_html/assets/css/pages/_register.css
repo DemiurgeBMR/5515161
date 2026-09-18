@@ -209,6 +209,29 @@
     margin-bottom: 20px;
     line-height: 1.5;
 }
+.reg-consents {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+}
+.reg-consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted, #9a9aa5);
+    cursor: pointer;
+}
+.reg-consent input {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+}
+.reg-consent a {
+    color: var(--accent);
+}
 .reg-panel-actions {
     display: flex;
     justify-content: space-between;

@@ -30,6 +30,7 @@
 @import 'pages/_operator_dashboard.css';
 @import 'pages/_application_chat.css';
 @import 'pages/_events_calendar.css';
+@import 'pages/_legal.css';
 @import 'admin/_admin.css';
 @import 'admin/_admin-locations.css'; 
 @import 'admin/_admin-preview-revision.css';
@@ -192,10 +193,21 @@ a {
     font-size: 14px;
 }
 
-.footer p:last-child {
+.footer p.footer-cities {
     margin-top: 8px;
     font-size: 12px;
     opacity: 0.5;
+}
+.footer p.footer-legal-links {
+    margin-top: 8px;
+    font-size: 12px;
+}
+.footer p.footer-legal-links a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: underline;
+}
+.footer p.footer-legal-links a:hover {
+    color: #fff;
 }
 .badge {
     background: var(--accent);

@@ -31,6 +31,8 @@ $staticPages = [
     ['loc' => '/pages/catalog.php', 'changefreq' => 'daily', 'priority' => '0.9'],
     ['loc' => '/pages/map.php', 'changefreq' => 'daily', 'priority' => '0.7'],
     ['loc' => '/pages/how_it_works.php', 'changefreq' => 'monthly', 'priority' => '0.5'],
+    ['loc' => '/pages/privacy_policy.php', 'changefreq' => 'yearly', 'priority' => '0.3'],
+    ['loc' => '/pages/terms.php', 'changefreq' => 'yearly', 'priority' => '0.3'],
 ];
 
 $stmt = $pdo->query("

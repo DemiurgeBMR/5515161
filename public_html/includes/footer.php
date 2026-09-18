@@ -2,7 +2,12 @@
     <footer class="footer">
         <div class="container">
             <p>&copy; 2025 RR - Riveg Rent. Все права защищены.</p>
-            <p>Симферополь | Краснодар | Ростов</p>
+            <p class="footer-cities">Симферополь | Краснодар | Ростов</p>
+            <p class="footer-legal-links">
+                <a href="/pages/privacy_policy.php">Политика обработки персональных данных</a>
+                ·
+                <a href="/pages/terms.php">Пользовательское соглашение</a>
+            </p>
         </div>
     </footer>
     <script>
