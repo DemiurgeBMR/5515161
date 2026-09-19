@@ -198,6 +198,7 @@ if (empty($title) || empty($address) || empty($city) || $price_month <= 0) {
 
 // Определяем главное фото из единой группы радиокнопок
 $mainPhoto = $_POST['main_photo'] ?? '';
+$mainPhotoId = null;
 
 if (strpos($mainPhoto, 'existing_') === 0) {
     // Выбрано существующее фото
@@ -212,6 +213,56 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 }
 // Если ничего не выбрано – первое новое фото станет главным (это обрабатывается в applyRevision)
 
+// ★★★ Смена главного фото среди уже одобренных фото локации не добавляет
+// никакого нового непроверенного контента (само фото уже прошло модерацию
+// раньше) — если больше ничего в объявлении не поменялось, применяем сразу,
+// без очереди на модерацию. Любое другое изменение (текст, новые/удалённые
+// фото) по-прежнему уходит ревизией, как раньше. ★★★
+$contentUnchanged =
+    empty($deletedPhotoIds) &&
+    empty($newPhotoPaths) &&
+    $title === $location['title'] &&
+    $address === $location['address'] &&
+    $city === $location['city'] &&
+    $description === ($location['description'] ?? '') &&
+    (float)$price_month === (float)$location['price_month'] &&
+    (float)$width === (float)($location['width'] ?? 0) &&
+    (float)$height === (float)($location['height'] ?? 0) &&
+    (float)$depth === (float)($location['depth'] ?? 0) &&
+    (int)$has_electricity === (int)$location['has_electricity'] &&
+    (int)$has_wifi === (int)$location['has_wifi'] &&
+    (int)$has_water === (int)$location['has_water'] &&
+    $access_hours === $location['access_hours'] &&
+    (int)$traffic_rating === (int)($location['traffic_rating'] ?? 0) &&
+    $space_type === ($location['space_type'] ?? null);
+
+$currentMainPhotoId = null;
+foreach ($photos as $p) {
+    if ($p['is_main'] == 1) {
+        $currentMainPhotoId = (int)$p['id'];
+        break;
+    }
+}
+
+if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainPhotoId) {
+    // Проверяем, что выбранное фото действительно принадлежит этой локации
+    // и не ждёт удаления, прежде чем делать его главным без модерации.
+    $checkStmt = $pdo->prepare("
+        SELECT id FROM location_photos
+        WHERE id = ? AND location_id = ? AND (pending_action IS NULL OR pending_action != 'delete')
+    ");
+    $checkStmt->execute([$mainPhotoId, $id]);
+    if ($checkStmt->fetch()) {
+        $pdo->prepare("UPDATE location_photos SET is_main = 0 WHERE location_id = ?")->execute([$id]);
+        $pdo->prepare("UPDATE location_photos SET is_main = 1 WHERE id = ?")->execute([$mainPhotoId]);
+        clearCache('rec_' . $id);
+        $success = 'Главное фото обновлено — оно уже опубликовано, модерация не нужна.';
+    } else {
+        $error = 'Не удалось найти выбранное фото.';
+    }
+} elseif ($contentUnchanged) {
+    $success = 'Изменений не обнаружено.';
+} else {
         // Сохраняем ревизию в БД
         $stmt = $pdo->prepare("
             INSERT INTO location_revisions (location_id, data, status)
@@ -221,6 +272,7 @@ if (strpos($mainPhoto, 'existing_') === 0) {
 
         $success = 'Изменения отправлены на модерацию. Старая версия объявления остаётся активной до проверки.';
         clearCache('rec_' . $id);
+}
 
         // Перезагружаем данные (они не изменились, но обновляем время)
         $stmt = $pdo->prepare("SELECT * FROM locations WHERE id = ? AND owner_id = ?");
