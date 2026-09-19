@@ -45,6 +45,7 @@
                 <a href="/pages/catalog.php">Локации</a>
                 <a href="/pages/map.php">Карта</a>
                 <a href="/pages/how_it_works.php">Как это работает</a>
+                <a href="/pages/subscription.php">Подписка</a>
 
 <?php if (isset($_SESSION['user_id'])): ?>
     <?php
@@ -82,9 +83,6 @@
                 <div class="account-dd-role"><?php echo htmlspecialchars($roleLabel); ?></div>
             </div>
             <a href="<?php echo $profileLink; ?>" class="account-dd-item"><?php echo rr_icon($profileIcon); ?> <?php echo htmlspecialchars($profileLabel); ?></a>
-            <?php if ($role === 'operator'): ?>
-                <a href="/pages/subscription.php" class="account-dd-item<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>"><?php echo rr_icon('card'); ?> Подписка</a>
-            <?php endif; ?>
             <div class="account-dd-divider"></div>
             <a href="/pages/logout.php" class="account-dd-item danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
         </div>

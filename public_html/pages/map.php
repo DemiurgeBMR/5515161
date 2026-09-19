@@ -8,12 +8,20 @@ $pdo = getDbConnection();
 $city = trim($_GET['city'] ?? '');
 $hasSubscription = currentUserHasSubscription();
 
+// Собственник может смотреть на карте свои же локации бесплатно — ему не
+// нужно платить за доступ к собственным адресам, которые он и так знает.
+// Это не подписка (он остаётся "без подписки" для всего остального сайта),
+// а отдельная, более узкая карта — только его точки, вне зависимости от
+// occupied-статуса (это же его точки, ему всё равно нужно их все видеть).
+$isOwner = ($_SESSION['user_role'] ?? null) === 'owner';
+$hasFullMapAccess = $hasSubscription || $isOwner;
+
 // Локация с активным закреплением оператора больше не свободна — как и в
 // каталоге (pages/catalog.php), не показываем её на карте другим операторам.
 $notOccupiedSql = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = locations.id AND lo.status = 'active')";
 $notOccupiedSqlL = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')";
 
-if (!$hasSubscription) {
+if (!$hasFullMapAccess) {
     // Без подписки — ни точек, ни координат, только агрегированный список
     // "город → сколько локаций". Полная интерактивная карта — только для
     // подписчиков (см. pages/subscription.php).
@@ -28,6 +36,48 @@ if (!$hasSubscription) {
     $stmt->execute($params);
     $cityCounts = $stmt->fetchAll();
     $totalLocations = array_sum(array_column($cityCounts, 'cnt'));
+} elseif ($isOwner) {
+    // Только собственные локации — независимо от occupied/модерации: это
+    // его точки, ему нужно видеть их все, а не только "живую" публичную выборку.
+    $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
+            (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+            FROM locations l
+            WHERE l.owner_id = ? AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL";
+    $params = [$_SESSION['user_id']];
+    if ($city !== '') {
+        $sql .= " AND l.city LIKE ?";
+        $params[] = '%' . $city . '%';
+    }
+    $sql .= " ORDER BY l.created_at DESC";
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $locations = $stmt->fetchAll();
+
+    $sql_no_geo = "SELECT COUNT(*) FROM locations WHERE owner_id = ? AND (latitude IS NULL OR longitude IS NULL)";
+    $params_no_geo = [$_SESSION['user_id']];
+    if ($city !== '') {
+        $sql_no_geo .= " AND city LIKE ?";
+        $params_no_geo[] = '%' . $city . '%';
+    }
+    $stmt_no_geo = $pdo->prepare($sql_no_geo);
+    $stmt_no_geo->execute($params_no_geo);
+    $total_no_geo = (int) $stmt_no_geo->fetchColumn();
+
+    $mapPoints = array_map(function ($loc) {
+        return [
+            'id'      => (int) $loc['id'],
+            'title'   => $loc['title'],
+            'city'    => $loc['city'],
+            'address' => $loc['address'],
+            'price'   => (float) $loc['price_month'],
+            'traffic' => (int) $loc['traffic_rating'],
+            'lat'     => (float) $loc['latitude'],
+            'lng'     => (float) $loc['longitude'],
+            'photo'   => !empty($loc['main_photo']) ? '/' . $loc['main_photo'] : '/assets/images/placeholder.jpg',
+            'url'     => '/pages/location.php?id=' . (int) $loc['id'],
+        ];
+    }, $locations);
 } else {
     $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
             (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
@@ -82,7 +132,7 @@ if (!$hasSubscription) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта локаций — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
-    <?php if ($hasSubscription): ?>
+    <?php if ($hasFullMapAccess): ?>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <?php endif; ?>
@@ -100,9 +150,9 @@ if (!$hasSubscription) {
                     <a href="/pages/map.php" class="btn-reset">Сбросить</a>
                 <?php endif; ?>
             </form>
-            <?php if ($hasSubscription): ?>
+            <?php if ($hasFullMapAccess): ?>
                 <div class="map-count">
-                    На карте: <strong><?php echo count($mapPoints); ?></strong>
+                    <?php echo $isOwner ? 'Ваши локации на карте' : 'На карте'; ?>: <strong><?php echo count($mapPoints); ?></strong>
                     <?php if ($total_no_geo > 0): ?>
                         <span class="map-count-hint" title="У этих локаций пока не определены координаты">
                             · ещё <?php echo $total_no_geo; ?> без координат
@@ -114,7 +164,7 @@ if (!$hasSubscription) {
             <?php endif; ?>
         </div>
 
-        <?php if (!$hasSubscription): ?>
+        <?php if (!$hasFullMapAccess): ?>
             <div class="map-paywall">
                 <div class="map-paywall-icon"><?php echo rr_icon('lock'); ?></div>
                 <h3>Карта с точками доступна по подписке</h3>
@@ -149,8 +199,13 @@ if (!$hasSubscription) {
 
             <?php if (count($mapPoints) === 0): ?>
                 <div class="empty spaced">
-                    <h3><?php echo rr_icon('frown'); ?> На карте пока ничего нет</h3>
-                    <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
+                    <?php if ($isOwner): ?>
+                        <h3><?php echo rr_icon('frown'); ?> На карте пока нет ваших локаций</h3>
+                        <p>Либо у них ещё не определены координаты, либо вы ещё не <a href="/pages/add_location.php" class="accent-link">добавили локацию</a>.</p>
+                    <?php else: ?>
+                        <h3><?php echo rr_icon('frown'); ?> На карте пока ничего нет</h3>
+                        <p>Попробуйте изменить город или откройте <a href="/pages/catalog.php" class="accent-link">полный каталог</a>.</p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         <?php endif; ?>
@@ -158,7 +213,7 @@ if (!$hasSubscription) {
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 
-    <?php if ($hasSubscription): ?>
+    <?php if ($hasFullMapAccess): ?>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>

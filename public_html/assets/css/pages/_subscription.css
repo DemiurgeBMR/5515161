@@ -93,12 +93,25 @@
     color: var(--text-muted, #9a9aa5);
     margin-bottom: 10px;
 }
-.plan-card form {
+.plan-card form,
+.plan-card .btn-submit {
     width: 100%;
     margin-top: auto;
 }
 .plan-card .btn-submit {
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+.plan-card-unavailable {
     width: 100%;
+    margin-top: auto;
+    padding: 11px 0;
+    text-align: center;
+    color: var(--text-faint, #6f6f7a);
+    font-size: 13px;
+    border: 1px dashed var(--border, #2a2a33);
+    border-radius: 8px;
 }
 
 .btn-danger-outline {

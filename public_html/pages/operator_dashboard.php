@@ -171,6 +171,9 @@ $eventTypeLabels = [
                 <a href="/pages/documents.php">
                     <i><?php echo rr_icon('file-text'); ?></i> Документы
                 </a>
+                <a href="/pages/subscription.php">
+                    <i><?php echo rr_icon('card'); ?></i> Подписка
+                </a>
                 <a href="/pages/edit_profile.php">
                     <i><?php echo rr_icon('settings'); ?></i> Настройки
                 </a>
