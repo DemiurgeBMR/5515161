@@ -28,33 +28,37 @@
     margin-bottom: 24px;
 }
 
-/* ---------- Панель поиска и фильтров ---------- */
-.filters {
+/* ---------- Панель поиска и фильтров ----------
+   Единая карточка вместо разбросанных пилюль-полей — по образцу общего
+   блока фильтров Auto.ru: одна обрамлённая панель, поля сгруппированы по
+   строкам с подписями, один явный сабмит вместо автопосыла формы на
+   каждое изменение. */
+.filters-card {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 14px;
+    padding: 20px;
     margin-bottom: 20px;
 }
-.filters-row {
+.catalog-filters {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-}
-.filters-row-secondary {
-    margin-top: 12px;
+    flex-direction: column;
+    gap: 16px;
 }
 
 .search-box {
-    flex: 1 1 260px;
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--bg-elevated, #16161c);
+    background: var(--bg-input, #0f0f14);
     border: 1px solid var(--border, #2a2a33);
     border-radius: 10px;
     padding: 0 14px;
 }
-.search-box .search-icon {
+.search-box .filters-search-icon {
     opacity: 0.6;
     font-size: 14px;
+    display: flex;
 }
 .search-box input {
     flex: 1;
@@ -70,21 +74,70 @@
     color: var(--text-faint, #6f6f7a);
 }
 
-.select-pill {
-    background: var(--bg-elevated, #16161c);
-    border: 1px solid var(--border, #2a2a33);
-    color: var(--text, #f2f2f5);
-    padding: 11px 14px;
-    border-radius: 10px;
-    font-size: 14px;
-    cursor: pointer;
-    min-width: 150px;
+/* Сетка подписанных полей — Город/Тип/Трафик/Часы/Сортировка в одной
+   строке, Цена/Площадь во второй, каждое поле само разворачивается по
+   доступной ширине. */
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
 }
-.select-pill:focus {
+.filters-grid-range {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+.filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.filter-field label {
+    font-size: 12px;
+    color: var(--text-muted, #9a9aa5);
+}
+.filter-field input,
+.filter-field select {
+    background: var(--bg-input, #0f0f14);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 8px;
+    color: var(--text, #f2f2f5);
+    padding: 10px 12px;
+    font-size: 14px;
+    width: 100%;
+    min-width: 0;
+}
+.filter-field input:focus,
+.filter-field select:focus {
     outline: 1px solid var(--accent);
 }
 
+/* Нижняя строка панели: слева чекбоксы-чипы удобств, справа сброс + сабмит */
+.filters-bottom-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-top: 4px;
+    border-top: 1px solid var(--border, #2a2a33);
+}
+.filters-amenities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.filters-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.btn-filter-primary,
 .btn-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 11px 26px;
     background: var(--accent);
     color: white;
@@ -93,17 +146,19 @@
     cursor: pointer;
     font-weight: bold;
     font-size: 14px;
+    white-space: nowrap;
+    text-decoration: none;
 }
+.btn-filter-primary:hover,
 .btn-filter:hover {
     background: var(--accent-hover);
-}
-.btn-filter-small {
-    padding: 8px 18px;
-    font-size: 13px;
 }
 .btn-reset {
     background: transparent;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     padding: 11px 16px;
     border-radius: 10px;
     color: var(--text-muted, #9a9aa5);
@@ -125,7 +180,7 @@
     font-size: 13px;
     color: var(--text-muted, #9a9aa5);
     white-space: nowrap;
-    background: var(--bg-elevated, #16161c);
+    background: var(--bg-input, #0f0f14);
     border: 1px solid var(--border, #2a2a33);
     border-radius: 20px;
     padding: 8px 14px;
@@ -141,66 +196,6 @@
     height: 14px;
     margin: 0;
     accent-color: var(--accent);
-}
-
-/* "Ещё фильтры" — цена/площадь/часы доступа спрятаны сюда, чтобы не
-   загромождать основную панель, но ничего не теряя из старого функционала. */
-.more-filters {
-    display: inline-block;
-    position: relative;
-}
-.more-filters summary {
-    list-style: none;
-    background: var(--bg-elevated, #16161c);
-    border: 1px solid var(--border, #2a2a33);
-    border-radius: 20px;
-    padding: 8px 14px;
-    font-size: 13px;
-    color: var(--text-muted, #9a9aa5);
-    cursor: pointer;
-}
-.more-filters summary::-webkit-details-marker {
-    display: none;
-}
-.more-filters[open] summary {
-    border-color: var(--accent);
-    color: var(--text, #f2f2f5);
-}
-.more-filters-body {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 20;
-    background: var(--bg-elevated, #16161c);
-    border: 1px solid var(--border, #2a2a33);
-    border-radius: 12px;
-    padding: 16px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
-    gap: 12px;
-    box-shadow: var(--shadow-md);
-    min-width: 320px;
-}
-.more-filters-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.more-filters-field label {
-    font-size: 12px;
-    color: var(--text-muted, #9a9aa5);
-}
-.more-filters-field input,
-.more-filters-field select {
-    background: var(--bg-input, #0f0f14);
-    border: 1px solid var(--border, #2a2a33);
-    border-radius: 6px;
-    color: var(--text, #f2f2f5);
-    padding: 7px 10px;
-    font-size: 13px;
-}
-.more-filters-body .btn-filter {
-    grid-column: 1 / -1;
 }
 
 /* ---------- Строка городов ---------- */
@@ -439,11 +434,29 @@
 
 /* ---------- Адаптив ---------- */
 @media (max-width: 720px) {
-    .more-filters-body {
-        grid-template-columns: 1fr;
-        min-width: 260px;
+    .filters-card {
+        padding: 16px;
     }
-    .search-box {
-        flex: 1 1 100%;
+    .filters-grid,
+    .filters-grid-range {
+        grid-template-columns: 1fr 1fr;
+    }
+    .filters-bottom-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filters-actions {
+        margin-left: 0;
+        justify-content: space-between;
+    }
+    .filters-actions .btn-filter-primary {
+        flex: 1;
+        justify-content: center;
+    }
+}
+@media (max-width: 480px) {
+    .filters-grid,
+    .filters-grid-range {
+        grid-template-columns: 1fr;
     }
 }

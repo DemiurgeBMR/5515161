@@ -59,17 +59,18 @@ $offset = ($page - 1) * $per_page;
 // локация возвращается в каталог — отдельный флаг для этого не нужен.
 $notOccupiedSql = "NOT EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active')";
 
-// ---------- Города для строки быстрых фильтров: топ-12 по числу активных
-// локаций (независимо от остальных фильтров — это витрина, а не результат
-// текущего поиска) ----------
-$cityCounts = $pdo->query("
+// ---------- Города: полный список (для выпадающего списка в фильтрах) и
+// топ-12 по числу активных локаций для строки быстрых фильтров-чипов ниже —
+// оба независимы от остальных фильтров, это витрина, а не результат
+// текущего поиска ----------
+$allCityCounts = $pdo->query("
     SELECT city, COUNT(*) as cnt
     FROM locations l
     WHERE is_active = 1 AND is_moderated = 1 AND $notOccupiedSql
     GROUP BY city
     ORDER BY cnt DESC, city ASC
-    LIMIT 12
 ")->fetchAll();
+$topCityCounts = array_slice($allCityCounts, 0, 12);
 
 // ---------- Строим условия WHERE один раз — и для подсчёта, и для выборки,
 // чтобы они не могли разъехаться между собой (было именно так раньше). ----------
@@ -205,95 +206,115 @@ $filterParams = array_filter($_GET, function ($k) {
     <div class="catalog-page">
     <div class="catalog-container">
         <h1>Доступные локации</h1>
-        <div class="catalog-subtitle">Найдено локаций: <?php echo $total; ?></div>
 
-        <!-- Поиск и фильтры -->
-        <form class="filters" method="GET">
-            <div class="filters-row">
-                <div class="search-box">
-                    <span class="search-icon"><?php echo rr_icon('search'); ?></span>
-                    <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>">
+        <!-- Поиск и фильтры: единая панель вместо разбросанных пилюль — по
+             образцу общего блока фильтров Auto.ru: один блок, сгруппированные
+             поля, один явный кнопка-сабмит вместо автопосыла формы при каждом
+             изменении поля. -->
+        <div class="filters-card">
+        <form class="catalog-filters" method="GET">
+            <div class="search-box">
+                <span class="filters-search-icon"><?php echo rr_icon('search'); ?></span>
+                <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>">
+            </div>
+
+            <div class="filters-grid">
+                <div class="filter-field">
+                    <label>Город</label>
+                    <select name="city">
+                        <option value="">Все города</option>
+                        <?php foreach ($allCityCounts as $cc): ?>
+                            <option value="<?php echo htmlspecialchars($cc['city']); ?>" <?php echo ($city === $cc['city']) ? 'selected' : ''; ?>><?php echo htmlspecialchars($cc['city']); ?> (<?php echo $cc['cnt']; ?>)</option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
-                <select name="space_type" class="select-pill" onchange="this.form.submit()">
-                    <option value="">Любой тип</option>
-                    <?php foreach ($space_types as $key => $label): ?>
-                        <option value="<?php echo $key; ?>" <?php echo ($space_type === $key) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <div class="filter-field">
+                    <label>Тип помещения</label>
+                    <select name="space_type">
+                        <option value="">Любой тип</option>
+                        <?php foreach ($space_types as $key => $label): ?>
+                            <option value="<?php echo $key; ?>" <?php echo ($space_type === $key) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                <select name="traffic_min" class="select-pill" onchange="this.form.submit()">
-                    <option value="">Любой трафик</option>
-                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                        <option value="<?php echo $i; ?>" <?php echo ($traffic_min == $i) ? 'selected' : ''; ?>>
-                            <?php echo $trafficLabels[$i]; ?> и выше
-                        </option>
-                    <?php endfor; ?>
-                </select>
+                <div class="filter-field">
+                    <label>Проходимость</label>
+                    <select name="traffic_min">
+                        <option value="">Любая</option>
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <option value="<?php echo $i; ?>" <?php echo ($traffic_min == $i) ? 'selected' : ''; ?>><?php echo $trafficLabels[$i]; ?> и выше</option>
+                        <?php endfor; ?>
+                    </select>
+                </div>
 
-                <select name="sort" class="select-pill" onchange="this.form.submit()">
-                    <option value="newest" <?php echo ($sort === 'newest') ? 'selected' : ''; ?>>Сначала новые</option>
-                    <option value="price_asc" <?php echo ($sort === 'price_asc') ? 'selected' : ''; ?>>Цена: по возрастанию</option>
-                    <option value="price_desc" <?php echo ($sort === 'price_desc') ? 'selected' : ''; ?>>Цена: по убыванию</option>
-                    <option value="traffic_desc" <?php echo ($sort === 'traffic_desc') ? 'selected' : ''; ?>>Сначала проходимые</option>
-                </select>
+                <div class="filter-field">
+                    <label>Часы доступа</label>
+                    <select name="access_hours">
+                        <option value="">Любые</option>
+                        <?php foreach ($access_hours_options as $ah): ?>
+                            <option value="<?php echo htmlspecialchars($ah); ?>" <?php echo ($access_hours === $ah) ? 'selected' : ''; ?>><?php echo htmlspecialchars($ah); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                <button type="submit" class="btn-filter">Найти</button>
-                <?php if ($search_query !== '' || $city !== '' || $space_type !== '' || $has_electricity || $has_wifi || $has_water || $traffic_min > 0 || $min_price !== '' || $max_price !== '' || $min_area !== '' || $max_area !== '' || $access_hours !== ''): ?>
-                    <a href="/pages/catalog.php" class="btn-reset"><?php echo rr_icon('x'); ?> Сбросить</a>
-                <?php endif; ?>
+                <div class="filter-field">
+                    <label>Сортировка</label>
+                    <select name="sort">
+                        <option value="newest" <?php echo ($sort === 'newest') ? 'selected' : ''; ?>>Сначала новые</option>
+                        <option value="price_asc" <?php echo ($sort === 'price_asc') ? 'selected' : ''; ?>>Цена: по возрастанию</option>
+                        <option value="price_desc" <?php echo ($sort === 'price_desc') ? 'selected' : ''; ?>>Цена: по убыванию</option>
+                        <option value="traffic_desc" <?php echo ($sort === 'traffic_desc') ? 'selected' : ''; ?>>Сначала проходимые</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="filters-row filters-row-secondary">
-                <label class="chip-checkbox">
-                    <input type="checkbox" name="has_electricity" value="1" onchange="this.form.submit()" <?php echo $has_electricity ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
-                </label>
-                <label class="chip-checkbox">
-                    <input type="checkbox" name="has_wifi" value="1" onchange="this.form.submit()" <?php echo $has_wifi ? 'checked' : ''; ?>> <?php echo rr_icon('wifi'); ?> Wi-Fi
-                </label>
-                <label class="chip-checkbox">
-                    <input type="checkbox" name="has_water" value="1" onchange="this.form.submit()" <?php echo $has_water ? 'checked' : ''; ?>> <?php echo rr_icon('droplet'); ?> Вода
-                </label>
-
-                <details class="more-filters">
-                    <summary>Цена, площадь, часы доступа</summary>
-                    <div class="more-filters-body">
-                        <div class="more-filters-field">
-                            <label>Цена от</label>
-                            <input type="number" name="min_price" placeholder="1000" min="0" value="<?php echo htmlspecialchars($min_price); ?>">
-                        </div>
-                        <div class="more-filters-field">
-                            <label>Цена до</label>
-                            <input type="number" name="max_price" placeholder="10000" min="0" value="<?php echo htmlspecialchars($max_price); ?>">
-                        </div>
-                        <div class="more-filters-field">
-                            <label>Площадь от, м²</label>
-                            <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" value="<?php echo htmlspecialchars($min_area); ?>">
-                        </div>
-                        <div class="more-filters-field">
-                            <label>Площадь до, м²</label>
-                            <input type="number" name="max_area" placeholder="5" min="0" step="0.1" value="<?php echo htmlspecialchars($max_area); ?>">
-                        </div>
-                        <div class="more-filters-field">
-                            <label>Часы доступа</label>
-                            <select name="access_hours">
-                                <option value="">Любые</option>
-                                <?php foreach ($access_hours_options as $ah): ?>
-                                    <option value="<?php echo htmlspecialchars($ah); ?>" <?php echo ($access_hours === $ah) ? 'selected' : ''; ?>><?php echo htmlspecialchars($ah); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn-filter btn-filter-small">Применить</button>
-                    </div>
-                </details>
+            <div class="filters-grid filters-grid-range">
+                <div class="filter-field">
+                    <label>Цена от, ₽</label>
+                    <input type="number" name="min_price" placeholder="1000" min="0" value="<?php echo htmlspecialchars($min_price); ?>">
+                </div>
+                <div class="filter-field">
+                    <label>Цена до, ₽</label>
+                    <input type="number" name="max_price" placeholder="10000" min="0" value="<?php echo htmlspecialchars($max_price); ?>">
+                </div>
+                <div class="filter-field">
+                    <label>Площадь от, м²</label>
+                    <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" value="<?php echo htmlspecialchars($min_area); ?>">
+                </div>
+                <div class="filter-field">
+                    <label>Площадь до, м²</label>
+                    <input type="number" name="max_area" placeholder="5" min="0" step="0.1" value="<?php echo htmlspecialchars($max_area); ?>">
+                </div>
             </div>
-            <?php if ($city !== ''): ?>
-                <input type="hidden" name="city" value="<?php echo htmlspecialchars($city); ?>">
-            <?php endif; ?>
+
+            <div class="filters-bottom-row">
+                <div class="filters-amenities">
+                    <label class="chip-checkbox">
+                        <input type="checkbox" name="has_electricity" value="1" <?php echo $has_electricity ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
+                    </label>
+                    <label class="chip-checkbox">
+                        <input type="checkbox" name="has_wifi" value="1" <?php echo $has_wifi ? 'checked' : ''; ?>> <?php echo rr_icon('wifi'); ?> Wi-Fi
+                    </label>
+                    <label class="chip-checkbox">
+                        <input type="checkbox" name="has_water" value="1" <?php echo $has_water ? 'checked' : ''; ?>> <?php echo rr_icon('droplet'); ?> Вода
+                    </label>
+                </div>
+                <div class="filters-actions">
+                    <?php if ($search_query !== '' || $city !== '' || $space_type !== '' || $has_electricity || $has_wifi || $has_water || $traffic_min > 0 || $min_price !== '' || $max_price !== '' || $min_area !== '' || $max_area !== '' || $access_hours !== ''): ?>
+                        <a href="/pages/catalog.php" class="btn-reset"><?php echo rr_icon('x'); ?> Сбросить</a>
+                    <?php endif; ?>
+                    <button type="submit" class="btn-filter-primary"><?php echo rr_icon('search'); ?> Показать предложения</button>
+                </div>
+            </div>
         </form>
+        </div>
+
+        <div class="catalog-subtitle">Найдено локаций: <?php echo $total; ?></div>
 
         <!-- Быстрый выбор города -->
-        <?php if (count($cityCounts) > 0): ?>
+        <?php if (count($topCityCounts) > 0): ?>
             <?php
                 $cityLinkParams = array_filter($_GET, function ($k) {
                     return $k !== 'page' && $k !== 'city';
@@ -304,7 +325,7 @@ $filterParams = array_filter($_GET, function ($k) {
                 <a href="/pages/catalog.php<?php echo $cityLinkQs ? '?' . $cityLinkQs : ''; ?>" class="city-chip <?php echo $city === '' ? 'active' : ''; ?>">
                     Все города
                 </a>
-                <?php foreach ($cityCounts as $cc): ?>
+                <?php foreach ($topCityCounts as $cc): ?>
                     <a href="/pages/catalog.php?<?php echo $cityLinkQs ? $cityLinkQs . '&' : ''; ?>city=<?php echo urlencode($cc['city']); ?>" class="city-chip <?php echo ($city === $cc['city']) ? 'active' : ''; ?>">
                         <?php echo htmlspecialchars($cc['city']); ?> <span class="city-chip-count">(<?php echo $cc['cnt']; ?>)</span>
                     </a>
