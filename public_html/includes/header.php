@@ -82,7 +82,7 @@
                 <div class="account-dd-role"><?php echo htmlspecialchars($roleLabel); ?></div>
             </div>
             <a href="<?php echo $profileLink; ?>" class="account-dd-item"><?php echo rr_icon($profileIcon); ?> <?php echo htmlspecialchars($profileLabel); ?></a>
-            <?php if ($role !== 'admin'): ?>
+            <?php if ($role === 'operator'): ?>
                 <a href="/pages/subscription.php" class="account-dd-item<?php echo currentUserHasSubscription() ? ' subscribed' : ''; ?>"><?php echo rr_icon('card'); ?> Подписка</a>
             <?php endif; ?>
             <div class="account-dd-divider"></div>

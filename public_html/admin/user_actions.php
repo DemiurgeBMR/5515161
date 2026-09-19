@@ -9,15 +9,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$action = $_GET['action'] ?? '';
-$id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+// $_REQUEST, а не только $_GET — action=extend_subscription приходит POST'ом
+// с формой выбора тарифа (admin/users.php), остальные действия по-прежнему
+// простые GET-ссылки с подтверждением на клиенте.
+$action = $_REQUEST['action'] ?? '';
+$id = isset($_REQUEST['id']) ? (int) $_REQUEST['id'] : 0;
 
 if ($id <= 0) {
     header('Location: /admin/users.php');
     exit;
 }
 
-if (!csrf_verify($_GET['csrf'] ?? '')) {
+if (!csrf_verify($_REQUEST['csrf'] ?? '')) {
     $_SESSION['flash'] = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
     header('Location: /admin/users.php');
     exit;
@@ -58,6 +61,26 @@ try {
         case 'make_admin':
             $pdo->prepare("UPDATE users SET role = 'admin' WHERE id = ?")->execute([$id]);
             $_SESSION['flash'] = 'Пользователь назначен администратором.';
+            break;
+
+        case 'extend_subscription':
+            if ($target['role'] !== 'operator') {
+                $_SESSION['flash'] = 'Подписка доступна только операторам.';
+                break;
+            }
+            $planKey = $_POST['plan'] ?? '';
+            $newEndDate = rr_purchase_subscription($pdo, $id, $planKey);
+            if ($newEndDate === false) {
+                $_SESSION['flash'] = 'Неизвестный тариф.';
+            } else {
+                $plans = rr_subscription_plans();
+                $_SESSION['flash'] = 'Тариф «' . $plans[$planKey]['label'] . '» выдан. Действует до ' . formatDate($newEndDate) . '.';
+            }
+            break;
+
+        case 'cancel_subscription':
+            rr_cancel_subscription($pdo, $id);
+            $_SESSION['flash'] = 'Подписка отменена досрочно.';
             break;
 
         case 'remove_admin':

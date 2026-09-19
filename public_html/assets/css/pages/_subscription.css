@@ -1,31 +1,26 @@
-/* ===== СТРАНИЦА ПОДПИСКИ (заглушка) ===== */
+/* ===== СТРАНИЦА ПОДПИСКИ ОПЕРАТОРА (пока без реальной оплаты) ===== */
 .subscription-container {
-    max-width: 560px;
+    max-width: 780px;
     margin: 40px auto;
     padding: 0 20px;
 }
 .subscription-container h2 {
     margin: 15px 0 20px;
 }
-.subscription-card {
-    background: var(--bg-elevated, #16161c);
-    border: 1px solid var(--border, #2a2a33);
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    padding: 30px;
-}
-.subscription-status {
-    display: inline-block;
-    padding: 6px 16px;
-    border-radius: 20px;
-    font-weight: bold;
+.subscription-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 600;
     margin-bottom: 15px;
 }
-.subscription-status.active {
+.subscription-status-banner.active {
     background: #d4edda;
     color: #155724;
 }
-.subscription-status.inactive {
+.subscription-status-banner.inactive {
     background: #f8d7da;
     color: #721c24;
 }
@@ -40,6 +35,72 @@
     color: var(--text, #f2f2f5);
     line-height: 1.8;
 }
+.subscription-note {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+    margin-top: 20px;
+}
+
+/* ---------- Карточки тарифов ---------- */
+.plan-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+.plan-card {
+    position: relative;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    padding: 24px 18px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.plan-card.best-value {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+}
+.plan-card-badge {
+    position: absolute;
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.plan-card-label {
+    font-size: 14px;
+    color: var(--text-muted, #9a9aa5);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.plan-card-price {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--text, #f2f2f5);
+    margin: 4px 0 0;
+}
+.plan-card-per-month {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    margin-bottom: 10px;
+}
+.plan-card form {
+    width: 100%;
+    margin-top: auto;
+}
+.plan-card .btn-submit {
+    width: 100%;
+}
+
 .btn-danger-outline {
     background: transparent;
     color: #e74c3c;
@@ -48,4 +109,10 @@
 .btn-danger-outline:hover {
     background: #e74c3c;
     color: white;
+}
+
+@media (max-width: 640px) {
+    .plan-cards {
+        grid-template-columns: 1fr;
+    }
 }

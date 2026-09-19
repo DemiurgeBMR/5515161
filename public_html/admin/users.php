@@ -20,11 +20,11 @@ $search = trim($_GET['q'] ?? '');
 $where = [];
 $params = [];
 if ($roleFilter !== '') {
-    $where[] = 'role = ?';
+    $where[] = 'u.role = ?';
     $params[] = $roleFilter;
 }
 if ($search !== '') {
-    $where[] = '(full_name LIKE ? OR email LIKE ?)';
+    $where[] = '(u.full_name LIKE ? OR u.email LIKE ?)';
     $params[] = '%' . $search . '%';
     $params[] = '%' . $search . '%';
 }
@@ -39,21 +39,35 @@ $filterParams = [];
 if ($roleFilter !== '') $filterParams['role'] = $roleFilter;
 if ($search !== '') $filterParams['q'] = $search;
 
-$countStmt = $pdo->prepare("SELECT COUNT(*) FROM users $whereSql");
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM users u $whereSql");
 $countStmt->execute($params);
 $total_matching = (int) $countStmt->fetchColumn();
 $total_pages = max(1, (int)ceil($total_matching / $per_page));
 
+// Активная подписка каждого пользователя (если есть) — подзапрос вместо
+// простого JOIN, чтобы получить ровно одну (самую позднюю по сроку) строку
+// на пользователя, а не размножать строки таблицы при нескольких покупках
+// подряд (см. rr_purchase_subscription() в config.php — сроки складываются,
+// поэтому у активного оператора вполне может быть несколько строк).
 $stmt = $pdo->prepare("
-    SELECT id, full_name, email, phone, role, has_subscription, is_verified, is_banned, banned_reason,
-           two_factor_enabled, locked_until, created_at
-    FROM users
+    SELECT u.id, u.full_name, u.email, u.phone, u.role, u.is_verified, u.is_banned, u.banned_reason,
+           u.two_factor_enabled, u.locked_until, u.created_at,
+           s.plan AS sub_plan, s.end_date AS sub_end_date
+    FROM users u
+    LEFT JOIN subscriptions s ON s.id = (
+        SELECT id FROM subscriptions
+        WHERE user_id = u.id AND is_active = 1 AND end_date > NOW()
+        ORDER BY end_date DESC
+        LIMIT 1
+    )
     $whereSql
-    ORDER BY created_at DESC
+    ORDER BY u.created_at DESC
     LIMIT $per_page OFFSET $offset
 ");
 $stmt->execute($params);
 $users = $stmt->fetchAll();
+
+$subscriptionPlans = rr_subscription_plans();
 
 $total_admins = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
 $total_owners = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'owner'")->fetchColumn();
@@ -132,6 +146,7 @@ unset($_SESSION['flash']);
                             <th>Email</th>
                             <th>Роль</th>
                             <th>Статус</th>
+                            <th>Подписка</th>
                             <th>Регистрация</th>
                             <th>Действия</th>
                         </tr>
@@ -162,6 +177,21 @@ unset($_SESSION['flash']);
                                         <span class="user-status-pill user-status-2fa"><?php echo rr_icon('lock'); ?> 2FA</span>
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <?php if ($u['role'] === 'operator'): ?>
+                                        <?php if (!empty($u['sub_end_date'])): ?>
+                                            <span class="user-status-pill user-status-verified">
+                                                <?php echo rr_icon('card'); ?>
+                                                <?php echo htmlspecialchars($subscriptionPlans[$u['sub_plan']]['label'] ?? $u['sub_plan']); ?>
+                                                до <?php echo formatDate($u['sub_end_date']); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="user-status-pill user-status-unverified"><?php echo rr_icon('x'); ?> Нет подписки</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="you-note">—</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo formatDate($u['created_at']); ?></td>
                                 <td class="actions">
                                     <?php if ($u['id'] == $_SESSION['user_id']): ?>
@@ -171,6 +201,23 @@ unset($_SESSION['flash']);
                                             <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать"><?php echo rr_icon('check'); ?> Разблокировать</a>
                                         <?php else: ?>
                                             <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Заблокировать пользователя? Он не сможет войти в аккаунт." data-rr-confirm-ok="Заблокировать" data-rr-confirm-danger><?php echo rr_icon('ban'); ?> Заблокировать</a>
+                                        <?php endif; ?>
+
+                                        <?php if ($u['role'] === 'operator'): ?>
+                                            <form method="POST" action="/admin/user_actions.php" class="admin-inline-subscription-form">
+                                                <input type="hidden" name="action" value="extend_subscription">
+                                                <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                                <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                                                <select name="plan">
+                                                    <?php foreach ($subscriptionPlans as $planKey => $plan): ?>
+                                                        <option value="<?php echo htmlspecialchars($planKey); ?>"><?php echo htmlspecialchars($plan['label']); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <button type="submit" class="btn-view"><?php echo rr_icon('card'); ?> Выдать</button>
+                                            </form>
+                                            <?php if (!empty($u['sub_end_date'])): ?>
+                                                <a href="/admin/user_actions.php?action=cancel_subscription&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Досрочно отменить подписку? История покупок сохранится." data-rr-confirm-ok="Отменить"><?php echo rr_icon('x'); ?> Отменить подписку</a>
+                                            <?php endif; ?>
                                         <?php endif; ?>
 
                                         <?php if ($u['role'] !== 'admin'): ?>

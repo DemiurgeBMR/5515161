@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             try {
                 $pdo = getDbConnection();
-                $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, has_subscription, is_verified, failed_login_attempts, locked_until, is_banned, banned_reason, two_factor_enabled FROM users WHERE email = ?");
+                $stmt = $pdo->prepare("SELECT id, email, password, full_name, role, is_verified, failed_login_attempts, locked_until, is_banned, banned_reason, two_factor_enabled FROM users WHERE email = ?");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch();
 
@@ -61,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['user_id'] = $user['id'];
                         $_SESSION['user_name'] = $user['full_name'];
                         $_SESSION['user_role'] = $user['role'];
-                        $_SESSION['has_subscription'] = (int)$user['has_subscription'];
                         $_SESSION['is_verified'] = (int)$user['is_verified'];
 
                         header('Location: ' . rr_login_redirect_url($user['role']));

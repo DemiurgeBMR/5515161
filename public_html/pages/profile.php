@@ -171,7 +171,9 @@ unset($_SESSION['flash']);
     <a href="/pages/documents.php" class="btn-action secondary"><?php echo rr_icon('file-text'); ?> Документы</a>
     <a href="/pages/owner_applications.php" class="btn-action secondary"><?php echo rr_icon('mail'); ?> Заявки</a>
     <a href="/pages/owner_operators.php" class="btn-action secondary"><?php echo rr_icon('users'); ?> Мои операторы</a>
-    <a href="/pages/subscription.php" class="btn-action secondary"><?php echo rr_icon('card'); ?> Подписка</a>
+    <?php if ($user_role === 'operator'): ?>
+        <a href="/pages/subscription.php" class="btn-action secondary"><?php echo rr_icon('card'); ?> Подписка</a>
+    <?php endif; ?>
     <a href="/pages/logout.php" class="btn-action danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
 </div>
         </aside>

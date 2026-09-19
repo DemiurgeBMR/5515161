@@ -26,7 +26,7 @@ if ($attempts >= 5) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT id, full_name, role, has_subscription, is_verified, two_factor_code, two_factor_code_expires FROM users WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, full_name, role, is_verified, two_factor_code, two_factor_code_expires FROM users WHERE id = ?");
 $stmt->execute([$pendingUserId]);
 $user = $stmt->fetch();
 
@@ -65,7 +65,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['full_name'];
             $_SESSION['user_role'] = $user['role'];
-            $_SESSION['has_subscription'] = (int) $user['has_subscription'];
             $_SESSION['is_verified'] = (int) $user['is_verified'];
             unset($_SESSION['pending_2fa_user_id'], $_SESSION['tfa_attempts']);
 

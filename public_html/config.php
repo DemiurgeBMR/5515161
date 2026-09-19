@@ -81,24 +81,94 @@ function isServiceOverdue($days) {
 }
 
 /**
- * Заглушка платной подписки (users.has_subscription, включается/выключается
- * на pages/subscription.php — без реальной оплаты; полноценная таблица
- * `subscriptions` с планами/датами уже есть в БД про запас, но пока не
- * используется — это сознательно самая простая версия, вкл/выкл).
- * От неё зависит доступ к карте с точками и к точному адресу локации.
- *
- * Админ считается имеющим полный доступ всегда — это внутренний
- * персонал, а не участник платной модели. Требует, чтобы session_start()
- * уже был вызван.
+ * Тарифы подписки оператора — единая точка правды для pages/subscription.php
+ * и admin/user_actions.php (ручное продление админом). Платить пока
+ * некуда (нет платёжного шлюза) — "оформление" тарифа просто пишет строку
+ * в `subscriptions` с ценой на момент покупки, чтобы будущее изменение
+ * прайса не переписывало историю прошлых "оплат".
+ */
+function rr_subscription_plans() {
+    return [
+        'monthly'   => ['label' => 'Месяц',   'months' => 1,  'price' => 499],
+        'half_year' => ['label' => 'Полгода', 'months' => 6,  'price' => 2799],
+        'yearly'    => ['label' => 'Год',      'months' => 12, 'price' => 4999],
+    ];
+}
+
+/**
+ * Активная подписка пользователя (ещё не истёкшая и не отменённая
+ * досрочно) — или null, если подписки нет. Общая точка правды для
+ * currentUserHasSubscription() и для страниц, которым нужно показать
+ * тариф/дату окончания, а не просто да/нет.
+ */
+function rr_active_subscription(PDO $pdo, $userId) {
+    $stmt = $pdo->prepare("
+        SELECT * FROM subscriptions
+        WHERE user_id = ? AND is_active = 1 AND end_date > NOW()
+        ORDER BY end_date DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+/**
+ * Оформляет тариф для пользователя. Если у него уже есть активная
+ * подписка, новый срок прибавляется к её остатку (а не пересчитывается от
+ * "сейчас") — докупить тариф впрок не должно значить потерять уже
+ * оплаченное время. Возвращает новую дату окончания или false, если
+ * передан неизвестный тариф.
+ */
+function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
+    $plans = rr_subscription_plans();
+    if (!isset($plans[$planKey])) {
+        return false;
+    }
+    $plan = $plans[$planKey];
+
+    $current = rr_active_subscription($pdo, $userId);
+    $base = $current ? max(strtotime($current['end_date']), time()) : time();
+    $endDate = date('Y-m-d H:i:s', strtotime('+' . $plan['months'] . ' months', $base));
+
+    $stmt = $pdo->prepare("
+        INSERT INTO subscriptions (user_id, plan, price_paid, start_date, end_date, is_active)
+        VALUES (?, ?, ?, NOW(), ?, 1)
+    ");
+    $stmt->execute([$userId, $planKey, $plan['price'], $endDate]);
+
+    return $endDate;
+}
+
+/**
+ * Закрывает доступ раньше срока, не трогая историю покупок (админская
+ * кнопка "Отменить" в admin/users.php) — снимает is_active со всех
+ * подписок пользователя, которые сейчас считаются активными.
+ */
+function rr_cancel_subscription(PDO $pdo, $userId) {
+    $pdo->prepare("UPDATE subscriptions SET is_active = 0 WHERE user_id = ? AND is_active = 1")
+        ->execute([$userId]);
+}
+
+/**
+ * Есть ли у текущего пользователя доступ к платным функциям (карта с
+ * точками, точный адрес локации, отправка заявки собственнику). Админ
+ * считается имеющим полный доступ всегда — это внутренний персонал, а не
+ * участник платной модели. Требует, чтобы session_start() уже был вызван.
  */
 function currentUserHasSubscription() {
+    static $cached = null;
+
     if (!isset($_SESSION['user_id'])) {
         return false;
     }
     if (($_SESSION['user_role'] ?? null) === 'admin') {
         return true;
     }
-    return !empty($_SESSION['has_subscription']);
+    if ($cached === null) {
+        $cached = rr_active_subscription(getDbConnection(), $_SESSION['user_id']) !== null;
+    }
+    return $cached;
 }
 
 /**
