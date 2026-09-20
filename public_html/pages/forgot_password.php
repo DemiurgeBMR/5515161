@@ -14,6 +14,11 @@ $resetLink = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } elseif (!rr_check_rate_limit(getDbConnection(), 'forgot_password:' . rr_client_ip(), 5, 300)) {
+        // Без лимита форму можно было дёргать без остановки — перебирать
+        // email'ы (узнавая по ответу, кто зарегистрирован) или засыпать
+        // таблицу users токенами сброса.
+        $error = 'Слишком много попыток. Попробуйте через несколько минут.';
     } else {
         $email = trim($_POST['email'] ?? '');
 

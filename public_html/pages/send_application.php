@@ -60,6 +60,12 @@ if ($stmt->fetch()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
     $message = trim($_POST['message'] ?? '');
 
     if (empty($message)) {
@@ -117,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
         <?php endif; ?>
 
         <form method="POST">
+            <?php echo csrf_field(); ?>
             <div class="form-group">
                 <label>Сообщение собственнику *</label>
                 <textarea name="message" required rows="5" placeholder="Расскажите о себе, опыте работы, предложениях по аренде..."></textarea>

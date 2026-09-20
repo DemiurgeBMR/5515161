@@ -13,7 +13,9 @@ $error = '';
 $success = '';
 
 // Обработка отправки формы
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !csrf_verify($_POST['csrf_token'] ?? '')) {
+    $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $address = trim($_POST['address'] ?? '');
     $city = trim($_POST['city'] ?? '');
@@ -220,6 +222,7 @@ if (strpos($mainPhoto, 'new_') === 0) {
         <?php endif; ?>
         
         <form method="POST" enctype="multipart/form-data" id="locationForm">
+            <?php echo csrf_field(); ?>
             <!-- Основная информация -->
             <div class="form-group">
                 <label>Название места *</label>

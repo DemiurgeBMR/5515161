@@ -30,6 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } elseif (!rr_check_rate_limit(getDbConnection(), 'register:' . rr_client_ip(), 5, 300)) {
+        // Без лимита форму можно было дёргать скриптом без остановки и
+        // штамповать аккаунты — 5 попыток на IP за 5 минут не мешает
+        // обычному пользователю, который пару раз ошибся в форме.
+        $error = 'Слишком много попыток регистрации. Попробуйте через несколько минут.';
     } elseif (empty($full_name) || empty($email) || empty($password)) {
         $error = 'Пожалуйста, заполните все обязательные поля';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {

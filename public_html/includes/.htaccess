@@ -1,0 +1,13 @@
+# Файлы здесь предназначены только для require/include из PHP (header.php,
+# footer.php, config.php и т.д. ожидают, что константы вроде SITE_NAME уже
+# определены вызывающим файлом) — открытые напрямую по URL, они либо ничего
+# не покажут, либо выбросят фатальную ошибку PHP с путями на диске, если на
+# сервере включён display_errors. require/include читают файл с диска
+# напрямую и это правило не затрагивают — сайт продолжит работать как раньше.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

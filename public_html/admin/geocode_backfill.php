@@ -14,7 +14,9 @@ $batchResult = null;
 
 // Локации, добавленные ДО появления геокодирования, координат не имеют —
 // эта страница проставляет их пачками, уважая лимит Nominatim в 1 запрос/сек.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run' && !csrf_verify($_POST['csrf_token'] ?? '')) {
+    $batchResult = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'run') {
     $stmt = $pdo->prepare("
         SELECT id, city, address FROM locations
         WHERE (latitude IS NULL OR longitude IS NULL)
@@ -80,6 +82,7 @@ $remaining = (int) $pdo->query("
 
         <?php if ($remaining > 0): ?>
             <form method="POST">
+                <?php echo csrf_field(); ?>
                 <input type="hidden" name="action" value="run">
                 <button type="submit" class="btn-submit">
                     Геокодировать следующие 20 (займёт ~<?php echo min($remaining, 20); ?> сек)

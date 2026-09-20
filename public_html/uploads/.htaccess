@@ -1,0 +1,20 @@
+# Загруженные пользователями фото — только отдача как есть. Расширение
+# файла всегда выставляется сервером по проверенному MIME-типу (см.
+# $allowed_extensions в pages/add_location.php и pages/edit_location.php),
+# никогда из имени файла клиента, поэтому .php сюда попасть не должно — но
+# это правило на случай ошибки в будущем коде или другого пути загрузки:
+# даже если такой файл окажется здесь, сервер отдаст его как есть, а не
+# выполнит как скрипт.
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(php|php[0-9]|phtml|pl|py|cgi|sh)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(php|php[0-9]|phtml|pl|py|cgi|sh)$">
+        Order deny,allow
+        Deny from all
+    </FilesMatch>
+</IfModule>
+
+Options -Indexes -ExecCGI
