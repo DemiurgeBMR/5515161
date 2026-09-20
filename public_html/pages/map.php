@@ -40,7 +40,7 @@ if (!$hasFullMapAccess) {
     // Только собственные локации — независимо от occupied/модерации: это
     // его точки, ему нужно видеть их все, а не только "живую" публичную выборку.
     $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
-            (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+            (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
             FROM locations l
             WHERE l.owner_id = ? AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL";
     $params = [$_SESSION['user_id']];
@@ -80,7 +80,7 @@ if (!$hasFullMapAccess) {
     }, $locations);
 } else {
     $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
-            (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+            (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
             FROM locations l
             WHERE l.is_active = 1 AND l.is_moderated = 1 AND $notOccupiedSqlL
               AND l.latitude IS NOT NULL AND l.longitude IS NOT NULL";

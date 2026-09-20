@@ -120,7 +120,7 @@ if ($cached !== null) {
 
         $sql_rec = "
             SELECT l.*,
-                (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+                (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
             FROM locations l
             WHERE l.id != ?
               AND l.is_active = 1
@@ -145,7 +145,7 @@ if ($cached !== null) {
             if ($need > 0) {
                 $sql_rec_other = "
                     SELECT l.*,
-                        (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo
+                        (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
                     FROM locations l
                     WHERE l.id != ?
                       AND l.is_active = 1

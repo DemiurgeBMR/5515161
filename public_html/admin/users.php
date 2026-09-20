@@ -99,6 +99,7 @@ unset($_SESSION['flash']);
             <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
             <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
             <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
+            <a href="/admin/fix_main_photos.php"><?php echo rr_icon('camera'); ?> Починка фото</a>
         </div>
 
         <div class="admin-stats">

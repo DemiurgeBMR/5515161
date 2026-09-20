@@ -119,8 +119,13 @@ function applyRevision($pdo, $revision, $locationId) {
         $stmt->execute([$locationId]);
         $stmt = $pdo->prepare("UPDATE location_photos SET is_main = 1 WHERE id = ? AND location_id = ?");
         $stmt->execute([$mainPhotoId, $locationId]);
-        $mainSet = true;
-    } 
+        // rowCount(), а не безусловный true — если это же фото было тут же
+        // удалено (пункт 2 выше, delete_photos в той же ревизии), запрос не
+        // находит строку и ничего не обновляет; тогда пункт 6 ниже должен
+        // назначить главным одно из оставшихся фото, а не оставить локацию
+        // вовсе без главного фото (было именно так до этой проверки).
+        $mainSet = $stmt->rowCount() > 0;
+    }
     // 4.2 Если указан ID существующего фото (main_photo_id)
     elseif (!empty($data['main_photo_id'])) {
         $mainPhotoId = (int)$data['main_photo_id'];
@@ -128,8 +133,8 @@ function applyRevision($pdo, $revision, $locationId) {
         $stmt->execute([$locationId]);
         $stmt = $pdo->prepare("UPDATE location_photos SET is_main = 1 WHERE id = ? AND location_id = ?");
         $stmt->execute([$mainPhotoId, $locationId]);
-        $mainSet = true;
-    } 
+        $mainSet = $stmt->rowCount() > 0;
+    }
     // 4.3 Если указан путь к новому фото (main_photo)
     elseif (!empty($data['main_photo']) && isset($mappedPaths[$data['main_photo']])) {
         $newMainPath = $mappedPaths[$data['main_photo']];
