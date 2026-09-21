@@ -1,6 +1,6 @@
-/* ===== СТРАНИЦА ПОДПИСКИ ОПЕРАТОРА (пока без реальной оплаты) ===== */
+/* ===== СТРАНИЦА ТАРИФОВ (пока без реальной оплаты) ===== */
 .subscription-container {
-    max-width: 780px;
+    max-width: 860px;
     margin: 40px auto;
     padding: 0 20px;
 }
@@ -39,6 +39,24 @@
     color: var(--text-muted, #9a9aa5);
     font-size: 13px;
     margin-top: 20px;
+}
+.subscription-section-title {
+    margin: 32px 0 4px;
+    font-size: 18px;
+    color: var(--text, #f2f2f5);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.subscription-section-sub {
+    color: var(--text-muted, #9a9aa5);
+    font-size: 13px;
+    margin-bottom: 14px;
+}
+.subscription-benefits-footer {
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border, #2a2a33);
 }
 
 /* ---------- Карточки тарифов ---------- */
@@ -124,8 +142,16 @@
     color: white;
 }
 
+.plan-cards-single {
+    grid-template-columns: minmax(0, 260px);
+    justify-content: center;
+}
+
 @media (max-width: 640px) {
     .plan-cards {
+        grid-template-columns: 1fr;
+    }
+    .plan-cards-single {
         grid-template-columns: 1fr;
     }
 }

@@ -65,6 +65,10 @@
     font-size: 12px;
     margin-bottom: 4px;
 }
+.map-popup-address-locked {
+    color: #b8860b;
+    font-style: italic;
+}
 .map-popup-traffic {
     font-size: 13px;
     margin-bottom: 4px;

@@ -8,16 +8,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'operator') {
     exit;
 }
 
-// Отправка первой заявки собственнику — часть того же платного доступа, что и
-// точный адрес/имя собственника на карточке локации (см. pages/location.php).
-// Проверяем и здесь, а не только скрываем кнопку в шаблоне, иначе доступ
-// обходился бы прямой ссылкой на эту страницу.
-if (!currentUserHasSubscription()) {
-    $_SESSION['flash'] = 'Чтобы отправить заявку собственнику, оформите подписку.';
-    header('Location: /pages/subscription.php');
-    exit;
-}
-
 $location_id = isset($_GET['location_id']) ? (int)$_GET['location_id'] : 0;
 if ($location_id <= 0) {
     header('Location: /pages/catalog.php');
@@ -37,6 +27,17 @@ if (!$location) {
 
 $operator_id = $_SESSION['user_id'];
 $owner_id = $location['owner_id'];
+
+// Отправка заявки — часть того же платного доступа, что и точный адрес/имя
+// собственника на карточке локации (см. pages/location.php): нужно сначала
+// разблокировать именно эту локацию за кредит. Проверяем и здесь, а не
+// только скрываем кнопку в шаблоне, иначе доступ обходился бы прямой
+// ссылкой на эту страницу.
+if (!rr_location_unlocked($pdo, $operator_id, $location_id)) {
+    $_SESSION['flash'] = 'Сначала разблокируйте контакт собственника на странице локации.';
+    header('Location: /pages/location.php?id=' . $location_id);
+    exit;
+}
 
 // Локация уже занята — за ней активно закреплён оператор, новую заявку
 // подавать некуда (см. ту же логику скрытия в pages/catalog.php). Страница

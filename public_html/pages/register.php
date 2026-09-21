@@ -62,6 +62,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$email, $hashed_password, $full_name, $phone, $role]);
                 $user_id = $pdo->lastInsertId();
 
+                // Тариф "Обзор" — 1 бесплатный контакт даётся оператору сразу при
+                // регистрации (см. rr_credit_packs()/rr_grant_credits() в config.php).
+                if ($role === 'operator') {
+                    rr_grant_credits($pdo, $user_id, 'free_grant', 1);
+                }
+
                 session_regenerate_id(true); // новая сессия для только что созданного пользователя
                 $_SESSION['user_id'] = $user_id;
                 $_SESSION['user_name'] = $full_name;

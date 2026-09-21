@@ -65,7 +65,7 @@ try {
 
         case 'extend_subscription':
             if ($target['role'] !== 'operator') {
-                $_SESSION['flash'] = 'Подписка доступна только операторам.';
+                $_SESSION['flash'] = 'Тариф доступен только операторам.';
                 break;
             }
             $planKey = $_POST['plan'] ?? '';
@@ -73,14 +73,28 @@ try {
             if ($newEndDate === false) {
                 $_SESSION['flash'] = 'Неизвестный тариф.';
             } else {
-                $plans = rr_subscription_plans();
+                $plans = rr_recurring_plans();
                 $_SESSION['flash'] = 'Тариф «' . $plans[$planKey]['label'] . '» выдан. Действует до ' . formatDate($newEndDate) . '.';
             }
             break;
 
         case 'cancel_subscription':
             rr_cancel_subscription($pdo, $id);
-            $_SESSION['flash'] = 'Подписка отменена досрочно.';
+            $_SESSION['flash'] = 'Тариф отменён досрочно.';
+            break;
+
+        case 'grant_credits':
+            if ($target['role'] !== 'operator') {
+                $_SESSION['flash'] = 'Кредиты доступны только операторам.';
+                break;
+            }
+            $credits = (int) ($_POST['credits'] ?? 0);
+            if ($credits <= 0 || $credits > 100) {
+                $_SESSION['flash'] = 'Укажите от 1 до 100 кредитов.';
+            } else {
+                rr_grant_credits($pdo, $id, 'free_grant', $credits);
+                $_SESSION['flash'] = 'Начислено ' . $credits . ' кредит(ов).';
+            }
             break;
 
         case 'remove_admin':

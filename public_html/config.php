@@ -81,25 +81,54 @@ function isServiceOverdue($days) {
 }
 
 /**
- * Тарифы подписки оператора — единая точка правды для pages/subscription.php
- * и admin/user_actions.php (ручное продление админом). Платить пока
- * некуда (нет платёжного шлюза) — "оформление" тарифа просто пишет строку
- * в `subscriptions` с ценой на момент покупки, чтобы будущее изменение
- * прайса не переписывало историю прошлых "оплат".
+ * Модель оплаты — за контакт, а не за время. Оператор тратит 1 кредит на
+ * разблокировку КОНКРЕТНОЙ локации (точный адрес + контакт собственника
+ * открываются ему навсегда для этой карточки), а не покупает доступ ко
+ * всем локациям сразу. Кредиты бывают двух видов:
+ *  - разовые (бесплатный грант при регистрации + пакеты 5/15/40) — не
+ *    сгорают, копятся;
+ *  - помесячная квота у тарифов "Оператор"/"Сеть" — сгорает в конце
+ *    периода, не переносится на следующий.
+ * См. rr_unlock_location(), rr_credits_summary().
  */
-function rr_subscription_plans() {
+function rr_credit_packs() {
     return [
-        'monthly'   => ['label' => 'Месяц',   'months' => 1,  'price' => 499],
-        'half_year' => ['label' => 'Полгода', 'months' => 6,  'price' => 2799],
-        'yearly'    => ['label' => 'Год',      'months' => 12, 'price' => 4999],
+        'pack_5'  => ['label' => '5 контактов',  'credits' => 5,  'price' => 1190],
+        'pack_15' => ['label' => '15 контактов', 'credits' => 15, 'price' => 3030],
+        'pack_40' => ['label' => '40 контактов', 'credits' => 40, 'price' => 7140],
     ];
 }
 
 /**
- * Активная подписка пользователя (ещё не истёкшая и не отменённая
- * досрочно) — или null, если подписки нет. Общая точка правды для
- * currentUserHasSubscription() и для страниц, которым нужно показать
- * тариф/дату окончания, а не просто да/нет.
+ * Тарифы с помесячной квотой разблокировок — единая точка правды для
+ * pages/subscription.php и admin/user_actions.php (ручное продление
+ * админом). Платить пока некуда (нет платёжного шлюза) — "оформление"
+ * тарифа просто пишет строку в `subscriptions` с ценой на момент покупки,
+ * чтобы будущее изменение прайса не переписывало историю прошлых "оплат".
+ */
+function rr_recurring_plans() {
+    return [
+        'operator_monthly' => ['label' => 'Оператор',        'months' => 1,  'monthly_allowance' => 10, 'price' => 1490],
+        'operator_yearly'  => ['label' => 'Оператор (год)',  'months' => 12, 'monthly_allowance' => 10, 'price' => 14900],
+        'network_monthly'  => ['label' => 'Сеть',             'months' => 1,  'monthly_allowance' => 40, 'price' => 5900],
+    ];
+}
+
+/**
+ * Разовая платная услуга — "Сделка под ключ" (договор, акт, проверка).
+ * Ручная работа команды, не автоматическая функция сайта — оформление
+ * заказа просто создаёт запись в service_orders, дальше её обрабатывает
+ * админ вне сайта.
+ */
+function rr_turnkey_deal_price() {
+    return 1490;
+}
+
+/**
+ * Активный тариф пользователя с помесячной квотой (ещё не истёкший и не
+ * отменённый досрочно) — или null. Общая точка правды для
+ * rr_credits_summary() и для страниц, которым нужно показать тариф/дату
+ * окончания, а не просто да/нет.
  */
 function rr_active_subscription(PDO $pdo, $userId) {
     $stmt = $pdo->prepare("
@@ -114,14 +143,14 @@ function rr_active_subscription(PDO $pdo, $userId) {
 }
 
 /**
- * Оформляет тариф для пользователя. Если у него уже есть активная
- * подписка, новый срок прибавляется к её остатку (а не пересчитывается от
+ * Оформляет тариф с квотой для пользователя. Если у него уже есть активный
+ * тариф, новый срок прибавляется к его остатку (а не пересчитывается от
  * "сейчас") — докупить тариф впрок не должно значить потерять уже
  * оплаченное время. Возвращает новую дату окончания или false, если
  * передан неизвестный тариф.
  */
 function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
-    $plans = rr_subscription_plans();
+    $plans = rr_recurring_plans();
     if (!isset($plans[$planKey])) {
         return false;
     }
@@ -143,7 +172,7 @@ function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
 /**
  * Закрывает доступ раньше срока, не трогая историю покупок (админская
  * кнопка "Отменить" в admin/users.php) — снимает is_active со всех
- * подписок пользователя, которые сейчас считаются активными.
+ * тарифов пользователя, которые сейчас считаются активными.
  */
 function rr_cancel_subscription(PDO $pdo, $userId) {
     $pdo->prepare("UPDATE subscriptions SET is_active = 0 WHERE user_id = ? AND is_active = 1")
@@ -151,12 +180,174 @@ function rr_cancel_subscription(PDO $pdo, $userId) {
 }
 
 /**
- * Есть ли у текущего пользователя доступ к платным функциям (карта с
- * точками, точный адрес локации, отправка заявки собственнику). Админ
- * считается имеющим полный доступ всегда — это внутренний персонал, а не
- * участник платной модели. Требует, чтобы session_start() уже был вызван.
+ * Начисляет разовые кредиты (бесплатный грант при регистрации или покупка
+ * пакета) — просто пишет строку в credit_purchases, реального платежа пока
+ * нет. $source — один из ключей rr_credit_packs() либо 'free_grant'.
  */
-function currentUserHasSubscription() {
+function rr_grant_credits(PDO $pdo, $userId, $source, $credits, $pricePaid = 0) {
+    $pdo->prepare("
+        INSERT INTO credit_purchases (user_id, source, credits_granted, price_paid)
+        VALUES (?, ?, ?, ?)
+    ")->execute([$userId, $source, $credits, $pricePaid]);
+}
+
+/**
+ * Сколько разовых (несгораемых) кредитов у оператора всего начислено за
+ * всё время — из них ещё нужно вычесть потраченные через
+ * location_unlocks.source = 'permanent_credit' (см. rr_credits_summary()).
+ */
+function rr_permanent_credits_granted(PDO $pdo, $userId) {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(credits_granted), 0) FROM credit_purchases WHERE user_id = ?");
+    $stmt->execute([$userId]);
+    return (int) $stmt->fetchColumn();
+}
+
+/**
+ * Начало текущего расчётного периода для активного тарифа с квотой — то
+ * же число, что и в start_date, но сдвинутое вперёд на столько целых
+ * месяцев, сколько уже прошло с начала подписки. Нужно, чтобы посчитать,
+ * сколько разблокировок из месячной квоты уже потрачено ИМЕННО в этом
+ * месяце, а не за всю историю тарифа (актуально для годового "Оператора" —
+ * у него один subscriptions.start_date на 12 месяцев вперёд).
+ */
+function rr_current_period_start($subscription) {
+    $start = strtotime($subscription['start_date']);
+    $now = time();
+    $monthsElapsed = 0;
+    while (strtotime('+' . ($monthsElapsed + 1) . ' months', $start) <= $now) {
+        $monthsElapsed++;
+    }
+    return date('Y-m-d H:i:s', strtotime('+' . $monthsElapsed . ' months', $start));
+}
+
+/**
+ * Сводка по кредитам оператора — единая точка правды для UI (страница
+ * подписки, шапка, дашборд) и для проверки "хватает ли на разблокировку"
+ * перед тратой. Админ сюда не заходит — у него и так полный доступ везде.
+ */
+function rr_credits_summary(PDO $pdo, $userId) {
+    $granted = rr_permanent_credits_granted($pdo, $userId);
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM location_unlocks WHERE operator_id = ? AND source = 'permanent_credit'");
+    $stmt->execute([$userId]);
+    $permanentSpent = (int) $stmt->fetchColumn();
+    $permanentBalance = max(0, $granted - $permanentSpent);
+
+    $subscription = rr_active_subscription($pdo, $userId);
+    $monthlyAllowance = 0;
+    $monthlyUsed = 0;
+    $monthlyRemaining = 0;
+    $planLabel = null;
+    if ($subscription) {
+        $plans = rr_recurring_plans();
+        $plan = $plans[$subscription['plan']] ?? null;
+        if ($plan) {
+            $planLabel = $plan['label'];
+            $monthlyAllowance = $plan['monthly_allowance'];
+            $periodStart = rr_current_period_start($subscription);
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) FROM location_unlocks
+                WHERE operator_id = ? AND source = 'subscription_allowance' AND unlocked_at >= ?
+            ");
+            $stmt->execute([$userId, $periodStart]);
+            $monthlyUsed = (int) $stmt->fetchColumn();
+            $monthlyRemaining = max(0, $monthlyAllowance - $monthlyUsed);
+        }
+    }
+
+    return [
+        'permanent_balance' => $permanentBalance,
+        'subscription' => $subscription,
+        'plan_label' => $planLabel,
+        'monthly_allowance' => $monthlyAllowance,
+        'monthly_used' => $monthlyUsed,
+        'monthly_remaining' => $monthlyRemaining,
+        'total_available' => $permanentBalance + $monthlyRemaining,
+    ];
+}
+
+/**
+ * Уже разблокирована ли эта локация этим оператором — сам факт строки в
+ * location_unlocks и есть разрешение видеть точный адрес/контакт, вне
+ * зависимости от того, что сейчас с кредитами/подпиской.
+ */
+function rr_location_unlocked(PDO $pdo, $operatorId, $locationId) {
+    $stmt = $pdo->prepare("SELECT 1 FROM location_unlocks WHERE operator_id = ? AND location_id = ? LIMIT 1");
+    $stmt->execute([$operatorId, $locationId]);
+    return (bool) $stmt->fetchColumn();
+}
+
+/**
+ * То же самое, но сразу для списка локаций (карточки каталога/карты) —
+ * один запрос вместо N, возвращает набор id уже разблокированных локаций.
+ */
+function rr_unlocked_location_ids(PDO $pdo, $operatorId, array $locationIds) {
+    if (empty($locationIds)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($locationIds), '?'));
+    $stmt = $pdo->prepare("
+        SELECT location_id FROM location_unlocks
+        WHERE operator_id = ? AND location_id IN ($placeholders)
+    ");
+    $stmt->execute(array_merge([$operatorId], $locationIds));
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
+ * Тратит 1 кредит на разблокировку локации — сначала из сгорающей
+ * месячной квоты (чтобы не пропадала зря), потом из несгораемого баланса.
+ * Возвращает true при успехе, false — если кредитов не хватает или
+ * локация уже разблокирована (в её же интересах — повторно не списываем).
+ */
+function rr_unlock_location(PDO $pdo, $operatorId, $locationId) {
+    if (rr_location_unlocked($pdo, $operatorId, $locationId)) {
+        return true;
+    }
+
+    $summary = rr_credits_summary($pdo, $operatorId);
+    if ($summary['total_available'] <= 0) {
+        return false;
+    }
+
+    $source = $summary['monthly_remaining'] > 0 ? 'subscription_allowance' : 'permanent_credit';
+
+    try {
+        $pdo->prepare("
+            INSERT INTO location_unlocks (operator_id, location_id, source)
+            VALUES (?, ?, ?)
+        ")->execute([$operatorId, $locationId, $source]);
+        return true;
+    } catch (PDOException $e) {
+        // UNIQUE(operator_id, location_id) — параллельный повторный клик
+        // не спишет кредит дважды, просто считаем локацию уже разблокированной.
+        return rr_location_unlocked($pdo, $operatorId, $locationId);
+    }
+}
+
+/**
+ * Есть ли у оператора доступ к полной интерактивной карте (точки, а не
+ * только список "город → сколько локаций"). Не привязан к текущему
+ * остатку кредитов — открыт всем, кто хоть раз что-то купил или у кого
+ * сейчас активен тариф: карта нужна для выбора, ГДЕ тратить кредиты,
+ * а не наоборот. Точный адрес в самом попапе — по-прежнему только для
+ * разблокированных локаций (см. rr_location_unlocked()).
+ */
+function rr_has_map_access(PDO $pdo, $userId) {
+    if (rr_active_subscription($pdo, $userId) !== null) {
+        return true;
+    }
+    $stmt = $pdo->prepare("SELECT 1 FROM credit_purchases WHERE user_id = ? AND source != 'free_grant' LIMIT 1");
+    $stmt->execute([$userId]);
+    return (bool) $stmt->fetchColumn();
+}
+
+/**
+ * Есть ли у текущего пользователя доступ к платным функциям (карта с
+ * точками, отправка заявки собственнику). Админ считается имеющим полный
+ * доступ всегда — это внутренний персонал, а не участник платной модели.
+ * Требует, чтобы session_start() уже был вызван.
+ */
+function currentUserHasMapAccess() {
     static $cached = null;
 
     if (!isset($_SESSION['user_id'])) {
@@ -166,7 +357,7 @@ function currentUserHasSubscription() {
         return true;
     }
     if ($cached === null) {
-        $cached = rr_active_subscription(getDbConnection(), $_SESSION['user_id']) !== null;
+        $cached = rr_has_map_access(getDbConnection(), $_SESSION['user_id']);
     }
     return $cached;
 }

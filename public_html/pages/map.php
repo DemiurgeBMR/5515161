@@ -6,7 +6,9 @@ require_once __DIR__ . '/../config.php';
 $pdo = getDbConnection();
 
 $city = trim($_GET['city'] ?? '');
-$hasSubscription = currentUserHasSubscription();
+$is_admin = ($_SESSION['user_role'] ?? null) === 'admin';
+$is_operator = ($_SESSION['user_role'] ?? null) === 'operator';
+$hasMapAccess = currentUserHasMapAccess();
 
 // Собственник может смотреть на карте свои же локации бесплатно — ему не
 // нужно платить за доступ к собственным адресам, которые он и так знает.
@@ -14,7 +16,7 @@ $hasSubscription = currentUserHasSubscription();
 // а отдельная, более узкая карта — только его точки, вне зависимости от
 // occupied-статуса (это же его точки, ему всё равно нужно их все видеть).
 $isOwner = ($_SESSION['user_role'] ?? null) === 'owner';
-$hasFullMapAccess = $hasSubscription || $isOwner;
+$hasFullMapAccess = $hasMapAccess || $isOwner;
 
 // Локация с активным закреплением оператора больше не свободна — как и в
 // каталоге (pages/catalog.php), не показываем её на карте другим операторам.
@@ -79,7 +81,7 @@ if (!$hasFullMapAccess) {
         ];
     }, $locations);
 } else {
-    $sql = "SELECT l.id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
+    $sql = "SELECT l.id, l.owner_id, l.title, l.city, l.address, l.price_month, l.traffic_rating, l.latitude, l.longitude,
             (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
             FROM locations l
             WHERE l.is_active = 1 AND l.is_moderated = 1 AND $notOccupiedSqlL
@@ -109,18 +111,25 @@ if (!$hasFullMapAccess) {
     $stmt_no_geo->execute($params_no_geo);
     $total_no_geo = (int) $stmt_no_geo->fetchColumn();
 
-    $mapPoints = array_map(function ($loc) {
+    // Точный адрес в попапе — только для локаций, которые оператор уже
+    // разблокировал за кредит (или для админа/собственника карточки) —
+    // карта показывает ГДЕ есть точки, а не раздаёт адреса бесплатно.
+    $unlockedIds = $is_operator ? rr_unlocked_location_ids($pdo, $_SESSION['user_id'], array_column($locations, 'id')) : [];
+
+    $mapPoints = array_map(function ($loc) use ($is_admin, $unlockedIds) {
+        $unlocked = $is_admin || $loc['owner_id'] == ($_SESSION['user_id'] ?? 0) || in_array((int) $loc['id'], $unlockedIds, true);
         return [
-            'id'      => (int) $loc['id'],
-            'title'   => $loc['title'],
-            'city'    => $loc['city'],
-            'address' => $loc['address'],
-            'price'   => (float) $loc['price_month'],
-            'traffic' => (int) $loc['traffic_rating'],
-            'lat'     => (float) $loc['latitude'],
-            'lng'     => (float) $loc['longitude'],
-            'photo'   => !empty($loc['main_photo']) ? '/' . $loc['main_photo'] : '/assets/images/placeholder.jpg',
-            'url'     => '/pages/location.php?id=' . (int) $loc['id'],
+            'id'       => (int) $loc['id'],
+            'title'    => $loc['title'],
+            'city'     => $loc['city'],
+            'address'  => $unlocked ? $loc['address'] : null,
+            'unlocked' => $unlocked,
+            'price'    => (float) $loc['price_month'],
+            'traffic'  => (int) $loc['traffic_rating'],
+            'lat'      => (float) $loc['latitude'],
+            'lng'      => (float) $loc['longitude'],
+            'photo'    => !empty($loc['main_photo']) ? '/' . $loc['main_photo'] : '/assets/images/placeholder.jpg',
+            'url'      => '/pages/location.php?id=' . (int) $loc['id'],
         ];
     }, $locations);
 }
@@ -167,9 +176,9 @@ if (!$hasFullMapAccess) {
         <?php if (!$hasFullMapAccess): ?>
             <div class="map-paywall">
                 <div class="map-paywall-icon"><?php echo rr_icon('lock'); ?></div>
-                <h3>Карта с точками доступна по подписке</h3>
-                <p>Без подписки видно только количество локаций по городам. Включите подписку, чтобы увидеть точки на карте и точные адреса локаций.</p>
-                <a href="/pages/subscription.php" class="btn-filter">Оформить подписку</a>
+                <h3>Карта с точками доступна после первой покупки</h3>
+                <p>Без покупок видно только количество локаций по городам. Купите пакет контактов или тариф, чтобы увидеть точки на карте — точный адрес каждой локации всё равно открывается отдельно, за 1 контакт.</p>
+                <a href="/pages/subscription.php" class="btn-filter">Смотреть тарифы</a>
             </div>
 
             <?php if (count($cityCounts) > 0): ?>
@@ -240,11 +249,14 @@ if (!$hasFullMapAccess) {
                 stars += '<span class="popup-star' + (i <= loc.traffic ? ' filled' : '') + '">★</span>';
             }
             var priceLabel = loc.price.toLocaleString('ru-RU') + ' ₽ / мес';
+            var addressLine = loc.address
+                ? '<div class="map-popup-address"><?php echo rr_icon('map-pin'); ?> ' + escapeHtml(loc.city + ', ' + loc.address) + '</div>'
+                : '<div class="map-popup-address map-popup-address-locked"><?php echo rr_icon('lock'); ?> ' + escapeHtml(loc.city) + ' · точный адрес — за 1 контакт</div>';
             marker.bindPopup(
                 '<div class="map-popup">' +
                     '<img src="' + escapeHtml(loc.photo) + '" alt="">' +
                     '<div class="map-popup-title">' + escapeHtml(loc.title) + '</div>' +
-                    '<div class="map-popup-address"><?php echo rr_icon('map-pin'); ?> ' + escapeHtml(loc.city + ', ' + loc.address) + '</div>' +
+                    addressLine +
                     (loc.traffic > 0 ? '<div class="map-popup-traffic">' + stars + '</div>' : '') +
                     '<div class="map-popup-price">' + priceLabel + '</div>' +
                     '<a href="' + escapeHtml(loc.url) + '" class="map-popup-link">Подробнее →</a>' +

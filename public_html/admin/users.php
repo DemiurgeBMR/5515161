@@ -67,7 +67,7 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $users = $stmt->fetchAll();
 
-$subscriptionPlans = rr_subscription_plans();
+$subscriptionPlans = rr_recurring_plans();
 
 $total_admins = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
 $total_owners = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'owner'")->fetchColumn();
@@ -180,6 +180,7 @@ unset($_SESSION['flash']);
                                 </td>
                                 <td>
                                     <?php if ($u['role'] === 'operator'): ?>
+                                        <?php $rowCredits = rr_credits_summary($pdo, $u['id']); ?>
                                         <?php if (!empty($u['sub_end_date'])): ?>
                                             <span class="user-status-pill user-status-verified">
                                                 <?php echo rr_icon('card'); ?>
@@ -187,8 +188,9 @@ unset($_SESSION['flash']);
                                                 до <?php echo formatDate($u['sub_end_date']); ?>
                                             </span>
                                         <?php else: ?>
-                                            <span class="user-status-pill user-status-unverified"><?php echo rr_icon('x'); ?> Нет подписки</span>
+                                            <span class="user-status-pill user-status-unverified"><?php echo rr_icon('x'); ?> Нет тарифа</span>
                                         <?php endif; ?>
+                                        <span class="user-status-pill user-status-2fa"><?php echo rr_icon('card'); ?> <?php echo $rowCredits['total_available']; ?> доступно</span>
                                     <?php else: ?>
                                         <span class="you-note">—</span>
                                     <?php endif; ?>
@@ -219,6 +221,13 @@ unset($_SESSION['flash']);
                                             <?php if (!empty($u['sub_end_date'])): ?>
                                                 <a href="/admin/user_actions.php?action=cancel_subscription&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Досрочно отменить подписку? История покупок сохранится." data-rr-confirm-ok="Отменить"><?php echo rr_icon('x'); ?> Отменить подписку</a>
                                             <?php endif; ?>
+                                            <form method="POST" action="/admin/user_actions.php" class="admin-inline-subscription-form">
+                                                <input type="hidden" name="action" value="grant_credits">
+                                                <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                                <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
+                                                <input type="number" name="credits" min="1" max="100" value="5" class="admin-credits-input">
+                                                <button type="submit" class="btn-view"><?php echo rr_icon('card'); ?> Начислить кредиты</button>
+                                            </form>
                                         <?php endif; ?>
 
                                         <?php if ($u['role'] !== 'admin'): ?>

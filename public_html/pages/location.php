@@ -59,11 +59,24 @@ if ($location) {
     }
 }
 
-// ★★★ Точный адрес, имя собственника и возможность написать ему — по подписке
-// (или собственнику/админу своей же локации), без неё — только город
-// (см. pages/subscription.php) ★★★
+// ★★★ Точный адрес, имя собственника и возможность написать ему — после
+// разблокировки этой конкретной локации за кредит (или собственнику/админу
+// своей же локации), без неё — только город (см. pages/subscription.php) ★★★
 $isOwnListing = isset($_SESSION['user_id']) && $_SESSION['user_id'] == $location['owner_id'];
-$hasFullAccess = $is_admin || $isOwnListing || currentUserHasSubscription();
+$isOperator = ($_SESSION['user_role'] ?? null) === 'operator';
+$unlockError = '';
+
+if ($isOperator && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unlock_location'])) {
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $unlockError = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } elseif (!rr_unlock_location($pdo, $user_id, $id)) {
+        $unlockError = 'Не хватает кредитов на разблокировку.';
+    }
+}
+
+$isUnlocked = $isOperator && rr_location_unlocked($pdo, $user_id, $id);
+$hasFullAccess = $is_admin || $isOwnListing || $isUnlocked;
+$creditsSummary = $isOperator ? rr_credits_summary($pdo, $user_id) : null;
 
 // ★★★ Локация уже занята активно закреплённым оператором? ★★★
 // Как только собственник закрепил оператора за точкой, она перестаёт быть
@@ -246,6 +259,9 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
     
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
+        <?php if (!empty($_SESSION['flash'])): ?>
+            <div class="flash-message"><?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?></div>
+        <?php endif; ?>
         <?php if ($is_preview): ?>
     <div class="preview-notice">
         <strong><?php echo rr_icon('eye'); ?> Предпросмотр</strong> — это объявление ещё не опубликовано и видно только вам.
@@ -298,8 +314,12 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                 <?php else: ?>
                     <div class="address">
                         <?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($location['city']); ?>
-                        <a href="/pages/subscription.php" class="address-locked-hint"><?php echo rr_icon('lock'); ?> точный адрес — по подписке</a>
+                        <a href="#unlock" class="address-locked-hint"><?php echo rr_icon('lock'); ?> точный адрес — за 1 контакт</a>
                     </div>
+                <?php endif; ?>
+
+                <?php if ($unlockError): ?>
+                    <div class="error" role="alert"><?php echo htmlspecialchars($unlockError); ?></div>
                 <?php endif; ?>
 
 <div class="location-added-line">
@@ -392,10 +412,10 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
         </div>
 
         <?php if ($showInquiryBlock): ?>
-        <aside class="inquiry-sidebar">
+        <aside class="inquiry-sidebar" id="unlock">
             <div class="inquiry-card">
                 <h3>Заинтересовала локация?</h3>
-                <p class="inquiry-sub">С подпиской можно написать собственнику напрямую в один клик.</p>
+                <p class="inquiry-sub">Разблокируйте контакт собственника за 1 кредит — дальше пишите напрямую в один клик.</p>
 
                 <div class="inquiry-price-row">
                     <span>Аренда в месяц</span>
@@ -410,14 +430,22 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                         <strong><?php echo htmlspecialchars($location['owner_name']); ?></strong>
                     </div>
                     <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block"><?php echo rr_icon('arrow-right'); ?> Отправить заявку на аренду</a>
+                <?php elseif ($creditsSummary['total_available'] > 0): ?>
+                    <form method="POST">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="unlock_location" value="1">
+                        <button type="submit" class="btn-contact btn-block">
+                            <?php echo rr_icon('lock'); ?> Разблокировать контакт (<?php echo $creditsSummary['total_available']; ?> доступно)
+                        </button>
+                    </form>
                 <?php else: ?>
-                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe"><?php echo rr_icon('lock'); ?> Подписка, чтобы связаться</a>
+                    <a href="/pages/subscription.php" class="btn-contact btn-block btn-subscribe"><?php echo rr_icon('lock'); ?> Кредиты закончились — пополнить</a>
                 <?php endif; ?>
 
                 <ul class="inquiry-points">
                     <li><?php echo rr_icon('message-circle'); ?> RR передаёт ваше обращение собственнику — звонить самому не нужно</li>
                     <li><?php echo rr_icon('check'); ?> Условия аренды обсуждаются напрямую в чате с собственником</li>
-                    <li><?php echo rr_icon('lock'); ?> Подписка открывает имя и контакт собственника на всех локациях</li>
+                    <li><?php echo rr_icon('lock'); ?> Разблокировка этой карточки открывает адрес и контакт навсегда, даже если кредиты потом закончатся</li>
                 </ul>
             </div>
         </aside>

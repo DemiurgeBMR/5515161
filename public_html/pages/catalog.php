@@ -10,7 +10,7 @@ $pdo = getDbConnection();
 
 $is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
 $user_id = $_SESSION['user_id'] ?? 0;
-$hasFullAccess = $is_admin || currentUserHasSubscription();
+$is_operator = ($_SESSION['user_role'] ?? null) === 'operator';
 
 // Текстовые уровни трафика — те же формулировки, что и в подсказке "Как
 // оценить проходимость места?" на карточке локации (pages/location.php),
@@ -155,6 +155,10 @@ $sql = "SELECT l.*,
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $locations = $stmt->fetchAll();
+
+// Какие из показанных на этой странице локаций оператор уже разблокировал —
+// один запрос на всю страницу вместо проверки на каждую карточку отдельно.
+$unlockedIds = $is_operator ? rr_unlocked_location_ids($pdo, $user_id, array_column($locations, 'id')) : [];
 
 // ★★★ МАППИНГ ТИПОВ ДЛЯ КРАСИВОГО ОТОБРАЖЕНИЯ ★★★
 $space_types = [
@@ -337,7 +341,7 @@ $filterParams = array_filter($_GET, function ($k) {
         <?php if (count($locations) > 0): ?>
             <div class="catalog-grid">
                 <?php foreach ($locations as $loc): ?>
-                    <?php $locHasFullAccess = $hasFullAccess || $loc['owner_id'] == $user_id; ?>
+                    <?php $locHasFullAccess = $is_admin || $loc['owner_id'] == $user_id || in_array($loc['id'], $unlockedIds, true); ?>
                     <div class="catalog-card">
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="catalog-card-link">
                             <?php if (!empty($loc['main_photo'])): ?>
