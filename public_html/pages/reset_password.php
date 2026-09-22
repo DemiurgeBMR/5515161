@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
         $password = $_POST['password'] ?? '';
         $password_confirm = $_POST['password_confirm'] ?? '';
 
-        if (strlen($password) < 6) {
-            $error = 'Пароль должен быть не менее 6 символов.';
+        if ($passwordError = rr_validate_password_strength($password)) {
+            $error = $passwordError;
         } elseif ($password !== $password_confirm) {
             $error = 'Пароли не совпадают.';
         } else {
@@ -72,7 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
                 <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                 <div class="form-group">
                     <label>Новый пароль</label>
-                    <input type="password" name="password" required minlength="6" placeholder="Минимум 6 символов">
+                    <input type="password" name="password" required minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                    <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                 </div>
                 <div class="form-group">
                     <label>Подтверждение пароля</label>

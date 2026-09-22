@@ -105,8 +105,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
         }
     }
 
-    if (!empty($password) && strlen($password) < 6) {
-        $errors[] = 'Новый пароль должен быть не менее 6 символов.';
+    if (!empty($password) && ($passwordError = rr_validate_password_strength($password))) {
+        $errors[] = $passwordError;
     }
     if (!empty($password) && $password !== $password_confirm) {
         $errors[] = 'Новые пароли не совпадают.';
@@ -214,7 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <div class="form-row">
                     <div class="form-group">
                         <label>Новый пароль</label>
-                        <input type="password" name="password" placeholder="Минимум 6 символов">
+                        <input type="password" name="password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                        <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                     </div>
                     <div class="form-group">
                         <label>Подтверждение</label>

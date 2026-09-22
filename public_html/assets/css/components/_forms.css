@@ -33,6 +33,13 @@
     outline: none;
 }
 
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted, #9a9aa5);
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
