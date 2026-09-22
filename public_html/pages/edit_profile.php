@@ -111,6 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
     if (!empty($password) && $password !== $password_confirm) {
         $errors[] = 'Новые пароли не совпадают.';
     }
+    if ($phoneError = rr_validate_phone($phone)) {
+        $errors[] = $phoneError;
+    }
 
     if (empty($errors)) {
         try {
@@ -198,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 </div>
                 <div class="form-group">
                     <label>Телефон</label>
-                    <input type="tel" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                    <input type="tel" name="phone" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
                 </div>
                 <div class="form-group">
                     <label>Email *</label>

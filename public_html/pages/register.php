@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Некорректный email адрес';
     } elseif ($passwordError = rr_validate_password_strength($password)) {
         $error = $passwordError;
+    } elseif ($phoneError = rr_validate_phone($phone)) {
+        $error = $phoneError;
     } elseif (!$privacyConsent) {
         $error = 'Необходимо дать согласие на обработку персональных данных';
     } elseif (!$termsConsent) {
@@ -182,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         <div class="form-group">
                             <label>Телефон (необязательно)</label>
-                            <input type="tel" name="phone" placeholder="+7 900 000-00-00" value="<?php echo htmlspecialchars($phone); ?>">
+                            <input type="tel" name="phone" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" placeholder="+7 900 000-00-00" value="<?php echo htmlspecialchars($phone); ?>">
                         </div>
                     </div>
                     <div class="form-group">
