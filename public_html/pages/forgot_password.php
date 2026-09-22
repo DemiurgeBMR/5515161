@@ -10,6 +10,7 @@ if (isset($_SESSION['user_id'])) {
 
 $error = '';
 $resetLink = null;
+$emailSent = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
@@ -36,11 +37,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->prepare("UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?")
                     ->execute([$token, $expires, $user['id']]);
 
-                // ★★★ Временная заглушка вместо письма ★★★
-                // На проекте пока не настроена отправка почты (локальная разработка).
-                // Как только появится SMTP — здесь нужно отправить $resetLink пользователю
-                // на email и убрать вывод ссылки на экран.
-                $resetLink = SITE_URL . '/pages/reset_password.php?token=' . $token;
+                $link = SITE_URL . '/pages/reset_password.php?token=' . $token;
+
+                $emailSent = rr_send_email(
+                    $email,
+                    'Восстановление пароля на ' . SITE_NAME,
+                    '<p>Вы запросили сброс пароля на ' . htmlspecialchars(SITE_NAME) . '.</p>'
+                        . '<p><a href="' . htmlspecialchars($link) . '">Установить новый пароль</a></p>'
+                        . '<p>Ссылка действует ' . PASSWORD_RESET_TTL_MINUTES . ' минут и может быть использована один раз.</p>'
+                        . '<p>Если вы не запрашивали сброс пароля — просто проигнорируйте это письмо.</p>'
+                );
+
+                // Пока SMTP не настроен на этом окружении — показываем ссылку прямо
+                // на экране, чтобы разработка/тестирование не блокировались. Как
+                // только rr_mail_configured() станет true, эта ветка перестанет
+                // срабатывать сама по себе.
+                if (!$emailSent) {
+                    $resetLink = $link;
+                }
             }
             // Если пользователь с таким email не найден — $resetLink остаётся null,
             // и ниже покажется тот же нейтральный текст, что и при реальной отправке
@@ -70,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($resetLink): ?>
             <div class="success" role="status">
-                Отправка писем на сайте пока не настроена, поэтому ссылка для сброса пароля
-                показана прямо здесь (только на этот раз):
+                Отправка писем на этом сервере ещё не настроена (нет SMTP), поэтому ссылка
+                для сброса пароля временно показана прямо здесь (только на этот раз):
             </div>
             <p class="auth-link-break">
                 <a href="<?php echo htmlspecialchars($resetLink); ?>"><?php echo htmlspecialchars($resetLink); ?></a>
@@ -79,6 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p class="auth-note-small">
                 Ссылка действует <?php echo PASSWORD_RESET_TTL_MINUTES; ?> минут и может быть использована один раз.
             </p>
+        <?php elseif ($emailSent): ?>
+            <div class="success" role="status">
+                Если такой email зарегистрирован, на него отправлено письмо со ссылкой для
+                сброса пароля. Проверьте почту (в том числе папку «Спам»).
+            </div>
         <?php elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !$error): ?>
             <div class="success" role="status">
                 Если такой email зарегистрирован, для него можно было бы получить ссылку для

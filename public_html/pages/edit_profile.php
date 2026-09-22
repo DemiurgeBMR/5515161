@@ -141,8 +141,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
 
             $success = 'Данные успешно обновлены.';
             if ($emailChanged) {
-                $_SESSION['verify_link'] = rr_issue_verify_link($pdo, $user_id);
-                $success .= ' Email изменён — его нужно подтвердить заново, ссылка показана в шапке сайта.';
+                $link = rr_issue_verify_link($pdo, $user_id);
+                if (rr_mail_configured()) {
+                    $_SESSION['verify_email_sent'] = true;
+                    $success .= ' Email изменён — на него отправлено письмо для подтверждения.';
+                } else {
+                    $_SESSION['verify_link'] = $link;
+                    $success .= ' Email изменён — его нужно подтвердить заново, ссылка показана в шапке сайта.';
+                }
             }
 
             // Перезагружаем данные пользователя для отображения

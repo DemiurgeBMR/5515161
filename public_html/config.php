@@ -32,11 +32,78 @@ define('LOGIN_MAX_ATTEMPTS', 5);
 define('LOGIN_LOCKOUT_MINUTES', 15);
 
 // --- ВОССТАНОВЛЕНИЕ ПАРОЛЯ ---
-// Пока нет настроенной отправки почты (проект на локалке) — ссылка для
-// сброса пароля просто показывается на экране вместо письма (см.
-// pages/forgot_password.php). PASSWORD_RESET_TTL_MINUTES — срок жизни
-// токена сброса.
+// PASSWORD_RESET_TTL_MINUTES — срок жизни токена сброса пароля.
 define('PASSWORD_RESET_TTL_MINUTES', 60);
+
+// --- ПОЧТА (SMTP) ---
+// Пока SMTP_HOST не задан через переменные окружения, письма не отправляются
+// и вызывающий код (forgot_password.php, verify_2fa.php и т.д.) сам
+// показывает нужное сообщение на экране — так сайт не ломается до того, как
+// подключат реального провайдера. Как только заданы SMTP_HOST/SMTP_USER/
+// SMTP_PASS — rr_send_email() начинает реально отправлять письма, без
+// изменений в коде страниц.
+define('SMTP_HOST', getenv('SMTP_HOST') ?: '');
+define('SMTP_PORT', (int) (getenv('SMTP_PORT') ?: 587));
+define('SMTP_USER', getenv('SMTP_USER') ?: '');
+define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
+// 'tls' (STARTTLS, обычно порт 587), 'ssl' (порт 465) или 'none' (без
+// шифрования — только для доверенного внутреннего релея).
+define('SMTP_ENCRYPTION', getenv('SMTP_ENCRYPTION') ?: 'tls');
+define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: SMTP_USER);
+define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: SITE_NAME);
+
+/** Настроена ли реальная отправка почты на этом окружении. */
+function rr_mail_configured() {
+    return SMTP_HOST !== '' && SMTP_USER !== '';
+}
+
+/**
+ * Отправляет письмо через SMTP (PHPMailer, includes/PHPMailer/).
+ * Возвращает true при успехе, false — если почта не настроена или
+ * отправка не удалась (подробности — в error_log).
+ */
+function rr_send_email($to, $subject, $htmlBody, $textBody = null) {
+    if (!rr_mail_configured()) {
+        return false;
+    }
+
+    require_once __DIR__ . '/includes/PHPMailer/Exception.php';
+    require_once __DIR__ . '/includes/PHPMailer/SMTP.php';
+    require_once __DIR__ . '/includes/PHPMailer/PHPMailer.php';
+
+    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host = SMTP_HOST;
+        $mail->Port = SMTP_PORT;
+        $mail->SMTPAuth = true;
+        $mail->Username = SMTP_USER;
+        $mail->Password = SMTP_PASS;
+        if (SMTP_ENCRYPTION === 'ssl') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+        } elseif (SMTP_ENCRYPTION === 'tls') {
+            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        } else {
+            // Внутренний SMTP-релей без шифрования — редкий случай, но
+            // на некоторых захостингах/внутренних серверах так и есть.
+            $mail->SMTPAutoTLS = false;
+        }
+        $mail->CharSet = 'UTF-8';
+
+        $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+        $mail->addAddress($to);
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $htmlBody;
+        $mail->AltBody = $textBody ?: trim(strip_tags($htmlBody));
+
+        $mail->send();
+        return true;
+    } catch (\Throwable $e) {
+        error_log('rr_send_email: не удалось отправить письмо на ' . $to . ': ' . $e->getMessage());
+        return false;
+    }
+}
 
 // --- ПОДТВЕРЖДЕНИЕ EMAIL ---
 // Та же временная схема, что и для сброса пароля — почты пока нет, ссылка
@@ -81,7 +148,24 @@ function rr_issue_verify_link(PDO $pdo, $userId) {
     $expires = date('Y-m-d H:i:s', time() + VERIFY_EMAIL_TTL_HOURS * 3600);
     $pdo->prepare("UPDATE users SET verify_token = ?, verify_token_expires = ? WHERE id = ?")
         ->execute([$token, $expires, $userId]);
-    return SITE_URL . '/pages/verify_email.php?token=' . $token;
+    $link = SITE_URL . '/pages/verify_email.php?token=' . $token;
+
+    $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $email = $stmt->fetchColumn();
+    if ($email) {
+        rr_send_email(
+            $email,
+            'Подтверждение email на ' . SITE_NAME,
+            '<p>Подтвердите адрес email на ' . htmlspecialchars(SITE_NAME) . ':</p>'
+                . '<p><a href="' . htmlspecialchars($link) . '">Подтвердить email</a></p>'
+                . '<p>Ссылка действует ' . VERIFY_EMAIL_TTL_HOURS . ' ч.</p>'
+        );
+    }
+
+    // Ссылка возвращается в любом случае — вызывающий код решает, показывать
+    // её на экране (пока не настроен SMTP) или ограничиться письмом.
+    return $link;
 }
 
 // Путь к файлу водяного знака (PNG с прозрачностью)

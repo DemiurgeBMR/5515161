@@ -46,6 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $expires = date('Y-m-d H:i:s', time() + 10 * 60);
         $pdo->prepare("UPDATE users SET two_factor_code = ?, two_factor_code_expires = ? WHERE id = ?")
             ->execute([$code, $expires, $user['id']]);
+
+        $stmtEmail = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+        $stmtEmail->execute([$user['id']]);
+        rr_send_email(
+            $stmtEmail->fetchColumn(),
+            'Код подтверждения входа — ' . SITE_NAME,
+            '<p>Код для входа на ' . htmlspecialchars(SITE_NAME) . ': <strong style="font-size:20px">' . htmlspecialchars($code) . '</strong></p>'
+                . '<p>Код действует 10 минут. Если вы не пытались войти в аккаунт — просто проигнорируйте это письмо.</p>'
+        );
+
         $user['two_factor_code'] = $code;
         $user['two_factor_code_expires'] = $expires;
         $codeExpired = false;
@@ -95,10 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
-        <?php if (!$codeExpired): ?>
+        <?php if (!$codeExpired && !rr_mail_configured()): ?>
             <div class="success" role="status">
                 Отправка писем на сайте пока не настроена, поэтому код показан прямо здесь
                 (временно, до подключения почты): <strong class="auth-code-display"><?php echo htmlspecialchars($user['two_factor_code']); ?></strong>
+            </div>
+        <?php elseif (!$codeExpired): ?>
+            <div class="success" role="status">
+                Код отправлен на вашу почту. Проверьте письмо (в том числе папку «Спам»).
             </div>
         <?php endif; ?>
 

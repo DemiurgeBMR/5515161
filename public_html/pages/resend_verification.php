@@ -19,7 +19,12 @@ $pdo = getDbConnection();
 if (!empty($_SESSION['is_verified'])) {
     $_SESSION['flash'] = 'Email уже подтверждён.';
 } else {
-    $_SESSION['verify_link'] = rr_issue_verify_link($pdo, $_SESSION['user_id']);
+    $link = rr_issue_verify_link($pdo, $_SESSION['user_id']);
+    if (rr_mail_configured()) {
+        $_SESSION['verify_email_sent'] = true;
+    } else {
+        $_SESSION['verify_link'] = $link;
+    }
 }
 
 header('Location: ' . rr_login_redirect_url($_SESSION['user_role'] ?? ''));

@@ -174,6 +174,16 @@
                 </div>
             </div>
             <?php unset($_SESSION['verify_link']); ?>
+        <?php elseif (!empty($_SESSION['verify_email_sent'])): ?>
+            <div class="verify-banner verify-banner-link">
+                <div class="container verify-banner-inner">
+                    <span class="verify-banner-icon"><?php echo rr_icon('mail'); ?></span>
+                    <span class="verify-banner-text">
+                        На вашу почту отправлено письмо со ссылкой для подтверждения email.
+                    </span>
+                </div>
+            </div>
+            <?php unset($_SESSION['verify_email_sent']); ?>
         <?php elseif (empty($_SESSION['is_verified'])): ?>
             <div class="verify-banner">
                 <div class="container verify-banner-inner">
