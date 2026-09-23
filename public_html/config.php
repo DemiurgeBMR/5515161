@@ -976,6 +976,13 @@ function getUserUploadedBytes(PDO $pdo, $userId) {
         $total += rr_upload_file_size($path);
     }
 
+    // Вложения в чате заявок на услуги (see rr_save_service_order_attachment()) —
+    // хранятся вне public_html, поэтому размер берём из колонки, а не
+    // пересчитываем с диска через rr_upload_file_size().
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(attachment_size), 0) FROM service_order_messages WHERE sender_id = ? AND attachment_path IS NOT NULL");
+    $stmt->execute([$userId]);
+    $total += (int) $stmt->fetchColumn();
+
     return $total;
 }
 
@@ -992,6 +999,134 @@ function rr_has_upload_room(PDO $pdo, $userId, $additionalBytes = 0) {
         return false;
     }
     return (getUserUploadedBytes($pdo, $userId) + $additionalBytes) <= USER_UPLOAD_QUOTA_BYTES;
+}
+
+// --- ВЛОЖЕНИЯ В ЧАТЕ ЗАЯВОК НА УСЛУГИ ---
+// В отличие от фото локаций/обслуживания (публичный листинг, публикуется
+// осознанно), здесь может оказаться скан паспорта или подписанный договор —
+// приватная переписка 1:1 с админом. Поэтому файлы лежат СНАРУЖИ
+// public_html (рядом с database/ и cache/, см. .gitignore) и отдаются
+// только через api/download_service_order_attachment.php с проверкой
+// доступа, а не напрямую по URL как остальные загрузки на сайте.
+define('SERVICE_ORDER_ATTACHMENT_MAX_BYTES', 15 * 1024 * 1024); // 15 МБ на файл
+
+/** "2M"/"8M"/"512K" из php.ini → байты. */
+function rr_ini_bytes($iniValue) {
+    $iniValue = trim((string) $iniValue);
+    if ($iniValue === '' || $iniValue === '-1') {
+        return PHP_INT_MAX; // без ограничения в php.ini
+    }
+    $unit = strtolower(substr($iniValue, -1));
+    $num = (int) $iniValue;
+    switch ($unit) {
+        case 'g': return $num * 1024 * 1024 * 1024;
+        case 'm': return $num * 1024 * 1024;
+        case 'k': return $num * 1024;
+        default:  return (int) $iniValue;
+    }
+}
+
+/**
+ * Реальный лимит на вложение — не только наш собственный
+ * SERVICE_ORDER_ATTACHMENT_MAX_BYTES, но и то, что вообще пропустит сам PHP
+ * (upload_max_filesize/post_max_size из php.ini). На типичном shared-хостинге
+ * они нередко значительно меньше 15 МБ (например 2М/8М по умолчанию) — без
+ * этой поправки клиент разрешал бы выбрать файл, который сервер молча
+ * обрежет ещё до нашего кода (PHP просто не заполнит $_POST/$_FILES).
+ */
+function rr_service_order_attachment_max_bytes() {
+    return min(
+        SERVICE_ORDER_ATTACHMENT_MAX_BYTES,
+        rr_ini_bytes(ini_get('upload_max_filesize')),
+        rr_ini_bytes(ini_get('post_max_size'))
+    );
+}
+
+function rr_service_order_attachments_dir() {
+    return dirname(__DIR__) . '/private_uploads/service_order_attachments/';
+}
+
+/**
+ * Список поддерживаемых типов вложений: ключ — РЕАЛЬНЫЙ MIME-тип файла
+ * (проверяется через finfo, не по расширению из имени файла клиента — иначе
+ * .php с переименованным расширением мог бы проскочить), значение —
+ * [расширение для сохранения, категория для UI ('image'|'document')].
+ */
+function rr_service_order_attachment_specs() {
+    return [
+        'image/jpeg' => ['jpg', 'image'],
+        'image/png'  => ['png', 'image'],
+        'image/webp' => ['webp', 'image'],
+        'application/pdf' => ['pdf', 'document'],
+        'application/msword' => ['doc', 'document'],
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => ['docx', 'document'],
+        'application/vnd.ms-excel' => ['xls', 'document'],
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => ['xlsx', 'document'],
+    ];
+}
+
+/**
+ * Проверяет и сохраняет вложение из $_FILES['attachment'] (одно на
+ * сообщение). Фото дополнительно проверяются как настоящее изображение и
+ * пережимаются через compressImage() (тот же пайплайн, что и для
+ * service_photos); документы сохраняются как есть после проверки MIME.
+ * Возвращает ['path','name','size','type'] при успехе или ['error' => текст
+ * для показа пользователю] при отказе.
+ */
+function rr_save_service_order_attachment(PDO $pdo, $userId, array $file) {
+    $maxBytes = rr_service_order_attachment_max_bytes();
+
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_INI_SIZE || ($file['error'] ?? null) === UPLOAD_ERR_FORM_SIZE) {
+        return ['error' => 'Файл больше ' . round($maxBytes / 1024 / 1024) . ' МБ'];
+    }
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return ['error' => 'Не удалось загрузить файл'];
+    }
+    if (!is_uploaded_file($file['tmp_name'])) {
+        return ['error' => 'Не удалось загрузить файл'];
+    }
+    if ($file['size'] > $maxBytes) {
+        return ['error' => 'Файл больше ' . round($maxBytes / 1024 / 1024) . ' МБ'];
+    }
+    if (!rr_has_upload_room($pdo, $userId, $file['size'])) {
+        return ['error' => 'Достигнут лимит на общий объём загруженных файлов (200 МБ на аккаунт)'];
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    $specs = rr_service_order_attachment_specs();
+    if (!isset($specs[$mime])) {
+        return ['error' => 'Формат файла не поддерживается (можно: JPG, PNG, WEBP, PDF, DOC, DOCX, XLS, XLSX)'];
+    }
+    [$ext, $type] = $specs[$mime];
+
+    $dir = rr_service_order_attachments_dir();
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+    $storedName = uniqid('soa_', true) . '.' . $ext;
+    $destPath = $dir . $storedName;
+
+    if ($type === 'image') {
+        if (!getimagesize($file['tmp_name'])) {
+            return ['error' => 'Файл повреждён или это не изображение'];
+        }
+        // applyWatermark = false — это приватное вложение в переписке, а не публичный листинг
+        if (!compressImage($file['tmp_name'], $destPath, 1600, 1600, 85, false, false)) {
+            return ['error' => 'Не удалось обработать изображение на сервере'];
+        }
+    } elseif (!move_uploaded_file($file['tmp_name'], $destPath)) {
+        return ['error' => 'Не удалось сохранить файл на сервере'];
+    }
+
+    return [
+        'path' => $storedName,
+        'name' => mb_substr(basename($file['name']), 0, 255),
+        'size' => is_file($destPath) ? (int) filesize($destPath) : (int) $file['size'],
+        'type' => $type,
+    ];
 }
 
 // --- CSRF-ЗАЩИТА ---
@@ -1110,6 +1245,17 @@ function formatDateRu($date) {
     $month = $months[date('n', $timestamp) - 1];
     $year = date('Y', $timestamp);
     return $day . ' ' . $month . ' ' . $year;
+}
+
+/** Человекочитаемый размер файла ("2.3 МБ", "480 КБ") для вложений в чате. */
+function rr_format_bytes($bytes) {
+    if ($bytes >= 1024 * 1024) {
+        return round($bytes / 1024 / 1024, 1) . ' МБ';
+    }
+    if ($bytes >= 1024) {
+        return round($bytes / 1024) . ' КБ';
+    }
+    return $bytes . ' Б';
 }
 
 /**

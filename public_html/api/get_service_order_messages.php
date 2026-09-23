@@ -55,6 +55,10 @@ $messages = array_map(function ($m) {
         'message' => $m['message'],
         'is_system' => (bool) $m['is_system'],
         'created_at' => strtotime($m['created_at']),
+        'attachment_name' => $m['attachment_name'],
+        'attachment_size' => $m['attachment_size'] !== null ? (int) $m['attachment_size'] : null,
+        'attachment_type' => $m['attachment_type'],
+        'attachment_url' => $m['attachment_path'] ? '/api/download_service_order_attachment.php?message_id=' . $m['id'] : null,
     ];
 }, $rows);
 

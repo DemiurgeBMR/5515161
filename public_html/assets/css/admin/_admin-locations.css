@@ -34,6 +34,9 @@
     color: white;
 }
 
+.admin-table-spaced {
+    margin-bottom: 30px;
+}
 .admin-table {
     background: var(--bg-elevated, #16161c);
     border: 1px solid var(--border, #2a2a33);

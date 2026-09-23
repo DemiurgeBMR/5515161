@@ -83,6 +83,26 @@ function formatDateSeparator($dateStr) {
     return date('j', $ts) . ' ' . $months[(int) date('n', $ts) - 1] . ' ' . date('Y', $ts);
 }
 
+function renderChatAttachment($msg) {
+    if (empty($msg['attachment_type'])) {
+        return '';
+    }
+    $url = '/api/download_service_order_attachment.php?message_id=' . $msg['id'];
+    if ($msg['attachment_type'] === 'image') {
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank" class="chat-attachment chat-attachment-image">'
+            . '<img src="' . htmlspecialchars($url) . '" alt="' . htmlspecialchars($msg['attachment_name']) . '" loading="lazy">'
+            . '</a>';
+    }
+    return '<a href="' . htmlspecialchars($url) . '" class="chat-attachment chat-attachment-document">'
+        . '<span class="chat-attachment-icon">' . rr_icon('file-text') . '</span>'
+        . '<span class="chat-attachment-info">'
+        .     '<span class="chat-attachment-name">' . htmlspecialchars($msg['attachment_name']) . '</span>'
+        .     '<span class="chat-attachment-size">' . htmlspecialchars(rr_format_bytes((int) $msg['attachment_size'])) . '</span>'
+        . '</span>'
+        . '<span class="chat-attachment-download-icon">' . rr_icon('download') . '</span>'
+        . '</a>';
+}
+
 $backUrl = $isAdmin ? '/admin/service_orders.php' : '/pages/subscription.php';
 $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
 ?>
@@ -166,7 +186,10 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                                             <span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
                                         </div>
                                     <?php endif; ?>
-                                    <div class="text"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
+                                    <?php echo renderChatAttachment($msg); ?>
+                                    <?php if ($msg['message'] !== ''): ?>
+                                        <div class="text"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         <?php endif; ?>
@@ -178,8 +201,17 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
 
             <div class="chat-input">
                 <?php if ($order['status'] !== 'cancelled'): ?>
-                    <form>
-                        <textarea name="message" placeholder="Напишите сообщение..." rows="1" required></textarea>
+                    <div id="attachmentPreview" class="attachment-preview" hidden>
+                        <span class="attachment-preview-icon"><?php echo rr_icon('paperclip'); ?></span>
+                        <span id="attachmentPreviewName" class="attachment-preview-name"></span>
+                        <button type="button" id="attachmentPreviewRemove" class="attachment-preview-remove" aria-label="Убрать файл"><?php echo rr_icon('x'); ?></button>
+                    </div>
+                    <form id="chatForm">
+                        <label class="chat-attach-btn" title="Прикрепить фото или документ">
+                            <?php echo rr_icon('paperclip'); ?>
+                            <input type="file" name="attachment" id="attachmentInput" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx" hidden>
+                        </label>
+                        <textarea name="message" placeholder="Напишите сообщение..." rows="1"></textarea>
                         <button type="submit" aria-label="Отправить">➤</button>
                     </form>
                 <?php else: ?>
@@ -203,6 +235,27 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
         return div.innerHTML;
     }
 
+    function formatBytes(bytes) {
+        if (bytes >= 1024 * 1024) return (Math.round(bytes / 1024 / 1024 * 10) / 10) + ' МБ';
+        if (bytes >= 1024) return Math.round(bytes / 1024) + ' КБ';
+        return bytes + ' Б';
+    }
+
+    function attachmentHtml(msg) {
+        if (!msg.attachment_url) return '';
+        if (msg.attachment_type === 'image') {
+            return '<a href="' + msg.attachment_url + '" target="_blank" class="chat-attachment chat-attachment-image">' +
+                '<img src="' + msg.attachment_url + '" alt="' + escapeHtml(msg.attachment_name || '') + '" loading="lazy"></a>';
+        }
+        return '<a href="' + msg.attachment_url + '" class="chat-attachment chat-attachment-document">' +
+            '<span class="chat-attachment-icon">' + PAPERCLIP_FILE_ICON + '</span>' +
+            '<span class="chat-attachment-info">' +
+                '<span class="chat-attachment-name">' + escapeHtml(msg.attachment_name || '') + '</span>' +
+                '<span class="chat-attachment-size">' + formatBytes(msg.attachment_size || 0) + '</span>' +
+            '</span>' +
+            '<span class="chat-attachment-download-icon">' + DOWNLOAD_ICON + '</span></a>';
+    }
+
     function appendMessage(msg, isOwn) {
         if (msg.is_system) {
             var sep = document.createElement('div');
@@ -217,34 +270,73 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
         var div = document.createElement('div');
         div.className = 'message' + (isOwn ? ' own' : '');
         var avatarHtml = isOwn ? '' : '<div class="avatar">' + escapeHtml(msg.sender_name.slice(0, 1).toUpperCase()) + '</div>';
+        var textHtml = msg.message ? '<div class="text">' + escapeHtml(msg.message) + '</div>' : '';
         div.innerHTML = avatarHtml +
             '<div class="message-body">' +
                 '<div class="sender">' + escapeHtml(msg.sender_name) + ' <span class="time">' + time + '</span></div>' +
-                '<div class="text">' + escapeHtml(msg.message) + '</div>' +
+                attachmentHtml(msg) +
+                textHtml +
             '</div>';
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    var form = document.querySelector('.chat-input form');
+    var PAPERCLIP_FILE_ICON = '<?php echo addslashes(rr_icon("file-text")); ?>';
+    var DOWNLOAD_ICON = '<?php echo addslashes(rr_icon("download")); ?>';
+
+    var form = document.getElementById('chatForm');
     var textarea = form ? form.querySelector('textarea[name="message"]') : null;
     var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    var attachmentInput = document.getElementById('attachmentInput');
+    var attachmentPreview = document.getElementById('attachmentPreview');
+    var attachmentPreviewName = document.getElementById('attachmentPreviewName');
+    var attachmentPreviewRemove = document.getElementById('attachmentPreviewRemove');
+
     if (textarea) {
         textarea.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = Math.min(this.scrollHeight, 140) + 'px';
         });
     }
+
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function() {
+            var file = attachmentInput.files[0];
+            if (!file) {
+                attachmentPreview.hidden = true;
+                return;
+            }
+            if (file.size > <?php echo rr_service_order_attachment_max_bytes(); ?>) {
+                alert('Файл больше <?php echo round(rr_service_order_attachment_max_bytes() / 1024 / 1024); ?> МБ');
+                attachmentInput.value = '';
+                attachmentPreview.hidden = true;
+                return;
+            }
+            attachmentPreviewName.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+            attachmentPreview.hidden = false;
+        });
+    }
+    if (attachmentPreviewRemove) {
+        attachmentPreviewRemove.addEventListener('click', function() {
+            attachmentInput.value = '';
+            attachmentPreview.hidden = true;
+        });
+    }
+
     if (form && textarea && submitBtn) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             var message = textarea.value.trim();
-            if (!message) return;
+            var file = attachmentInput && attachmentInput.files[0];
+            if (!message && !file) return;
             submitBtn.disabled = true;
             var formData = new FormData();
             formData.append('order_id', orderId);
             formData.append('message', message);
             formData.append('csrf_token', '<?php echo csrf_token(); ?>');
+            if (file) {
+                formData.append('attachment', file);
+            }
             fetch('/api/send_service_order_message.php', { method: 'POST', body: formData })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
@@ -252,6 +344,8 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                         appendMessage(data.message, true);
                         textarea.value = '';
                         textarea.style.height = 'auto';
+                        attachmentInput.value = '';
+                        attachmentPreview.hidden = true;
                         lastMessageId = data.message.id;
                     } else {
                         alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));

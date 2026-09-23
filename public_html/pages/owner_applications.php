@@ -24,6 +24,15 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $applications = $stmt->fetchAll();
 
+// Заявки на разовые услуги ("Сделка под ключ" и т.п.) — раньше их чат был
+// виден только со страницы тарифов, из-за чего было легко забыть, что там
+// вообще идёт переписка. Показываем здесь же, рядом с остальными чатами.
+$stmt = $pdo->prepare("SELECT id, service, price, status, created_at FROM service_orders WHERE user_id = ? ORDER BY created_at DESC");
+$stmt->execute([$user_id]);
+$serviceOrders = $stmt->fetchAll();
+$serviceLabels = ['turnkey_deal' => 'Сделка под ключ'];
+$orderStatusLabels = rr_service_order_status_labels();
+
 $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 
@@ -49,12 +58,47 @@ $statusLabels = [
     <?php include __DIR__ . '/../includes/header.php'; ?>
     <div class="page-container-1000">
         <a href="/pages/profile.php" class="back-link">← Назад</a>
-        <h2><?php echo rr_icon('mail'); ?> Заявки на мои локации</h2>
+        <h2><?php echo rr_icon('mail'); ?> Заявки и чаты</h2>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
         <?php endif; ?>
 
+        <?php if ($serviceOrders): ?>
+            <h3 class="subscription-section-title"><?php echo rr_icon('file-text'); ?> Заявки на услуги</h3>
+            <div class="admin-table admin-table-spaced">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Услуга</th>
+                            <th>Цена</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($serviceOrders as $order): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars($serviceLabels[$order['service']] ?? $order['service']); ?></td>
+                                <td><?php echo number_format($order['price'], 0, ',', ' '); ?> ₽</td>
+                                <td>
+                                    <span class="status <?php echo htmlspecialchars(str_replace('_', '-', $order['status'])); ?>">
+                                        <?php echo htmlspecialchars($orderStatusLabels[$order['status']] ?? $order['status']); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo date('d.m.Y', strtotime($order['created_at'])); ?></td>
+                                <td>
+                                    <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="btn-view"><?php echo rr_icon('message-circle'); ?> Чат</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+
+        <h3 class="subscription-section-title"><?php echo rr_icon('mail'); ?> Заявки на мои локации</h3>
         <?php if (count($applications) > 0): ?>
             <div class="admin-table">
                 <table>

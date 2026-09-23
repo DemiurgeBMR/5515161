@@ -12,6 +12,11 @@
 # каждая установка накапливает свой.
 /cache/*
 
+# Вложения чата заявок на услуги — намеренно вне public_html (см.
+# rr_service_order_attachments_dir() в config.php): там могут быть сканы
+# документов, отдаются только через access-gated скрипт, а не напрямую.
+/private_uploads/*
+
 # Типичный мусор редакторов и ОС
 .DS_Store
 Thumbs.db
