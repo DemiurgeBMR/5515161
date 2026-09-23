@@ -78,6 +78,10 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $total_rent = (float) $stmt->fetchColumn();
 
+// Баланс контактов — показываем сразу на дашборде (первое, что видит
+// новый оператор после регистрации), а не только на странице тарифов.
+$creditsSummary = rr_credits_summary($pdo, $user_id);
+
 // Непрочитанные сообщения от собственников, сгруппированные по заявке — это
 // и карточка "Ждут ответа", и список конкретных диалогов для to-do.
 $stmt = $pdo->prepare("
@@ -186,6 +190,30 @@ $eventTypeLabels = [
         <main class="dashboard-main">
             <div class="welcome-text">
                 Добро пожаловать, <strong><?php echo htmlspecialchars($user_name); ?></strong>!
+            </div>
+
+            <div class="credits-card <?php echo $creditsSummary['total_available'] > 0 ? '' : 'empty'; ?>">
+                <div class="credits-card-icon"><?php echo rr_icon('unlock'); ?></div>
+                <div class="credits-card-body">
+                    <?php if ($creditsSummary['total_available'] > 0): ?>
+                        <div class="credits-card-title">
+                            <?php echo $creditsSummary['total_available']; ?>
+                            <?php echo rr_plural_ru($creditsSummary['total_available'], 'контакт', 'контакта', 'контактов'); ?> доступно
+                        </div>
+                        <div class="credits-card-sub">
+                            Контакт тратится один раз на локацию — открывает точный адрес и связь с собственником навсегда.
+                            <?php if ($creditsSummary['monthly_remaining'] > 0): ?>
+                                Из них <?php echo $creditsSummary['monthly_remaining']; ?> — из тарифа «<?php echo htmlspecialchars($creditsSummary['plan_label']); ?>» (сгорают в конце периода).
+                            <?php endif; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="credits-card-title">Контакты закончились</div>
+                        <div class="credits-card-sub">Купите пакет или тариф, чтобы открывать точный адрес и контакт собственника новых локаций.</div>
+                    <?php endif; ?>
+                </div>
+                <a href="/pages/subscription.php" class="credits-card-link">
+                    <?php echo $creditsSummary['total_available'] > 0 ? 'Смотреть тарифы' : 'Пополнить'; ?> →
+                </a>
             </div>
 
             <div class="dash-stats-grid">

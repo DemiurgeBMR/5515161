@@ -1066,6 +1066,25 @@ function formatDateRu($date) {
     return $day . ' ' . $month . ' ' . $year;
 }
 
+/**
+ * Склонение существительного по числу (контакт/контакта/контактов и т.п.
+ * по правилам русского языка).
+ */
+function rr_plural_ru($count, $one, $few, $many) {
+    $count = abs($count) % 100;
+    $rem = $count % 10;
+    if ($count >= 11 && $count <= 14) {
+        return $many;
+    }
+    if ($rem === 1) {
+        return $one;
+    }
+    if ($rem >= 2 && $rem <= 4) {
+        return $few;
+    }
+    return $many;
+}
+
 // --- УВЕДОМЛЕНИЯ ---
 // Единая точка правды для типов уведомлений: категория (для фильтров и
 // настроек), иконка и подпись (для UI) — раньше эмодзи вручную вписывались
@@ -1102,6 +1121,8 @@ const NOTIFICATION_META = [
     'assignment_rejected'  => ['category' => 'assignment',  'icon' => 'x'],
     'revision_approved'    => ['category' => 'moderation',  'icon' => 'check'],
     'revision_rejected'    => ['category' => 'moderation',  'icon' => 'x'],
+    'service_order_new'    => ['category' => 'system',      'icon' => 'file-text'],
+    'service_order_update' => ['category' => 'system',      'icon' => 'file-text'],
 ];
 
 /**
@@ -1146,6 +1167,18 @@ function notify(PDO $pdo, $userId, $type, $message, $link = null, $data = null) 
         $link,
         $data !== null ? json_encode($data, JSON_UNESCAPED_UNICODE) : null,
     ]);
+}
+
+/**
+ * То же самое, что notify(), но сразу для всех администраторов — нужно для
+ * событий, у которых нет одного конкретного адресата-сотрудника (например,
+ * новая заявка на разовую услугу), а видеть их должен любой админ.
+ */
+function rr_notify_admins(PDO $pdo, $type, $message, $link = null, $data = null) {
+    $adminIds = $pdo->query("SELECT id FROM users WHERE role = 'admin'")->fetchAll(PDO::FETCH_COLUMN);
+    foreach ($adminIds as $adminId) {
+        notify($pdo, $adminId, $type, $message, $link, $data);
+    }
 }
 
 /**

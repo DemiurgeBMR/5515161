@@ -76,6 +76,53 @@
     background: #f8d7da;
     color: #721c24;
 }
+.status.new {
+    background: #fff3cd;
+    color: #856404;
+}
+.status.in-progress {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+.status.done {
+    background: #d4edda;
+    color: #155724;
+}
+.status.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.order-note-preview {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--text-muted, #9a9aa5);
+    max-width: 220px;
+}
+
+.admin-inline-order-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 200px;
+}
+.admin-inline-order-form select,
+.admin-inline-order-form input[type="text"] {
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border, #2a2a33);
+    background: var(--bg-input, #0f0f14);
+    color: var(--text, #f2f2f5);
+    font-size: 13px;
+}
+.admin-inline-order-form button {
+    align-self: flex-start;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+}
 
 .admin-table .actions a {
     margin-right: 8px;

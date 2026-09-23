@@ -52,7 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT INTO service_orders (user_id, service, price)
             VALUES (?, 'turnkey_deal', ?)
         ")->execute([$user_id, $turnkeyPrice]);
-        $_SESSION['flash'] = 'Заявка на «Сделку под ключ» принята — с вами свяжется наша команда.';
+        $orderId = $pdo->lastInsertId();
+
+        // Раньше на этом всё и заканчивалось — заявка просто лежала в
+        // service_orders, никто (ни админ, ни сам заказчик) об этом не
+        // узнавал, кроме как заглянув в базу напрямую.
+        rr_notify_admins(
+            $pdo,
+            'service_order_new',
+            'Новая заявка «Сделка под ключ» от ' . ($_SESSION['user_name'] ?? 'пользователя') . ' — ' . number_format($turnkeyPrice, 0, ',', ' ') . ' ₽',
+            '/admin/service_orders.php'
+        );
+
+        $_SESSION['flash'] = 'Заявка на «Сделку под ключ» принята — с вами свяжется наша команда. Статус заявки можно отслеживать здесь же, в разделе «Сделка под ключ».';
     }
     // Не-оператор, отправивший plan/pack POST'ом в обход интерфейса — тихо
     // игнорируем вместо продажи не той роли.
@@ -63,6 +75,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $creditsSummary = $isOperator ? rr_credits_summary($pdo, $user_id) : null;
 $backLink = $user_id ? rr_login_redirect_url($role) : '/';
+
+// Собственные заказы "Сделка под ключ" — чтобы после оформления не
+// казалось, что заявка ушла в никуда: видно статус и, если админ оставил
+// комментарий, его текст.
+$myTurnkeyOrders = [];
+if ($canOrderTurnkey) {
+    $stmt = $pdo->prepare("
+        SELECT id, price, status, note, created_at, updated_at
+        FROM service_orders
+        WHERE user_id = ? AND service = 'turnkey_deal'
+        ORDER BY created_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $myTurnkeyOrders = $stmt->fetchAll();
+}
+
+$turnkeyStatusLabels = [
+    'new'         => 'Новая',
+    'in_progress' => 'В обработке',
+    'done'        => 'Выполнена',
+    'cancelled'   => 'Отменена',
+];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -185,6 +219,25 @@ $backLink = $user_id ? rr_login_redirect_url($role) : '/';
                 <?php endif; ?>
             </div>
         </div>
+
+        <?php if ($myTurnkeyOrders): ?>
+            <div class="turnkey-orders-list">
+                <?php foreach ($myTurnkeyOrders as $order): ?>
+                    <div class="turnkey-order-row">
+                        <div class="turnkey-order-main">
+                            <span class="status <?php echo htmlspecialchars(str_replace('_', '-', $order['status'])); ?>">
+                                <?php echo htmlspecialchars($turnkeyStatusLabels[$order['status']] ?? $order['status']); ?>
+                            </span>
+                            <span class="turnkey-order-date">от <?php echo formatDateRu($order['created_at']); ?></span>
+                            <span class="turnkey-order-price"><?php echo number_format($order['price'], 0, ',', ' '); ?> ₽</span>
+                        </div>
+                        <?php if (!empty($order['note'])): ?>
+                            <div class="turnkey-order-note"><?php echo rr_icon('message-circle'); ?> <?php echo nl2br(htmlspecialchars($order['note'])); ?></div>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
 
         <ul class="subscription-benefits subscription-benefits-footer">
             <li><?php echo rr_icon('map-pin'); ?> Интерактивная карта с точками локаций — открывается любой покупкой (без покупок видно только «город → сколько точек»)</li>

@@ -66,6 +66,10 @@
         $profileIcon = 'edit';
         $roleLabel = 'Собственник';
     }
+    // Баланс контактов виден оператору сразу в шапке (не только на странице
+    // тарифов) — начисленный при регистрации бесплатный контакт иначе легко
+    // не заметить.
+    $creditsSummary = $role === 'operator' ? rr_credits_summary(getDbConnection(), $_SESSION['user_id']) : null;
     ?>
     <?php if ($role === 'owner'): ?>
         <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
@@ -74,6 +78,11 @@
          ссылками вподряд и не помещались в шапку на узких экранах. -->
     <div class="account-menu-wrap">
         <button type="button" id="accountMenuBtn" class="account-menu-btn" aria-haspopup="true" aria-expanded="false">
+            <?php if ($creditsSummary !== null): ?>
+                <span class="account-menu-credits" title="Доступно контактов для разблокировки локаций">
+                    <?php echo rr_icon('unlock'); ?> <?php echo $creditsSummary['total_available']; ?>
+                </span>
+            <?php endif; ?>
             <span class="account-menu-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Аккаунт'); ?></span>
             <?php echo rr_icon('chevron-down', 'account-menu-chevron'); ?>
         </button>
@@ -81,8 +90,22 @@
             <div class="account-dd-header">
                 <div class="account-dd-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Аккаунт'); ?></div>
                 <div class="account-dd-role"><?php echo htmlspecialchars($roleLabel); ?></div>
+                <?php if ($creditsSummary !== null): ?>
+                    <div class="account-dd-credits">
+                        <?php echo rr_icon('unlock'); ?>
+                        <?php if ($creditsSummary['total_available'] > 0): ?>
+                            <?php echo $creditsSummary['total_available']; ?>
+                            <?php echo rr_plural_ru($creditsSummary['total_available'], 'контакт', 'контакта', 'контактов'); ?> доступно
+                        <?php else: ?>
+                            Контакты закончились
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
             <a href="<?php echo $profileLink; ?>" class="account-dd-item"><?php echo rr_icon($profileIcon); ?> <?php echo htmlspecialchars($profileLabel); ?></a>
+            <?php if ($creditsSummary !== null): ?>
+                <a href="/pages/subscription.php" class="account-dd-item"><?php echo rr_icon('card'); ?> Пополнить баланс</a>
+            <?php endif; ?>
             <div class="account-dd-divider"></div>
             <a href="/pages/logout.php" class="account-dd-item danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
         </div>

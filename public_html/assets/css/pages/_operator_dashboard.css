@@ -138,6 +138,62 @@
     color: white;
 }
 
+/* ===== Баланс контактов ===== */
+.credits-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(var(--accent-rgb), 0.08);
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 30px;
+}
+.credits-card.empty {
+    background: var(--bg-elevated-2, #1c1c24);
+    border-color: var(--border, #2a2a33);
+}
+.credits-card-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+    font-size: 20px;
+}
+.credits-card.empty .credits-card-icon {
+    background: var(--bg-elevated, #16161c);
+    color: var(--text-muted, #9a9aa5);
+}
+.credits-card-body {
+    flex: 1;
+    min-width: 0;
+}
+.credits-card-title {
+    font-weight: bold;
+    color: var(--text, #f2f2f5);
+}
+.credits-card-sub {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    margin-top: 2px;
+}
+.credits-card-link {
+    flex-shrink: 0;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.credits-card-link:hover {
+    text-decoration: underline;
+}
+
 /* ===== Ближайший визит ===== */
 .next-visit-card {
     display: flex;

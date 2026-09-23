@@ -155,3 +155,68 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ---------- Мои заявки "Сделка под ключ" ---------- */
+.turnkey-orders-list {
+    max-width: 480px;
+    margin: 16px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.turnkey-order-row {
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+.turnkey-order-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.turnkey-order-date,
+.turnkey-order-price {
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+}
+.turnkey-order-price {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--text, #f2f2f5);
+}
+.turnkey-order-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border, #2a2a33);
+    font-size: 13px;
+    color: var(--text, #f2f2f5);
+    line-height: 1.5;
+}
+.turnkey-order-row .status {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.turnkey-order-row .status.new {
+    background: #fff3cd;
+    color: #856404;
+}
+.turnkey-order-row .status.in-progress {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+.turnkey-order-row .status.done {
+    background: #d4edda;
+    color: #155724;
+}
+.turnkey-order-row .status.cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}

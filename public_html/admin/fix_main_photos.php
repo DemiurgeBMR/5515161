@@ -75,6 +75,7 @@ $remaining = (int) $pdo->query("SELECT COUNT(*) FROM ($affectedSql) t")->fetchCo
             <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
             <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
             <a href="/admin/fix_main_photos.php"><?php echo rr_icon('camera'); ?> Починка фото</a>
+            <a href="/admin/service_orders.php"><?php echo rr_icon('file-text'); ?> Заказы услуг</a>
         </div>
 
         <p>Находит локации, у которых есть фото, но ни одно не отмечено главным (из-за уже
