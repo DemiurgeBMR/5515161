@@ -49,6 +49,12 @@
     background: var(--border);
     color: var(--text);
 }
+/* Тот же случай, что и у .attachment-preview[hidden] ниже — класс со своим
+   display имеет ту же специфичность, что и [hidden], без явного
+   переопределения элемент остался бы виден даже со скрытым атрибутом. */
+.chat-attach-btn[hidden] {
+    display: none;
+}
 
 .attachment-preview {
     display: flex;
@@ -60,6 +66,14 @@
     padding: 8px 12px;
     margin-bottom: 8px;
     font-size: 13px;
+}
+/* [hidden] и .attachment-preview имеют одинаковую специфичность (0,1,0) —
+   без явного [hidden]-переопределения "display: flex" выше побеждал бы по
+   порядку в каскаде, и элемент оставался бы виден, даже когда JS выставляет
+   атрибут hidden = true (ровно так и было: сам файл сбрасывался, атрибут
+   hidden появлялся, а полоса вложения оставалась на экране). */
+.attachment-preview[hidden] {
+    display: none;
 }
 .attachment-preview-icon {
     color: var(--primary);

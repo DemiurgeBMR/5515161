@@ -207,7 +207,7 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                         <button type="button" id="attachmentPreviewRemove" class="attachment-preview-remove" aria-label="Убрать файл"><?php echo rr_icon('x'); ?></button>
                     </div>
                     <form id="chatForm">
-                        <label class="chat-attach-btn" title="Прикрепить фото или документ">
+                        <label id="attachButtonLabel" class="chat-attach-btn" title="Прикрепить фото или документ">
                             <?php echo rr_icon('paperclip'); ?>
                             <input type="file" name="attachment" id="attachmentInput" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx" hidden>
                         </label>
@@ -291,6 +291,7 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     var attachmentPreview = document.getElementById('attachmentPreview');
     var attachmentPreviewName = document.getElementById('attachmentPreviewName');
     var attachmentPreviewRemove = document.getElementById('attachmentPreviewRemove');
+    var attachButtonLabel = document.getElementById('attachButtonLabel');
 
     if (textarea) {
         textarea.addEventListener('input', function() {
@@ -299,28 +300,40 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
         });
     }
 
+    // К сообщению можно прикрепить не больше одного файла — поэтому кнопка
+    // "скрепка" и полоса "выбран файл X" никогда не показываются одновременно:
+    // либо ещё нечего убирать (видна скрепка), либо уже есть что убрать
+    // (видна полоса с крестиком, скрепка спрятана). Раньше обе были видны
+    // сразу, что и выглядело нелогично — а сам крестик к тому же не прятал
+    // полосу из-за отдельной CSS-специфичности бага.
+    function clearAttachment() {
+        attachmentInput.value = '';
+        attachmentPreview.hidden = true;
+        attachButtonLabel.hidden = false;
+    }
+    function setAttachment(file) {
+        attachmentPreviewName.textContent = file.name + ' (' + formatBytes(file.size) + ')';
+        attachmentPreview.hidden = false;
+        attachButtonLabel.hidden = true;
+    }
+
     if (attachmentInput) {
         attachmentInput.addEventListener('change', function() {
             var file = attachmentInput.files[0];
             if (!file) {
-                attachmentPreview.hidden = true;
+                clearAttachment();
                 return;
             }
             if (file.size > <?php echo rr_service_order_attachment_max_bytes(); ?>) {
-                alert('Файл больше <?php echo round(rr_service_order_attachment_max_bytes() / 1024 / 1024); ?> МБ');
-                attachmentInput.value = '';
-                attachmentPreview.hidden = true;
+                showToast('Файл больше <?php echo round(rr_service_order_attachment_max_bytes() / 1024 / 1024); ?> МБ', 'error');
+                clearAttachment();
                 return;
             }
-            attachmentPreviewName.textContent = file.name + ' (' + formatBytes(file.size) + ')';
-            attachmentPreview.hidden = false;
+            setAttachment(file);
         });
     }
     if (attachmentPreviewRemove) {
-        attachmentPreviewRemove.addEventListener('click', function() {
-            attachmentInput.value = '';
-            attachmentPreview.hidden = true;
-        });
+        attachmentPreviewRemove.addEventListener('click', clearAttachment);
     }
 
     if (form && textarea && submitBtn) {
@@ -328,7 +341,11 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
             e.preventDefault();
             var message = textarea.value.trim();
             var file = attachmentInput && attachmentInput.files[0];
-            if (!message && !file) return;
+            if (!message && !file) {
+                showToast('Введите сообщение или прикрепите файл', 'error');
+                textarea.focus();
+                return;
+            }
             submitBtn.disabled = true;
             var formData = new FormData();
             formData.append('order_id', orderId);
@@ -344,14 +361,13 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                         appendMessage(data.message, true);
                         textarea.value = '';
                         textarea.style.height = 'auto';
-                        attachmentInput.value = '';
-                        attachmentPreview.hidden = true;
+                        clearAttachment();
                         lastMessageId = data.message.id;
                     } else {
-                        alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                        showToast('Ошибка: ' + (data.error || 'Неизвестная ошибка'), 'error');
                     }
                 })
-                .catch(function() { alert('Ошибка соединения с сервером'); })
+                .catch(function() { showToast('Ошибка соединения с сервером', 'error'); })
                 .finally(function() { submitBtn.disabled = false; });
         });
     }
