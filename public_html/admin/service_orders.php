@@ -10,23 +10,13 @@ if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
 }
 
 $pdo = getDbConnection();
+$user_id = $_SESSION['user_id'];
 
-$statusLabels = [
-    'new'         => 'Новая',
-    'in_progress' => 'В обработке',
-    'done'        => 'Выполнена',
-    'cancelled'   => 'Отменена',
-];
+$statusLabels = rr_service_order_status_labels();
 
-// Готовые сообщения клиенту по умолчанию — админ может переопределить своим
-// текстом в поле "Комментарий", но заявка не должна оставаться немой, даже
-// если админ просто сменил статус, не написав ничего.
-$statusDefaultMessages = [
-    'in_progress' => 'Ваша заявка «Сделка под ключ» взята в работу.',
-    'done'        => 'Ваша заявка «Сделка под ключ» выполнена.',
-    'cancelled'   => 'Заявка «Сделка под ключ» отменена.',
-];
-
+// Общение по заявке теперь идёт в отдельном чате (pages/service_order_chat.php)
+// — здесь только быстрая смена статуса из списка, без открытия каждого
+// заказа по отдельности.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $_SESSION['flash'] = 'Не удалось подтвердить запрос, попробуйте ещё раз.';
@@ -35,41 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $orderId = (int) ($_POST['order_id'] ?? 0);
-    $newStatus = $_POST['status'] ?? '';
-    $note = trim($_POST['note'] ?? '');
-
-    if ($orderId <= 0 || !isset($statusLabels[$newStatus])) {
+    if ($orderId <= 0) {
         $_SESSION['flash'] = 'Некорректный запрос.';
         header('Location: /admin/service_orders.php');
         exit;
     }
 
-    $stmt = $pdo->prepare("SELECT user_id, status FROM service_orders WHERE id = ?");
-    $stmt->execute([$orderId]);
-    $order = $stmt->fetch();
-
-    if (!$order) {
-        $_SESSION['flash'] = 'Заказ не найден.';
-        header('Location: /admin/service_orders.php');
-        exit;
-    }
-
-    $pdo->prepare("UPDATE service_orders SET status = ?, note = ? WHERE id = ?")
-        ->execute([$newStatus, $note !== '' ? $note : null, $orderId]);
-
-    // Заказчик до этого не видел вообще никакого движения по заявке — теперь
-    // при любой смене статуса он получает уведомление (плюс комментарий
-    // админа, если тот его оставил), это и есть обратная связь с командой,
-    // раз полноценный чат для разовой ручной услуги избыточен.
-    if ($newStatus !== $order['status']) {
-        $message = $statusDefaultMessages[$newStatus] ?? ('Статус заявки «Сделка под ключ» изменён: ' . $statusLabels[$newStatus]);
-        if ($note !== '') {
-            $message .= ' Комментарий команды: ' . $note;
-        }
-        notify($pdo, $order['user_id'], 'service_order_update', $message, '/pages/subscription.php');
-    } elseif ($note !== '') {
-        notify($pdo, $order['user_id'], 'service_order_update', 'Комментарий команды по заявке «Сделка под ключ»: ' . $note, '/pages/subscription.php');
-    }
+    rr_update_service_order_status($pdo, $orderId, $_POST['status'] ?? '', $user_id);
 
     $_SESSION['flash'] = 'Заказ №' . $orderId . ' обновлён.';
     header('Location: /admin/service_orders.php?filter=' . urlencode($_GET['filter'] ?? 'all'));
@@ -184,22 +146,18 @@ unset($_SESSION['flash']);
                                 <span class="status <?php echo htmlspecialchars(str_replace('_', '-', $order['status'])); ?>">
                                     <?php echo htmlspecialchars($statusLabels[$order['status']] ?? $order['status']); ?>
                                 </span>
-                                <?php if (!empty($order['note'])): ?>
-                                    <div class="order-note-preview"><?php echo nl2br(htmlspecialchars($order['note'])); ?></div>
-                                <?php endif; ?>
                             </td>
                             <td><?php echo formatDate($order['created_at']); ?></td>
                             <td>
+                                <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="btn-view"><?php echo rr_icon('message-circle'); ?> Чат</a>
                                 <form method="POST" class="admin-inline-order-form">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                    <select name="status">
+                                    <select name="status" onchange="this.form.submit()">
                                         <?php foreach ($statusLabels as $key => $label): ?>
                                             <option value="<?php echo $key; ?>" <?php echo $order['status'] === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <input type="text" name="note" placeholder="Комментарий клиенту (необязательно)" value="<?php echo htmlspecialchars($order['note'] ?? ''); ?>">
-                                    <button type="submit" class="btn-approve">Сохранить</button>
                                 </form>
                             </td>
                         </tr>

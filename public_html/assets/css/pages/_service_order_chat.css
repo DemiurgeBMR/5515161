@@ -1,0 +1,31 @@
+/* ===== Чат по заявке "Сделка под ключ" (переиспользует .chat-*
+   из _application_chat.css — здесь только то, чего там нет: топбар
+   виден всегда (в application_chat.php это мобильная шапка при живой
+   боковой панели на десктопе, а здесь сайдбара нет вовсе), цена, статус,
+   контакты клиента для админа. ===== */
+.service-order-topbar {
+    display: flex !important;
+}
+.service-order-price {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted, #9a9aa5);
+}
+.service-order-status-form select {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border, #2a2a33);
+    background: var(--bg-input, #0f0f14);
+    color: var(--text, #f2f2f5);
+    font-size: 13px;
+}
+.service-order-customer-info {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text-muted, #9a9aa5);
+    border-bottom: 1px solid var(--border, #2a2a33);
+}
+.service-order-customer-info a {
+    color: var(--accent);
+}

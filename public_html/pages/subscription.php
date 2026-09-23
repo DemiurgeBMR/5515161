@@ -64,7 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             '/admin/service_orders.php'
         );
 
-        $_SESSION['flash'] = 'Заявка на «Сделку под ключ» принята — с вами свяжется наша команда. Статус заявки можно отслеживать здесь же, в разделе «Сделка под ключ».';
+        // Раньше после оформления просто оставались на этой же странице с
+        // флеш-сообщением — вместо переговоров с командой заказчик видел
+        // только текст-квитанцию. Теперь сразу открывается чат по заявке.
+        header('Location: /pages/service_order_chat.php?order_id=' . $orderId);
+        exit;
     }
     // Не-оператор, отправивший plan/pack POST'ом в обход интерфейса — тихо
     // игнорируем вместо продажи не той роли.
@@ -234,6 +238,7 @@ $turnkeyStatusLabels = [
                         <?php if (!empty($order['note'])): ?>
                             <div class="turnkey-order-note"><?php echo rr_icon('message-circle'); ?> <?php echo nl2br(htmlspecialchars($order['note'])); ?></div>
                         <?php endif; ?>
+                        <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="turnkey-order-chat-link"><?php echo rr_icon('message-circle'); ?> Открыть чат по заявке →</a>
                     </div>
                 <?php endforeach; ?>
             </div>

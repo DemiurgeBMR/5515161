@@ -255,11 +255,57 @@ function rr_recurring_plans() {
 /**
  * Разовая платная услуга — "Сделка под ключ" (договор, акт, проверка).
  * Ручная работа команды, не автоматическая функция сайта — оформление
- * заказа просто создаёт запись в service_orders, дальше её обрабатывает
- * админ вне сайта.
+ * заказа создаёт запись в service_orders и сразу открывает чат с админом
+ * (pages/service_order_chat.php), где и ведётся вся дальнейшая переписка.
  */
 function rr_turnkey_deal_price() {
     return 1490;
+}
+
+/** Человекочитаемые подписи статусов service_orders — единая точка правды
+ * для admin/service_orders.php, pages/service_order_chat.php и
+ * pages/subscription.php. */
+function rr_service_order_status_labels() {
+    return [
+        'new'         => 'Новая',
+        'in_progress' => 'В обработке',
+        'done'        => 'Выполнена',
+        'cancelled'   => 'Отменена',
+    ];
+}
+
+/**
+ * Меняет статус заказа, отмечает это системным сообщением в чате заказа и
+ * уведомляет заказчика — общая логика для admin/service_orders.php
+ * (быстрая смена статуса из списка) и pages/service_order_chat.php (смена
+ * прямо во время переписки), чтобы оба места вели себя одинаково.
+ * $actorUserId — админ, который меняет статус (автор системного сообщения).
+ * Возвращает false, если заказ не найден или статус не изменился.
+ */
+function rr_update_service_order_status(PDO $pdo, $orderId, $newStatus, $actorUserId) {
+    $labels = rr_service_order_status_labels();
+    if (!isset($labels[$newStatus])) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare("SELECT user_id, status FROM service_orders WHERE id = ?");
+    $stmt->execute([$orderId]);
+    $order = $stmt->fetch();
+    if (!$order || $order['status'] === $newStatus) {
+        return false;
+    }
+
+    $pdo->prepare("UPDATE service_orders SET status = ? WHERE id = ?")->execute([$newStatus, $orderId]);
+
+    $systemMessage = 'Статус заявки изменён: ' . $labels[$newStatus] . '.';
+    $pdo->prepare("
+        INSERT INTO service_order_messages (service_order_id, sender_id, message, is_system)
+        VALUES (?, ?, ?, 1)
+    ")->execute([$orderId, $actorUserId, $systemMessage]);
+
+    notify($pdo, $order['user_id'], 'service_order_update', $systemMessage, '/pages/service_order_chat.php?order_id=' . $orderId);
+
+    return true;
 }
 
 /**
@@ -1123,6 +1169,7 @@ const NOTIFICATION_META = [
     'revision_rejected'    => ['category' => 'moderation',  'icon' => 'x'],
     'service_order_new'    => ['category' => 'system',      'icon' => 'file-text'],
     'service_order_update' => ['category' => 'system',      'icon' => 'file-text'],
+    'service_order_message'=> ['category' => 'chat',        'icon' => 'message-circle'],
 ];
 
 /**
