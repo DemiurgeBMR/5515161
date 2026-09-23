@@ -90,6 +90,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
             ");
             $stmt->execute([$application_id, $operator_id, $owner_id, $message]);
 
+            // Этот INSERT — единственное место на сайте, где создаётся первое
+            // сообщение чата (все следующие идут через api/send_message.php,
+            // который сам уведомляет получателя). Раньше уведомления здесь не
+            // было вообще — собственник узнавал о новой заявке, только
+            // случайно заглянув в список заявок, а не по факту первого
+            // контакта, как для всех последующих сообщений в этом же чате.
+            $preview = mb_substr($message, 0, 80) . (mb_strlen($message) > 80 ? '…' : '');
+            notify($pdo, $owner_id, 'new_message', $preview, '/pages/application_chat.php?application_id=' . $application_id, [
+                'application_id' => $application_id,
+                'sender_name'    => $_SESSION['user_name'] ?? '',
+                'location_title' => $location['title'],
+            ]);
+
             $pdo->commit();
             header('Location: /pages/application_chat.php?application_id=' . $application_id);
             exit;
