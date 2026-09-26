@@ -108,33 +108,29 @@ $statusLabels = [
     'cancelled' => 'Отменена',
     'approved' => 'Закрепление подтверждено',
     'rejected' => 'Закрепление отклонено',
-    'assignment_ended' => 'Закрепление снято',
+    'unassigned' => 'Закрепление снято',
 ];
 
 $currentPublicStatus = $application['status'];
 $cancelled_by = $application['cancelled_by'];
 $canChangeCancel = ($currentPublicStatus === 'cancelled' && $cancelled_by == $user_id);
 // Личный тег (переговоры/договорённость/отменено) уже ничего не решает,
-// когда закрепление одобрено или отклонено — это финальный, общий для
-// обеих сторон статус, менять здесь больше нечего.
-$isStatusFinal = in_array($currentPublicStatus, ['approved', 'rejected'], true)
+// когда закрепление одобрено, отклонено или снято — это финальный, общий
+// для обеих сторон статус, менять здесь больше нечего.
+$isStatusFinal = in_array($currentPublicStatus, ['approved', 'rejected', 'unassigned'], true)
     || ($currentPublicStatus === 'cancelled' && !$canChangeCancel);
 
 // status хранит и финальные статусы запроса на закрепление (approved/
-// rejected из api/operator_assign.php) — показываем их напрямую, как и
-// cancelled, а не только личный тег ($my_tag), иначе решённый запрос
+// rejected/unassigned из api/operator_assign.php) — показываем их напрямую,
+// как и cancelled, а не только личный тег ($my_tag), иначе решённый запрос
 // выглядел бы вечно "ожидающим" (см. A19 в owner/operator_applications.php).
-// 'approved' само по себе не значит, что закрепление всё ещё живо — оператора
-// могли открепить (action=unassign) уже после одобрения; статус заявки это
-// никак не меняет, поэтому проверяем реальный факт по $hasActiveAssignment,
-// иначе чат вечно показывал бы "Закрепление подтверждено" даже пустым.
-if ($currentPublicStatus === 'approved' && !$hasActiveAssignment) {
-    $displayStatus = 'assignment_ended';
-} else {
-    $displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected'], true)
-        ? $currentPublicStatus
-        : ($my_tag ? $my_tag : 'pending');
-}
+// 'unassigned' — то же самое 'approved' закрепление, но уже снятое владельцем
+// (action=unassign переводит саму заявку в unassigned, а не оставляет
+// approved навсегда) — без этого статуса чат вечно показывал бы
+// "Закрепление подтверждено" даже для давно распущенной пары.
+$displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected', 'unassigned'], true)
+    ? $currentPublicStatus
+    : ($my_tag ? $my_tag : 'pending');
 
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("

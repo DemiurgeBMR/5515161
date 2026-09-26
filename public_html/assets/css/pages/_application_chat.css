@@ -164,7 +164,7 @@ body { background: var(--background); }
 .details-toggle-btn .status-dot.dot-agreed,
 .details-toggle-btn .status-dot.dot-placed { background: var(--green); }
 .details-toggle-btn .status-dot.dot-cancelled,
-.details-toggle-btn .status-dot.dot-assignment_ended { background: var(--red); }
+.details-toggle-btn .status-dot.dot-unassigned { background: var(--red); }
 
 /* =========================================================
    БОКОВАЯ ПАНЕЛЬ (контекст заявки)
@@ -254,7 +254,7 @@ body { background: var(--background); }
 .status-agreed { background: #d4edda; color: #155724; }
 .status-placed { background: #dbeafe; color: #1d4ed8; }
 .status-cancelled { background: #f8d7da; color: #721c24; }
-.status-assignment_ended { background: #f8d7da; color: #721c24; }
+.status-unassigned { background: #f8d7da; color: #721c24; }
 .status-arrow {
     font-size: 13px;
     color: var(--text-light);

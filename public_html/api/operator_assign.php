@@ -261,6 +261,15 @@ switch ($action) {
         $stmt = $pdo->prepare("UPDATE location_operators SET status = 'inactive', updated_at = NOW() WHERE id = ?");
         $stmt->execute([$location_operator_id]);
 
+        // Заявка, которая когда-то привела к этому закреплению, была
+        // переведена в approved (либо через это же прямое закрепление, либо
+        // через обычное одобрение в чате) — approved терминален и сам по
+        // себе не откатывается, поэтому без этого UPDATE она навсегда
+        // продолжала бы выглядеть как подтверждённое закрепление везде, где
+        // читается статус заявки (списки заявок, дашборд, сам чат).
+        $stmt = $pdo->prepare("UPDATE applications SET status = 'unassigned' WHERE location_id = ? AND operator_id = ? AND status = 'approved'");
+        $stmt->execute([$record['location_id'], $record['operator_id']]);
+
         echo json_encode(['success' => true, 'message' => 'Operator unassigned']);
         break;
 

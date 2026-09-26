@@ -24,16 +24,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $applications = $stmt->fetchAll();
 
-// Набор (location_id:operator_id), где закрепление всё ещё реально активно —
-// 'approved' на самой заявке этого не гарантирует (см. ниже), а плашка
-// "Закрепление подтверждено" навсегда после открепления вводит в заблуждение.
-$stmt = $pdo->prepare("SELECT location_id, operator_id FROM location_operators WHERE operator_id = ? AND status = 'active'");
-$stmt->execute([$user_id]);
-$activeAssignmentPairs = [];
-foreach ($stmt->fetchAll() as $row) {
-    $activeAssignmentPairs[$row['location_id'] . ':' . $row['operator_id']] = true;
-}
-
 // Заявки на разовые услуги ("Сделка под ключ" и т.п.) — раньше их чат был
 // виден только со страницы тарифов, из-за чего было легко забыть, что там
 // вообще идёт переписка. Показываем здесь же, рядом с остальными чатами.
@@ -54,7 +44,7 @@ $statusLabels = [
     'cancelled'  => rr_icon('x') . ' Отменена',
     'approved'   => rr_icon('check') . ' Закрепление подтверждено',
     'rejected'   => rr_icon('x') . ' Закрепление отклонено',
-    'assignment_ended' => rr_icon('x') . ' Закрепление снято',
+    'unassigned' => rr_icon('x') . ' Закрепление снято',
 ];
 ?>
 <!DOCTYPE html>
@@ -128,15 +118,10 @@ $statusLabels = [
                         <?php foreach ($applications as $app):
                             // ★★★ Определяем, какой статус показывать этому оператору ★★★
                             // status хранит и финальные статусы запроса на закрепление
-                            // (approved/rejected из api/operator_assign.php), которые
-                            // нужно показывать напрямую — иначе такие заявки выглядели
-                            // бы вечно "ожидающими".
-                            if ($app['status'] === 'approved' && !isset($activeAssignmentPairs[$app['location_id'] . ':' . $app['operator_id']])) {
-                                // Закрепление когда-то подтвердили, но с тех пор владелец
-                                // открепил оператора (action=unassign) — заявка остаётся
-                                // approved навсегда, но по факту это уже закрытая история.
-                                $displayStatus = 'assignment_ended';
-                            } elseif (in_array($app['status'], ['cancelled', 'approved', 'rejected'], true)) {
+                            // (approved/rejected/unassigned из api/operator_assign.php),
+                            // которые нужно показывать напрямую — иначе такие заявки
+                            // выглядели бы вечно "ожидающими".
+                            if (in_array($app['status'], ['cancelled', 'approved', 'rejected', 'unassigned'], true)) {
                                 $displayStatus = $app['status'];
                             } else {
                                 // Используем личный тег оператора, если есть, иначе 'pending'
