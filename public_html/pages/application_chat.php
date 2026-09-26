@@ -108,6 +108,7 @@ $statusLabels = [
     'cancelled' => 'Отменена',
     'approved' => 'Закрепление подтверждено',
     'rejected' => 'Закрепление отклонено',
+    'assignment_ended' => 'Закрепление снято',
 ];
 
 $currentPublicStatus = $application['status'];
@@ -123,9 +124,17 @@ $isStatusFinal = in_array($currentPublicStatus, ['approved', 'rejected'], true)
 // rejected из api/operator_assign.php) — показываем их напрямую, как и
 // cancelled, а не только личный тег ($my_tag), иначе решённый запрос
 // выглядел бы вечно "ожидающим" (см. A19 в owner/operator_applications.php).
-$displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected'], true)
-    ? $currentPublicStatus
-    : ($my_tag ? $my_tag : 'pending');
+// 'approved' само по себе не значит, что закрепление всё ещё живо — оператора
+// могли открепить (action=unassign) уже после одобрения; статус заявки это
+// никак не меняет, поэтому проверяем реальный факт по $hasActiveAssignment,
+// иначе чат вечно показывал бы "Закрепление подтверждено" даже пустым.
+if ($currentPublicStatus === 'approved' && !$hasActiveAssignment) {
+    $displayStatus = 'assignment_ended';
+} else {
+    $displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected'], true)
+        ? $currentPublicStatus
+        : ($my_tag ? $my_tag : 'pending');
+}
 
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("

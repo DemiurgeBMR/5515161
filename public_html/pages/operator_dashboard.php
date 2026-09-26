@@ -17,6 +17,11 @@ $pdo = getDbConnection();
 
 // Активные заявки (не завершённые и не отменённые) — сразу с деталями для
 // попапа по клику на карточку статистики "Активных заявок" на дашборде.
+// 'approved' — терминальный статус самой заявки и не значит, что закрепление
+// всё ещё живо (см. api/operator_assign.php, action=unassign — переводит
+// саму location_operators в inactive, статус заявки не трогает). Без
+// дополнительной проверки открепление оператора не убирало заявку из
+// "активных" на дашборде, хотя по факту закрепления уже нет.
 $stmt = $pdo->prepare("
     SELECT a.id, l.title, l.city, u.full_name as owner_name,
            a.status, a.operator_tag, a.created_at
@@ -24,6 +29,10 @@ $stmt = $pdo->prepare("
     JOIN locations l ON l.id = a.location_id
     JOIN users u ON u.id = a.owner_id
     WHERE a.operator_id = ? AND a.status NOT IN ('cancelled', 'placed')
+      AND (a.status != 'approved' OR EXISTS (
+          SELECT 1 FROM location_operators lo
+          WHERE lo.location_id = a.location_id AND lo.operator_id = a.operator_id AND lo.status = 'active'
+      ))
     ORDER BY a.created_at DESC
 ");
 $stmt->execute([$user_id]);
