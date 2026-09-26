@@ -61,9 +61,25 @@ $other_party = $is_operator ? $application['owner_name'] : $application['operato
 // а не отдельная заявка. Оператор решает сам, когда его отправить, прямо
 // из переписки; собственнику здесь же показываются кнопки "Одобрить"/"Отклонить",
 // пока запрос не рассмотрен.
+// Собственник мог закрепить оператора за локацией напрямую, из "Мои
+// операторы" (api/operator_assign.php, action=assign) — в обход этого чата
+// и его заявки целиком. Такое прямое закрепление ниже дополнительно
+// переводит саму заявку в approved, но на всякий случай (а не только из-за
+// той правки) не полагаемся тут исключительно на статус заявки: если
+// закрепление уже реально существует в location_operators, кнопки
+// запроса/решения по закреплению прятать всё равно нужно — иначе не
+// перестававший быть pending статус заявки (по любой причине) держал бы
+// их видимыми вечно, хотя по факту решать уже нечего.
+$stmt = $pdo->prepare("
+    SELECT id FROM location_operators
+    WHERE location_id = ? AND operator_id = ? AND status = 'active'
+");
+$stmt->execute([$application['location_id'], $application['operator_id']]);
+$hasActiveAssignment = (bool) $stmt->fetchColumn();
+
 $isAssignmentRequest = !empty($application['assignment_requested']);
-$canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator;
-$canRequestAssignment = $is_operator && $application['status'] === 'pending' && !$isAssignmentRequest;
+$canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator && !$hasActiveAssignment;
+$canRequestAssignment = $is_operator && $application['status'] === 'pending' && !$isAssignmentRequest && !$hasActiveAssignment;
 
 function getInitials($name) {
     $parts = preg_split('/\s+/', trim($name));
@@ -97,6 +113,11 @@ $statusLabels = [
 $currentPublicStatus = $application['status'];
 $cancelled_by = $application['cancelled_by'];
 $canChangeCancel = ($currentPublicStatus === 'cancelled' && $cancelled_by == $user_id);
+// Личный тег (переговоры/договорённость/отменено) уже ничего не решает,
+// когда закрепление одобрено или отклонено — это финальный, общий для
+// обеих сторон статус, менять здесь больше нечего.
+$isStatusFinal = in_array($currentPublicStatus, ['approved', 'rejected'], true)
+    || ($currentPublicStatus === 'cancelled' && !$canChangeCancel);
 
 // status хранит и финальные статусы запроса на закрепление (approved/
 // rejected из api/operator_assign.php) — показываем их напрямую, как и
@@ -121,12 +142,8 @@ $current_event = $stmt->fetch();
 // оператор (api/installation.php резолвит location_operator_id именно по
 // этой паре) — без этого запрос всегда будет отклонён, поэтому скрываем
 // кнопку и объясняем, чего не хватает, вместо непонятной ошибки при клике.
-$stmt = $pdo->prepare("
-    SELECT id FROM location_operators
-    WHERE location_id = ? AND operator_id = ? AND status = 'active'
-");
-$stmt->execute([$application['location_id'], $application['operator_id']]);
-$hasActiveAssignment = (bool)$stmt->fetchColumn();
+// ($hasActiveAssignment уже посчитан выше, для кнопок запроса/решения по
+// закреплению — тот же факт нужен здесь и там.)
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -290,11 +307,11 @@ $hasActiveAssignment = (bool)$stmt->fetchColumn();
             <div class="sidebar-section">
                 <p class="sidebar-section-title">Статус</p>
                 <div class="status-wrapper">
-                    <div class="status-selector <?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? 'inactive' : ''; ?>" id="statusSelector" data-active="<?php echo ($currentPublicStatus !== 'cancelled' || $canChangeCancel) ? '1' : '0'; ?>">
+                    <div class="status-selector <?php echo $isStatusFinal ? 'inactive' : ''; ?>" id="statusSelector" data-active="<?php echo $isStatusFinal ? '0' : '1'; ?>">
                         <span class="chat-status-badge status-<?php echo $displayStatus; ?>" id="currentStatusBadge">
                             <?php echo $statusLabels[$displayStatus] ?? 'Ожидает'; ?>
                         </span>
-                        <span class="status-arrow<?php echo ($currentPublicStatus === 'cancelled' && !$canChangeCancel) ? ' chat-hidden' : ''; ?>" id="statusArrow">▼</span>
+                        <span class="status-arrow<?php echo $isStatusFinal ? ' chat-hidden' : ''; ?>" id="statusArrow">▼</span>
                     </div>
                     <div class="status-dropdown" id="statusDropdown"></div>
                 </div>
@@ -703,7 +720,9 @@ document.addEventListener('DOMContentLoaded', function() {
         'negotiating': 'В переговорах',
         'agreed': 'Договорённость',
         'placed': 'Размещено',
-        'cancelled': 'Отменена'
+        'cancelled': 'Отменена',
+        'approved': 'Закрепление подтверждено',
+        'rejected': 'Закрепление отклонено'
     };
     var publicStatus = '<?php echo $currentPublicStatus; ?>';
     var currentMyTag = '<?php echo $my_tag; ?>';
@@ -725,6 +744,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (cancelledBy !== currentUser) {
                 isActive = false;
             }
+        } else if (newStatus === 'approved' || newStatus === 'rejected') {
+            isActive = false;
         }
         statusSelector.dataset.active = isActive ? '1' : '0';
         statusSelector.classList.toggle('inactive', !isActive);
@@ -818,7 +839,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    var initDisplay = publicStatus === 'cancelled' ? 'cancelled' : (currentMyTag || 'pending');
+    // Те же финальные статусы, что и в PHP-вычислении $displayStatus выше по
+    // файлу — approved/rejected (не только cancelled) показываются напрямую,
+    // а не через личный тег, иначе решённая заявка на JS-стороне откатывалась
+    // бы обратно на "Ожидает" сразу после загрузки страницы, даже когда
+    // сервер отрисовал её правильно.
+    var finalStatuses = ['cancelled', 'approved', 'rejected'];
+    var initDisplay = finalStatuses.indexOf(publicStatus) !== -1 ? publicStatus : (currentMyTag || 'pending');
     updateStatusDisplay(initDisplay);
 
     // --- СОБЫТИЯ ВЫЕЗДА ---

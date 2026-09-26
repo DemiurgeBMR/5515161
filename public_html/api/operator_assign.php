@@ -72,17 +72,30 @@ switch ($action) {
         // Проверяем, нет ли уже закрепления
         $stmt = $pdo->prepare("SELECT id FROM location_operators WHERE location_id = ? AND operator_id = ?");
         $stmt->execute([$location_id, $operator_id]);
-        if ($stmt->fetch()) {
+        $alreadyExisted = (bool) $stmt->fetch();
+
+        if ($alreadyExisted) {
             // Если уже есть, обновляем статус
             $stmt = $pdo->prepare("UPDATE location_operators SET status = 'active', updated_at = NOW() WHERE location_id = ? AND operator_id = ?");
             $stmt->execute([$location_id, $operator_id]);
-            echo json_encode(['success' => true, 'message' => 'Operator re-assigned']);
-            exit;
+        } else {
+            // Создаём новую запись
+            $stmt = $pdo->prepare("INSERT INTO location_operators (location_id, operator_id, owner_id, status) VALUES (?, ?, ?, 'active')");
+            $stmt->execute([$location_id, $operator_id, $user_id]);
         }
 
-        // Создаём новую запись
-        $stmt = $pdo->prepare("INSERT INTO location_operators (location_id, operator_id, owner_id, status) VALUES (?, ?, ?, 'active')");
-        $stmt->execute([$location_id, $operator_id, $user_id]);
+        // Прямое закрепление — это путь В ОБХОД чата/заявки целиком, но между
+        // этим оператором и этой локацией вполне может уже идти обычная
+        // переписка (или даже лежать необработанный запрос на закрепление,
+        // assignment_requested = 1). Без этого UPDATE она осталась бы
+        // "pending" навсегда: оператор продолжал бы видеть кнопку "Запросить
+        // закрепление", а собственник — "Одобрить"/"Отклонить" в чате, хотя
+        // закрепление уже оформлено этим самым действием.
+        $pdo->prepare("
+            UPDATE applications
+            SET status = 'approved', operator_approved = 1, assignment_requested = 0
+            WHERE location_id = ? AND operator_id = ? AND status = 'pending'
+        ")->execute([$location_id, $operator_id]);
 
         // Уведомление оператору
         $stmt = $pdo->prepare("SELECT title FROM locations WHERE id = ?");
@@ -92,7 +105,7 @@ switch ($action) {
         $message = 'Вас закрепили за локацией ' . $locTitle;
         notify($pdo, $operator_id, 'operator_assigned', $message, $link, ['location_id' => $location_id]);
 
-        echo json_encode(['success' => true, 'message' => 'Operator assigned successfully']);
+        echo json_encode(['success' => true, 'message' => $alreadyExisted ? 'Operator re-assigned' : 'Operator assigned successfully']);
         break;
 
     // 2. Оператор запрашивает закрепление в рамках уже открытого чата/заявки
