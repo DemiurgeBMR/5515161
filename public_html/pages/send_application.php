@@ -54,7 +54,15 @@ if ($stmt->fetch()) {
 // 'rejected' исключён из блокирующих статусов так же, как и в
 // api/operator_assign.php ('request') — иначе одна отклонённая заявка
 // навсегда закрывала бы эту локацию для повторной подачи.
-$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'placed', 'rejected')");
+// 'approved' исключён по той же причине: если закрепление уже снято
+// (см. action=unassign выше — иначе мы не дошли бы до этой строки, точка
+// уже не числится занятой), старая одобренная заявка — это закрытая
+// глава, а не всё ещё действующее ограничение. Без этого исключения
+// операторы и владельцы, once закрепление снято, не могли ни подать
+// новую заявку сюда же, ни (см. application_chat.php) запросить
+// закрепление повторно в старом чате — единственным рабочим путём
+// оставалось прямое закрепление владельцем из "Мои операторы".
+$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'placed', 'rejected', 'approved')");
 $stmt->execute([$location_id, $operator_id]);
 if ($stmt->fetch()) {
     $error = 'Вы уже отправили заявку на эту локацию.';

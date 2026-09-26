@@ -603,7 +603,11 @@ switch ($action) {
 
         $field = ($role === 'operator') ? 'lo.operator_id' : 'lo.owner_id';
 
-        // Запланированные/подтверждённые визиты
+        // Единый календарь отдаёт и будущие визиты, и прошедшую историю —
+        // фильтр по lo.status = 'active' здесь раньше прятал события/отметки
+        // сразу после открепления оператора (см. action=unassign), хотя сами
+        // записи никуда не девались. История должна остаться видна и после
+        // открепления, как и в getServiceHistory() (includes/history_data.php).
         $stmt = $pdo->prepare("
             SELECT e.id, e.location_operator_id, e.application_id, e.event_type,
                    e.proposed_datetime, e.confirmed_datetime, e.status,
@@ -615,7 +619,7 @@ switch ($action) {
             JOIN locations l ON l.id = lo.location_id
             JOIN users op ON lo.operator_id = op.id
             JOIN users ow ON lo.owner_id = ow.id
-            WHERE $field = ? AND lo.status = 'active'
+            WHERE $field = ?
             ORDER BY e.created_at DESC
         ");
         $stmt->execute([$user_id]);
@@ -633,7 +637,7 @@ switch ($action) {
             JOIN locations l ON l.id = lo.location_id
             JOIN users op ON lo.operator_id = op.id
             JOIN users ow ON lo.owner_id = ow.id
-            WHERE $field = ? AND lo.status = 'active'
+            WHERE $field = ?
             ORDER BY sl.performed_at DESC
         ");
         $stmt->execute([$user_id]);

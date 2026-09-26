@@ -254,11 +254,12 @@ switch ($action) {
             exit;
         }
 
-        // Удаляем или делаем inactive
-        $stmt = $pdo->prepare("DELETE FROM location_operators WHERE id = ?");
+        // Мягкое открепление: помечаем inactive, а не удаляем строку — иначе
+        // вся привязанная история (обслуживание, визиты, карточка вендинга)
+        // теряет свой JOIN на location_operators и молча пропадает из
+        // "История обслуживания"/"Визиты", хотя записи там формально остаются.
+        $stmt = $pdo->prepare("UPDATE location_operators SET status = 'inactive', updated_at = NOW() WHERE id = ?");
         $stmt->execute([$location_operator_id]);
-
-        // Или можно обновить статус, но для простоты удалим
 
         echo json_encode(['success' => true, 'message' => 'Operator unassigned']);
         break;
