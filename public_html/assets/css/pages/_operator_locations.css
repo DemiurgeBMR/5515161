@@ -19,6 +19,15 @@
     box-shadow: var(--shadow-sm);
     transition: 0.2s;
 }
+.ol-location-card:target {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+    animation: ol-target-fade 2.5s ease-out;
+}
+@keyframes ol-target-fade {
+    from { background: rgba(var(--accent-rgb), 0.12); }
+    to { background: transparent; }
+}
 .ol-location-card:hover {
     box-shadow: var(--shadow-md);
     border-color: var(--border-strong, #3a3a45);

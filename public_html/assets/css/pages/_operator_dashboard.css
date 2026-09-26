@@ -99,6 +99,18 @@
     border-radius: 12px;
     text-align: center;
 }
+.dash-stat-card.clickable {
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 1px solid transparent;
+}
+.dash-stat-card.clickable:hover,
+.dash-stat-card.clickable:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border, #2a2a33);
+    outline: none;
+}
 .dash-stat-card .number {
     font-size: 28px;
     font-weight: bold;

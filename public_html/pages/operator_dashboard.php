@@ -15,25 +15,70 @@ $user_id = $_SESSION['user_id'];
 
 $pdo = getDbConnection();
 
-// Количество активных заявок (не завершённых и не отменённых)
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM applications WHERE operator_id = ? AND status NOT IN ('cancelled', 'placed')");
-$stmt->execute([$user_id]);
-$bookings_count = $stmt->fetchColumn();
-
-// Количество закреплённых точек (для бейджа в меню)
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM location_operators WHERE operator_id = ? AND status = 'active'");
-$stmt->execute([$user_id]);
-$locations_count = $stmt->fetchColumn();
-
-// Количество размещённых вендингов (реально заведённых карточек машин, не статус чата)
+// Активные заявки (не завершённые и не отменённые) — сразу с деталями для
+// попапа по клику на карточку статистики "Активных заявок" на дашборде.
 $stmt = $pdo->prepare("
-    SELECT COUNT(*)
-    FROM location_machines m
-    JOIN location_operators lo ON lo.id = m.location_operator_id
-    WHERE lo.operator_id = ? AND lo.status = 'active' AND m.status != 'removed'
+    SELECT a.id, l.title, l.city, u.full_name as owner_name,
+           a.status, a.operator_tag, a.created_at
+    FROM applications a
+    JOIN locations l ON l.id = a.location_id
+    JOIN users u ON u.id = a.owner_id
+    WHERE a.operator_id = ? AND a.status NOT IN ('cancelled', 'placed')
+    ORDER BY a.created_at DESC
 ");
 $stmt->execute([$user_id]);
-$vending_count = $stmt->fetchColumn();
+$active_applications = $stmt->fetchAll();
+$bookings_count = count($active_applications);
+
+$applicationStatusLabels = [
+    'pending'     => 'Ожидает',
+    'negotiating' => 'В переговорах',
+    'agreed'      => 'Договорённость',
+    'approved'    => 'Закрепление подтверждено',
+    'rejected'    => 'Закрепление отклонено',
+];
+
+// Закреплённые точки — тоже с деталями сразу: та же выборка кормит и карточку
+// "Активных точек", и "Аренда в месяц" (одни и те же локации, просто разный
+// акцент), чтобы не считать это дважды двумя разными запросами.
+$stmt = $pdo->prepare("
+    SELECT lo.id as lo_id, l.title, l.city, l.price_month,
+           (SELECT COUNT(*) FROM location_machines m WHERE m.location_operator_id = lo.id AND m.status != 'removed') as machines_count
+    FROM location_operators lo
+    JOIN locations l ON l.id = lo.location_id
+    WHERE lo.operator_id = ? AND lo.status = 'active'
+    ORDER BY l.city, l.title
+");
+$stmt->execute([$user_id]);
+$active_locations = $stmt->fetchAll();
+$locations_count = count($active_locations);
+
+// Размещённые вендинги — с деталями для попапа "Размещено вендингов".
+// due считается тем же порогом SERVICE_DUE_DAYS/serviceDueCutoffDate(), что
+// и "Требует внимания" ниже на этой же странице — единая точка правды.
+$cutoffForList = serviceDueCutoffDate();
+$stmt = $pdo->prepare("
+    SELECT lo.id as lo_id, l.title, l.city, m.machine_type, m.model,
+           m.installed_at, m.last_service_at,
+           (COALESCE(m.last_service_at, m.installed_at) IS NOT NULL
+               AND COALESCE(m.last_service_at, m.installed_at) < ?) as is_due
+    FROM location_machines m
+    JOIN location_operators lo ON lo.id = m.location_operator_id
+    JOIN locations l ON l.id = lo.location_id
+    WHERE lo.operator_id = ? AND lo.status = 'active' AND m.status != 'removed'
+    ORDER BY l.city, l.title
+");
+$stmt->execute([$cutoffForList, $user_id]);
+$active_machines = $stmt->fetchAll();
+$vending_count = count($active_machines);
+
+$machineTypeLabelsShort = [
+    'snacks' => 'Снеки',
+    'drinks' => 'Напитки',
+    'coffee' => 'Кофе',
+    'combo'  => 'Комбо',
+    'other'  => 'Другое',
+];
 
 // Количество точек, требующих обслуживания
 // (последнее обслуживание либо установка были раньше порога SERVICE_DUE_DAYS)
@@ -68,15 +113,9 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id, $cutoff]);
 $maintenance_due_list = $stmt->fetchAll();
 
-// Общая аренда в месяц по всем активным точкам
-$stmt = $pdo->prepare("
-    SELECT COALESCE(SUM(l.price_month), 0)
-    FROM location_operators lo
-    JOIN locations l ON l.id = lo.location_id
-    WHERE lo.operator_id = ? AND lo.status = 'active'
-");
-$stmt->execute([$user_id]);
-$total_rent = (float) $stmt->fetchColumn();
+// Общая аренда в месяц по всем активным точкам — считаем прямо из уже
+// загруженного $active_locations, а не отдельным запросом на ту же выборку.
+$total_rent = (float) array_sum(array_column($active_locations, 'price_month'));
 
 // Баланс контактов — показываем сразу на дашборде (первое, что видит
 // новый оператор после регистрации), а не только на странице тарифов.
@@ -217,19 +256,19 @@ $eventTypeLabels = [
             </div>
 
             <div class="dash-stats-grid">
-                <div class="dash-stat-card">
+                <div class="dash-stat-card clickable" onclick="openModal('locationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('locationsModal')">
                     <div class="number"><?php echo $locations_count; ?></div>
                     <div class="label">Активных точек</div>
                 </div>
-                <div class="dash-stat-card">
+                <div class="dash-stat-card clickable" onclick="openModal('locationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('locationsModal')">
                     <div class="number"><?php echo number_format($total_rent, 0, ',', ' '); ?> ₽</div>
                     <div class="label">Аренда в месяц</div>
                 </div>
-                <div class="dash-stat-card">
+                <div class="dash-stat-card clickable" onclick="openModal('applicationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('applicationsModal')">
                     <div class="number"><?php echo $bookings_count; ?></div>
                     <div class="label">Активных заявок</div>
                 </div>
-                <div class="dash-stat-card">
+                <div class="dash-stat-card clickable" onclick="openModal('machinesModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('machinesModal')">
                     <div class="number"><?php echo $vending_count; ?></div>
                     <div class="label">Размещено вендингов</div>
                 </div>
@@ -331,6 +370,125 @@ $eventTypeLabels = [
             <?php endif; ?>
         </main>
     </div>
+
+    <!-- ===== Попап: активные точки / аренда в месяц (одни и те же данные) ===== -->
+    <div class="modal-overlay" id="locationsModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('locationsModal')" aria-label="Закрыть">&times;</button>
+            <h3><?php echo rr_icon('map-pin'); ?> Мои активные точки</h3>
+            <?php if ($active_locations): ?>
+                <table>
+                    <thead>
+                        <tr><th>Локация</th><th>Город</th><th>Аренда/мес</th><th>Вендингов</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($active_locations as $loc): ?>
+                            <tr>
+                                <td><a href="/pages/operator_locations.php#ol-loc-<?php echo $loc['lo_id']; ?>"><?php echo htmlspecialchars($loc['title']); ?></a></td>
+                                <td><?php echo htmlspecialchars($loc['city']); ?></td>
+                                <td><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
+                                <td><?php echo (int) $loc['machines_count']; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2"><strong>Итого</strong></td>
+                            <td><strong><?php echo number_format($total_rent, 0, ',', ' '); ?> ₽</strong></td>
+                            <td><strong><?php echo $vending_count; ?></strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            <?php else: ?>
+                <p class="page-intro">Пока нет закреплённых точек. <a href="/pages/catalog.php" class="accent-link">Найдите локацию</a></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ===== Попап: активные заявки ===== -->
+    <div class="modal-overlay" id="applicationsModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('applicationsModal')" aria-label="Закрыть">&times;</button>
+            <h3><?php echo rr_icon('list'); ?> Активные заявки</h3>
+            <?php if ($active_applications): ?>
+                <table>
+                    <thead>
+                        <tr><th>Локация</th><th>Собственник</th><th>Статус</th><th>Дата</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($active_applications as $app):
+                            $appDisplayStatus = in_array($app['status'], ['approved', 'rejected'], true)
+                                ? $app['status']
+                                : ($app['operator_tag'] ?: 'pending');
+                        ?>
+                            <tr>
+                                <td><a href="/pages/application_chat.php?application_id=<?php echo $app['id']; ?>"><?php echo htmlspecialchars($app['title']); ?>, <?php echo htmlspecialchars($app['city']); ?></a></td>
+                                <td><?php echo htmlspecialchars($app['owner_name']); ?></td>
+                                <td><?php echo htmlspecialchars($applicationStatusLabels[$appDisplayStatus] ?? $appDisplayStatus); ?></td>
+                                <td><?php echo date('d.m.Y', strtotime($app['created_at'])); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p class="page-intro">Активных заявок нет. <a href="/pages/catalog.php" class="accent-link">Найдите локации</a></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- ===== Попап: размещённые вендинги ===== -->
+    <div class="modal-overlay" id="machinesModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeModal('machinesModal')" aria-label="Закрыть">&times;</button>
+            <h3><?php echo rr_icon('wrench'); ?> Размещённые вендинги</h3>
+            <?php if ($active_machines): ?>
+                <table>
+                    <thead>
+                        <tr><th>Локация</th><th>Тип</th><th>Модель</th><th>Обслуживание</th></tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($active_machines as $m): ?>
+                            <tr>
+                                <td><a href="/pages/operator_locations.php#ol-loc-<?php echo $m['lo_id']; ?>"><?php echo htmlspecialchars($m['title']); ?>, <?php echo htmlspecialchars($m['city']); ?></a></td>
+                                <td><?php echo htmlspecialchars($machineTypeLabelsShort[$m['machine_type']] ?? $m['machine_type']); ?></td>
+                                <td><?php echo htmlspecialchars($m['model'] ?: '—'); ?></td>
+                                <td>
+                                    <?php if ($m['is_due']): ?>
+                                        <span class="service-badge service-due"><?php echo rr_icon('warning'); ?> Требует обслуживания</span>
+                                    <?php else: ?>
+                                        <span class="service-badge service-ok"><?php echo rr_icon('check'); ?> В порядке</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php else: ?>
+                <p class="page-intro">Вендинги пока не указаны. <a href="/pages/operator_locations.php" class="accent-link">Укажите на странице точек</a></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) closeModal(overlay.id);
+            });
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(function (overlay) {
+                    closeModal(overlay.id);
+                });
+            }
+        });
+    </script>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

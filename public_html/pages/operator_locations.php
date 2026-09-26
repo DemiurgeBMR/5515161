@@ -72,7 +72,7 @@ function daysSince($dateString) {
                 $badgeText = rr_icon('check') . ' Обслужено ' . $days . ' дн. назад';
             }
         ?>
-            <div class="ol-location-card">
+            <div class="ol-location-card" id="ol-loc-<?php echo $loc['id']; ?>">
                 <div class="top-row">
                     <div class="location-info">
                         <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
