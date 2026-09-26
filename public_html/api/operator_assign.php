@@ -138,7 +138,11 @@ switch ($action) {
             exit;
         }
 
-        if ($app['status'] !== 'pending') {
+        // 'unassigned' — тот же чат, но закрепление по нему уже когда-то
+        // сняли (action=unassign). Разрешаем запросить закрепление заново
+        // прямо здесь, без создания новой заявки — переводим статус обратно
+        // в pending той же командой, что ставит флаг запроса.
+        if (!in_array($app['status'], ['pending', 'unassigned'], true)) {
             echo json_encode(['error' => 'Нельзя запросить закрепление для заявки в этом статусе']);
             exit;
         }
@@ -148,7 +152,17 @@ switch ($action) {
             exit;
         }
 
-        $stmt = $pdo->prepare("UPDATE applications SET assignment_requested = 1 WHERE id = ?");
+        // На случай гонки: закрепление могло появиться снова другим путём
+        // (например, собственник успел напрямую закрепить того же оператора)
+        // между загрузкой чата и этим кликом.
+        $stmt = $pdo->prepare("SELECT 1 FROM location_operators WHERE location_id = ? AND operator_id = ? AND status = 'active'");
+        $stmt->execute([$app['location_id'], $user_id]);
+        if ($stmt->fetchColumn()) {
+            echo json_encode(['error' => 'Оператор уже закреплён за этой локацией']);
+            exit;
+        }
+
+        $stmt = $pdo->prepare("UPDATE applications SET status = 'pending', assignment_requested = 1 WHERE id = ?");
         $stmt->execute([$application_id]);
 
         // Уведомление собственнику
@@ -182,9 +196,20 @@ switch ($action) {
             exit;
         }
 
-        // Создаём закрепление
-        $stmt = $pdo->prepare("INSERT INTO location_operators (location_id, operator_id, owner_id, status) VALUES (?, ?, ?, 'active')");
-        $stmt->execute([$app['location_id'], $app['operator_id'], $user_id]);
+        // Создаём закрепление — если этот же оператор уже был закреплён здесь
+        // раньше и его открепили (action=unassign больше не удаляет строку,
+        // а помечает inactive — см. ниже), строка для этой пары уже
+        // существует и уникальный индекс location_id+operator_id не даст
+        // вставить вторую; переоткрываем её вместо INSERT.
+        $stmt = $pdo->prepare("SELECT id FROM location_operators WHERE location_id = ? AND operator_id = ?");
+        $stmt->execute([$app['location_id'], $app['operator_id']]);
+        if ($stmt->fetchColumn()) {
+            $stmt = $pdo->prepare("UPDATE location_operators SET status = 'active', updated_at = NOW() WHERE location_id = ? AND operator_id = ?");
+            $stmt->execute([$app['location_id'], $app['operator_id']]);
+        } else {
+            $stmt = $pdo->prepare("INSERT INTO location_operators (location_id, operator_id, owner_id, status) VALUES (?, ?, ?, 'active')");
+            $stmt->execute([$app['location_id'], $app['operator_id'], $user_id]);
+        }
 
         // Обновляем заявку
         $stmt = $pdo->prepare("UPDATE applications SET status = 'approved', operator_approved = 1 WHERE id = ?");
@@ -267,7 +292,12 @@ switch ($action) {
         // себе не откатывается, поэтому без этого UPDATE она навсегда
         // продолжала бы выглядеть как подтверждённое закрепление везде, где
         // читается статус заявки (списки заявок, дашборд, сам чат).
-        $stmt = $pdo->prepare("UPDATE applications SET status = 'unassigned' WHERE location_id = ? AND operator_id = ? AND status = 'approved'");
+        // assignment_requested тоже сбрасываем: после обычного (не прямого)
+        // одобрения в чате он остаётся 1 навсегда (approve его не трогает),
+        // а $canRequestAssignment в application_chat.php требует, чтобы он
+        // был пуст — иначе оператор не смог бы запросить закрепление заново
+        // прямо в этом же чате после открепления.
+        $stmt = $pdo->prepare("UPDATE applications SET status = 'unassigned', assignment_requested = 0 WHERE location_id = ? AND operator_id = ? AND status = 'approved'");
         $stmt->execute([$record['location_id'], $record['operator_id']]);
 
         echo json_encode(['success' => true, 'message' => 'Operator unassigned']);

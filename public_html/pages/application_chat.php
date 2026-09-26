@@ -79,7 +79,12 @@ $hasActiveAssignment = (bool) $stmt->fetchColumn();
 
 $isAssignmentRequest = !empty($application['assignment_requested']);
 $canDecideAssignment = $isAssignmentRequest && $application['status'] === 'pending' && !$is_operator && !$hasActiveAssignment;
-$canRequestAssignment = $is_operator && $application['status'] === 'pending' && !$isAssignmentRequest && !$hasActiveAssignment;
+// 'unassigned' — тот же чат, но закрепление по нему уже когда-то сняли
+// (api/operator_assign.php, action=unassign). Оператор может запросить
+// закрепление заново прямо здесь же, не открывая новую заявку с нуля —
+// action=request сам переводит статус обратно в pending.
+$canRequestAssignment = $is_operator && in_array($application['status'], ['pending', 'unassigned'], true)
+    && !$isAssignmentRequest && !$hasActiveAssignment;
 
 function getInitials($name) {
     $parts = preg_split('/\s+/', trim($name));
