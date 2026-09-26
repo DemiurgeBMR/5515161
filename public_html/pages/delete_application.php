@@ -23,7 +23,7 @@ if (!csrf_verify($_GET['csrf'] ?? '')) {
 }
 
 // Проверяем, что пользователь участник заявки
-$stmt = $pdo->prepare("SELECT operator_id, owner_id, status FROM applications WHERE id = ?");
+$stmt = $pdo->prepare("SELECT operator_id, owner_id, location_id, status FROM applications WHERE id = ?");
 $stmt->execute([$application_id]);
 $app = $stmt->fetch();
 if (!$app || ($app['operator_id'] != $user_id && $app['owner_id'] != $user_id)) {
@@ -31,11 +31,21 @@ if (!$app || ($app['operator_id'] != $user_id && $app['owner_id'] != $user_id)) 
     exit;
 }
 
-// Заявки со статусом approved/placed уже породили реальное закрепление
-// (запись в location_operators) или размещение — удаление самой заявки
-// в этом случае просто стёрло бы историю согласования, оставив эту связь
-// "осиротевшей", без возможности понять, как и когда она возникла.
-if (in_array($app['status'], ['approved', 'placed'], true)) {
+// 'approved' — терминальный статус самой заявки и сам по себе не значит,
+// что закрепление всё ещё живо: реальный факт закрепления — это активная
+// строка в location_operators (см. дуальный статус заявок). Открепление
+// (api/operator_assign.php, action=unassign) переводит эту строку в
+// inactive, а не удаляет её и не трогает статус заявки — без этой
+// проверки заявка навсегда оставалась бы неудаляемой, даже когда
+// закрепления по факту уже нет.
+$hasActiveAssignment = false;
+if ($app['status'] === 'approved') {
+    $stmt = $pdo->prepare("SELECT 1 FROM location_operators WHERE location_id = ? AND operator_id = ? AND status = 'active'");
+    $stmt->execute([$app['location_id'], $app['operator_id']]);
+    $hasActiveAssignment = (bool) $stmt->fetchColumn();
+}
+
+if ($hasActiveAssignment || $app['status'] === 'placed') {
     $backUrl = ($user_id == $app['operator_id']) ? '/pages/operator_applications.php' : '/pages/owner_applications.php';
     $_SESSION['flash'] = 'Нельзя удалить заявку с активным закреплением — сначала откажитесь от него.';
     header('Location: ' . $backUrl);
