@@ -142,8 +142,13 @@ $displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejec
 // tag, оператор свой, и они вполне могут расходиться. cancelled/approved/
 // rejected/unassigned — это уже общий, решённый факт для обеих сторон
 // (см. ту же проверку в $displayStatus чуть выше), подсказка "видно только
-// вам" там не нужна.
-$isPersonalTag = !in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected', 'unassigned'], true);
+// вам" там не нужна. То же самое верно и при реально активном закреплении
+// ($hasActiveAssignment, посчитан выше) — даже если сама заявка почему-то
+// осталась pending (например, закрепили напрямую без официального
+// approve), факт "оператор работает на этой точке" в этот момент уже не
+// личное мнение, а видимая обеим сторонам реальность.
+$isPersonalTag = !in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected', 'unassigned'], true)
+    && !$hasActiveAssignment;
 
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("
