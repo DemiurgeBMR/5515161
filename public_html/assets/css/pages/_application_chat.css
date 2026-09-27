@@ -849,6 +849,14 @@ textarea.form-control { resize: vertical; }
     color: var(--text-light);
     margin-top: 8px;
 }
+/* [hidden] и .status-personal-hint имеют одинаковую специфичность (0,1,0) —
+   без явного [hidden]-переопределения "display: flex" выше побеждал бы по
+   порядку в каскаде, и подсказка оставалась бы видна даже когда PHP выставляет
+   атрибут hidden (см. тот же случай у .attachment-preview[hidden] в
+   _service_order_chat.css). */
+.status-personal-hint[hidden] {
+    display: none;
+}
 .status-personal-hint svg { flex-shrink: 0; width: 14px; height: 14px; }
 .status-message {
     margin-top: 8px;

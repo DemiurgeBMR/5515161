@@ -749,13 +749,21 @@ document.addEventListener('DOMContentLoaded', function() {
         'placed': 'Размещено',
         'cancelled': 'Отменена',
         'approved': 'Закрепление подтверждено',
-        'rejected': 'Закрепление отклонено'
+        'rejected': 'Закрепление отклонено',
+        'unassigned': 'Закрепление снято'
     };
+    // Общие, решённые для обеих сторон статусы — как в PHP ($isStatusFinal/
+    // $isPersonalTag выше по файлу). Раньше здесь не было 'unassigned', и
+    // updateStatusDisplay(), вызываемая один раз при загрузке страницы (см.
+    // ниже), тут же затирала правильно отрисованный сервером бейдж/подсказку
+    // своим пересчётом, откатывая "Закрепление снято" на личный тег/pending.
+    var sharedFinalStatuses = ['cancelled', 'approved', 'rejected', 'unassigned'];
     var publicStatus = '<?php echo $currentPublicStatus; ?>';
     var currentMyTag = '<?php echo $my_tag; ?>';
     var cancelledBy = <?php echo $cancelled_by ?: 'null'; ?>;
     var isOperator = <?php echo $is_operator ? 'true' : 'false'; ?>;
     var currentUser = <?php echo $user_id; ?>;
+    var hasActiveAssignment = <?php echo $hasActiveAssignment ? 'true' : 'false'; ?>;
 
     function updateStatusDisplay(newStatus) {
         var label = allStatuses[newStatus] || 'Ожидает';
@@ -766,10 +774,12 @@ document.addEventListener('DOMContentLoaded', function() {
             detailsToggleDot.className = 'status-dot dot-' + newStatus;
         }
 
-        // 'cancelled' — общий статус на всю заявку (виден обеим сторонам
-        // одинаково), остальные варианты в этом дропдауне — личный тег.
+        // Подсказка "видно только вам" нужна только для личного тега — не для
+        // общего решённого статуса (см. sharedFinalStatuses) и не когда
+        // закрепление реально активно ($hasActiveAssignment), даже если сама
+        // заявка почему-то осталась pending.
         if (statusPersonalHint) {
-            statusPersonalHint.hidden = (newStatus === 'cancelled');
+            statusPersonalHint.hidden = sharedFinalStatuses.indexOf(newStatus) !== -1 || hasActiveAssignment;
         }
 
         var isActive = true;
@@ -777,7 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (cancelledBy !== currentUser) {
                 isActive = false;
             }
-        } else if (newStatus === 'approved' || newStatus === 'rejected') {
+        } else if (newStatus === 'approved' || newStatus === 'rejected' || newStatus === 'unassigned') {
             isActive = false;
         }
         statusSelector.dataset.active = isActive ? '1' : '0';
@@ -873,12 +883,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Те же финальные статусы, что и в PHP-вычислении $displayStatus выше по
-    // файлу — approved/rejected (не только cancelled) показываются напрямую,
-    // а не через личный тег, иначе решённая заявка на JS-стороне откатывалась
-    // бы обратно на "Ожидает" сразу после загрузки страницы, даже когда
-    // сервер отрисовал её правильно.
-    var finalStatuses = ['cancelled', 'approved', 'rejected'];
-    var initDisplay = finalStatuses.indexOf(publicStatus) !== -1 ? publicStatus : (currentMyTag || 'pending');
+    // файлу (см. sharedFinalStatuses) — approved/rejected/unassigned (не
+    // только cancelled) показываются напрямую, а не через личный тег, иначе
+    // решённая заявка на JS-стороне откатывалась бы обратно на личный
+    // тег/"Ожидает" сразу после загрузки страницы, даже когда сервер
+    // отрисовал её правильно.
+    var initDisplay = sharedFinalStatuses.indexOf(publicStatus) !== -1 ? publicStatus : (currentMyTag || 'pending');
     updateStatusDisplay(initDisplay);
 
     // --- СОБЫТИЯ ВЫЕЗДА ---
