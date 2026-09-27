@@ -137,6 +137,14 @@ $displayStatus = in_array($currentPublicStatus, ['cancelled', 'approved', 'rejec
     ? $currentPublicStatus
     : ($my_tag ? $my_tag : 'pending');
 
+// Пока статус личный (переговоры/договорённость/размещено) — это то, что
+// каждая сторона отметила для себя, а не общий факт: собственник видит свой
+// tag, оператор свой, и они вполне могут расходиться. cancelled/approved/
+// rejected/unassigned — это уже общий, решённый факт для обеих сторон
+// (см. ту же проверку в $displayStatus чуть выше), подсказка "видно только
+// вам" там не нужна.
+$isPersonalTag = !in_array($currentPublicStatus, ['cancelled', 'approved', 'rejected', 'unassigned'], true);
+
 // === Получаем активное событие выезда ===
 $stmt = $pdo->prepare("
     SELECT e.*, u.full_name as requested_by_name
@@ -325,6 +333,9 @@ $current_event = $stmt->fetch();
                     </div>
                     <div class="status-dropdown" id="statusDropdown"></div>
                 </div>
+                <p class="status-personal-hint" id="statusPersonalHint" <?php echo $isPersonalTag ? '' : 'hidden'; ?>>
+                    <?php echo rr_icon('eye-off'); ?> Видно только вам — у <?php echo $is_operator ? 'собственника' : 'оператора'; ?> свой статус для этой заявки.
+                </p>
             </div>
 
             <!-- событие выезда -->
@@ -724,6 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var currentBadge = document.getElementById('currentStatusBadge');
     var statusArrow = document.getElementById('statusArrow');
     var detailsToggleDot = document.getElementById('detailsToggleDot');
+    var statusPersonalHint = document.getElementById('statusPersonalHint');
 
     var allStatuses = {
         'pending': 'Ожидает',
@@ -747,6 +759,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (detailsToggleDot) {
             detailsToggleDot.className = 'status-dot dot-' + newStatus;
+        }
+
+        // 'cancelled' — общий статус на всю заявку (виден обеим сторонам
+        // одинаково), остальные варианты в этом дропдауне — личный тег.
+        if (statusPersonalHint) {
+            statusPersonalHint.hidden = (newStatus === 'cancelled');
         }
 
         var isActive = true;

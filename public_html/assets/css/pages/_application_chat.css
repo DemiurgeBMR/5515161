@@ -841,6 +841,15 @@ textarea.form-control { resize: vertical; }
     color: var(--text-light);
     margin-bottom: 10px;
 }
+.status-personal-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-light);
+    margin-top: 8px;
+}
+.status-personal-hint svg { flex-shrink: 0; width: 14px; height: 14px; }
 .status-message {
     margin-top: 8px;
     font-weight: bold;

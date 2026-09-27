@@ -20,6 +20,12 @@ $pdo = getDbConnection();
 // 'unassigned' исключён так же, как 'cancelled'/'placed' — это заявка,
 // закрепление по которой уже сняли (см. api/operator_assign.php,
 // action=unassign), а не что-то, требующее внимания прямо сейчас.
+// operator_tag/owner_tag — личная пометка каждой стороны для себя (не общий
+// статус сделки), но если ОБЕ стороны независимо отметили "Размещено", это
+// уже не открытая заявка, ожидающая решения, а состоявшееся, работающее
+// сотрудничество — оно и так видно в "Активных точках"/"Размещено вендингов"
+// (через реальный location_operators). Без этого исключения счётчик рос бы
+// бесконечно, набивая себя годами устоявшимися заявками.
 $stmt = $pdo->prepare("
     SELECT a.id, l.title, l.city, u.full_name as owner_name,
            a.status, a.operator_tag, a.created_at
@@ -27,6 +33,7 @@ $stmt = $pdo->prepare("
     JOIN locations l ON l.id = a.location_id
     JOIN users u ON u.id = a.owner_id
     WHERE a.operator_id = ? AND a.status NOT IN ('cancelled', 'placed', 'unassigned')
+      AND NOT (a.operator_tag = 'placed' AND a.owner_tag = 'placed')
     ORDER BY a.created_at DESC
 ");
 $stmt->execute([$user_id]);
