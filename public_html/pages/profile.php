@@ -274,7 +274,11 @@ unset($_SESSION['flash']);
             <?php endif; ?>
 
             <?php if ($user_role === 'owner'): ?>
-            <h3 class="attention-heading"><?php echo rr_icon('bell'); ?> Требует внимания</h3>
+            <button type="button" class="attention-heading attention-toggle" id="attentionToggle" aria-expanded="true" aria-controls="attentionContent">
+                <?php echo rr_icon('bell'); ?> Требует внимания
+                <span class="attention-toggle-chevron" id="attentionToggleChevron"><?php echo rr_icon('chevron-down'); ?></span>
+            </button>
+            <div id="attentionContent">
             <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
                 <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
             <?php else: ?>
@@ -360,6 +364,7 @@ unset($_SESSION['flash']);
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
+            </div>
             <?php endif; ?>
 
             <h2><?php echo rr_icon('list'); ?> Мои локации</h2>
@@ -500,6 +505,39 @@ unset($_SESSION['flash']);
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeModal();
         });
+
+        // Сворачивание "Требует внимания" — состояние запоминаем в
+        // localStorage, чтобы оно не сбрасывалось при каждом заходе на
+        // страницу (сюда возвращаются регулярно, а не один раз за сессию).
+        (function() {
+            var toggle = document.getElementById('attentionToggle');
+            var content = document.getElementById('attentionContent');
+            var chevron = document.getElementById('attentionToggleChevron');
+            if (!toggle || !content) return;
+
+            var STORAGE_KEY = 'rr_attention_collapsed';
+
+            function applyState(collapsed) {
+                content.hidden = collapsed;
+                toggle.classList.toggle('collapsed', collapsed);
+                toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                if (chevron) chevron.style.transform = collapsed ? 'rotate(-90deg)' : '';
+            }
+
+            var collapsed = false;
+            try {
+                collapsed = localStorage.getItem(STORAGE_KEY) === '1';
+            } catch (e) {}
+            applyState(collapsed);
+
+            toggle.addEventListener('click', function() {
+                var newCollapsed = !content.hidden;
+                applyState(newCollapsed);
+                try {
+                    localStorage.setItem(STORAGE_KEY, newCollapsed ? '1' : '0');
+                } catch (e) {}
+            });
+        })();
     </script>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -175,6 +175,32 @@
     margin-top: 0;
     margin-bottom: 16px;
 }
+/* .attention-heading теперь ещё и кнопка-триггер сворачивания (только у
+   собственника) — сбрасываем стили <button> и возвращаем вид обычного h3,
+   которым этот элемент был раньше. */
+.attention-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    font-size: 1.17em;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+.attention-toggle-chevron {
+    display: inline-flex;
+    transition: transform 0.15s;
+}
+.attention-toggle-chevron svg { width: 18px; height: 18px; }
+/* [hidden] и любой class-based display на этом элементе имели бы одинаковую
+   специфичность — но здесь display на #attentionContent нигде явно не
+   задан, так что сам браузерный [hidden] отрабатывает без конфликта. */
 .attention-empty {
     background: rgba(46, 204, 113, 0.15);
     color: var(--text, #f2f2f5);
