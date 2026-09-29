@@ -17,23 +17,27 @@ $pdo = getDbConnection();
 
 // Активные заявки (не завершённые и не отменённые) — сразу с деталями для
 // попапа по клику на карточку статистики "Активных заявок" на дашборде.
-// 'unassigned' исключён так же, как 'cancelled'/'placed' — это заявка,
-// закрепление по которой уже сняли (см. api/operator_assign.php,
-// action=unassign), а не что-то, требующее внимания прямо сейчас.
+// 'unassigned'/'rejected' исключены так же, как 'cancelled'/'placed' — это
+// решённые, закрытые заявки (закрепление сняли или отклонили), а не то, что
+// требует внимания прямо сейчас. 'approved' НЕ исключён сам по себе — только
+// что подтверждённое закрепление по-прежнему стоит показывать как активное.
 // operator_tag/owner_tag — личная пометка каждой стороны для себя (не общий
 // статус сделки), но если ОБЕ стороны независимо отметили "Размещено", это
 // уже не открытая заявка, ожидающая решения, а состоявшееся, работающее
 // сотрудничество — оно и так видно в "Активных точках"/"Размещено вендингов"
-// (через реальный location_operators). Без этого исключения счётчик рос бы
-// бесконечно, набивая себя годами устоявшимися заявками.
+// (через реальный location_operators). COALESCE(..., '') обязателен: без
+// него сравнение с NULL (ещё никем не проставленный тег — обычное дело для
+// свежей заявки) давало NULL вместо TRUE/FALSE, и такая строка молча
+// выпадала из WHERE целиком — свежие, реально активные заявки с ещё не
+// заполненными тегами пропадали из счётчика точно так же, как и устоявшиеся.
 $stmt = $pdo->prepare("
     SELECT a.id, l.title, l.city, u.full_name as owner_name,
            a.status, a.operator_tag, a.created_at
     FROM applications a
     JOIN locations l ON l.id = a.location_id
     JOIN users u ON u.id = a.owner_id
-    WHERE a.operator_id = ? AND a.status NOT IN ('cancelled', 'placed', 'unassigned')
-      AND NOT (a.operator_tag = 'placed' AND a.owner_tag = 'placed')
+    WHERE a.operator_id = ? AND a.status NOT IN ('cancelled', 'placed', 'unassigned', 'rejected')
+      AND NOT (COALESCE(a.operator_tag, '') = 'placed' AND COALESCE(a.owner_tag, '') = 'placed')
     ORDER BY a.created_at DESC
 ");
 $stmt->execute([$user_id]);

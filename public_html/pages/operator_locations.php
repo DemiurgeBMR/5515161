@@ -82,7 +82,7 @@ function daysSince($dateString) {
                     </div>
                     <div class="location-actions">
                         <a href="/pages/location.php?id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-edit-machine"><?php echo rr_icon('eye'); ?> Локация</a>
-                        <a href="/pages/operator_vending_events.php?location_id=<?php echo $loc['location_id']; ?>" class="ol-btn-action btn-calendar"><?php echo rr_icon('calendar'); ?> Календарь</a>
+                        <a href="/pages/events_calendar.php" class="ol-btn-action btn-calendar"><?php echo rr_icon('calendar'); ?> Календарь</a>
                     </div>
                 </div>
 
