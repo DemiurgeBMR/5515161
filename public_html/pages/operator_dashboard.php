@@ -184,6 +184,26 @@ $stmt->execute([$user_id, $user_id]);
 $pending_visits_list = $stmt->fetchAll();
 $pending_visits_count = count($pending_visits_list);
 
+// Подтверждённые, но ещё не закрытые визиты — подтверждение даты visita не
+// значит, что дело сделано (см. api/installation.php, action=complete):
+// работа по факту ещё не выполнена и не отмечена, поэтому такие визиты
+// остаются "требующими внимания" до самого закрытия, а не пропадают из
+// списка сразу после подтверждения. Без ограничения по дате — просроченный
+// и будущий визит одинаково остаются открытой задачей, пока их не закроют.
+$stmt = $pdo->prepare("
+    SELECT e.event_type, COALESCE(e.confirmed_datetime, e.proposed_datetime) as visit_at, l.title, l.city
+    FROM installation_events e
+    JOIN location_operators lo ON lo.id = e.location_operator_id
+    JOIN locations l ON l.id = lo.location_id
+    WHERE lo.operator_id = ?
+      AND lo.status = 'active'
+      AND e.status = 'confirmed'
+    ORDER BY visit_at ASC
+");
+$stmt->execute([$user_id]);
+$open_visits_list = $stmt->fetchAll();
+$open_visits_count = count($open_visits_list);
+
 $eventTypeLabels = [
     'installation' => 'Установка',
     'maintenance'  => 'Обслуживание',
@@ -314,7 +334,7 @@ $eventTypeLabels = [
             </div>
 
             <h3 class="attention-heading"><?php echo rr_icon('bell'); ?> Требует внимания</h3>
-            <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $unread_messages_count === 0): ?>
+            <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
                 <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
             <?php else: ?>
                 <div class="attention-groups">
@@ -351,6 +371,26 @@ $eventTypeLabels = [
                                             <?php echo htmlspecialchars($v['title'] . ', ' . $v['city']); ?>,
                                             <?php echo formatDateRu($v['proposed_datetime']); ?>
                                             <?php echo $v['is_emergency'] ? ' ' . rr_icon('warning') : ''; ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($open_visits_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('clock'); ?> Ожидают завершения (<?php echo $open_visits_count; ?>)</span>
+                                <a href="/pages/events_calendar.php">Календарь →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($open_visits_list, 0, 3) as $v): ?>
+                                    <li>
+                                        <a href="/pages/events_calendar.php">
+                                            <?php echo htmlspecialchars($eventTypeLabels[$v['event_type']] ?? $v['event_type']); ?> —
+                                            <?php echo htmlspecialchars($v['title'] . ', ' . $v['city']); ?>,
+                                            <?php echo formatDateRu($v['visit_at']); ?>
                                         </a>
                                     </li>
                                 <?php endforeach; ?>
