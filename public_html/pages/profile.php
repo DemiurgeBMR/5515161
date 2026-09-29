@@ -116,6 +116,22 @@ if ($user_role === 'owner') {
         'removal'      => 'Демонтаж',
     ];
 
+    // Точки со сломанными вендингами (оператор явно сообщил о поломке —
+    // см. api/installation.php, action=quick_service, event_type=broken).
+    $stmt = $pdo->prepare("
+        SELECT l.title, l.city, m.notes
+        FROM location_machines m
+        JOIN location_operators lo ON lo.id = m.location_operator_id
+        JOIN locations l ON l.id = lo.location_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND m.status = 'broken'
+        ORDER BY m.updated_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $broken_machines_list = $stmt->fetchAll();
+    $broken_machines_count = count($broken_machines_list);
+
     // Точки, где вендинги давно не обслуживались.
     $cutoff = serviceDueCutoffDate();
     $stmt = $pdo->prepare("
@@ -279,10 +295,29 @@ unset($_SESSION['flash']);
                 <span class="attention-toggle-chevron" id="attentionToggleChevron"><?php echo rr_icon('chevron-down'); ?></span>
             </button>
             <div id="attentionContent">
-            <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
+            <?php if ($broken_machines_count === 0 && $maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
                 <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
             <?php else: ?>
                 <div class="attention-groups">
+                    <?php if ($broken_machines_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('warning'); ?> Сломанные вендинги (<?php echo $broken_machines_count; ?>)</span>
+                                <a href="/pages/owner_operators.php">Мои операторы →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($broken_machines_list, 0, 3) as $b): ?>
+                                    <li>
+                                        <a href="/pages/owner_operators.php">
+                                            <?php echo htmlspecialchars($b['title'] . ', ' . $b['city']); ?>
+                                            <?php if (!empty($b['notes'])): ?> — <?php echo htmlspecialchars($b['notes']); ?><?php endif; ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($maintenance_due_count > 0): ?>
                         <div class="attention-group">
                             <div class="attention-group-head">

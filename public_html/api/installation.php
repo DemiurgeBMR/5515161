@@ -201,6 +201,15 @@ switch ($action) {
             exit;
         }
 
+        // Причину для срочной заявки форма требует только в браузере (HTML
+        // required) — прямой запрос к этому эндпоинту мимо формы обходит эту
+        // проверку целиком, и "срочно" без единого слова объяснения долетало
+        // бы до собственника. Дублируем требование на сервере.
+        if ($is_emergency && $comment === '') {
+            echo json_encode(['error' => 'Укажите причину срочного выезда']);
+            exit;
+        }
+
         // Из чата заявки (application_chat.php) location_operator_id не передаётся —
         // там известен только application_id. Резолвим закрепление по паре
         // (location_id, operator_id) самой заявки: без активного закрепления
@@ -657,7 +666,7 @@ switch ($action) {
         $event_type = $_POST['event_type'] ?? 'maintenance';
         $comment = trim($_POST['comment'] ?? '');
 
-        $allowed_types = ['maintenance', 'restock', 'repair'];
+        $allowed_types = ['maintenance', 'restock', 'repair', 'broken'];
         if (!in_array($event_type, $allowed_types, true)) {
             echo json_encode(['error' => 'Invalid event type']);
             exit;
@@ -697,17 +706,36 @@ switch ($action) {
             $stmt->execute([$location_operator_id]);
             $machine = $stmt->fetch();
 
+            // Раньше любая отметка (даже "пополнил товар") молча возвращала
+            // status в 'active' — из-за этого реальную поломку было не видно:
+            // достаточно было отметить любое другое обслуживание, и она
+            // "чинилась" сама собой в базе. Теперь статус трогают только
+            // 'repair' (чинили — снова исправен, заодно снимаем прежний
+            // комментарий о поломке — он больше не актуален) и 'broken'
+            // (сообщили о поломке, комментарий сохраняем в notes для
+            // "Требует внимания" у собственника, без лишнего JOIN на историю);
+            // 'maintenance'/'restock' статус и notes не трогают.
+            $newMachineStatus = $event_type === 'broken' ? 'broken' : 'active';
+
             if ($machine) {
                 $machine_id = $machine['id'];
-                $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = 'active' WHERE id = ?");
-                $stmt->execute([$machine_id]);
+                if ($event_type === 'broken') {
+                    $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = 'broken', notes = ? WHERE id = ?");
+                    $stmt->execute([$comment !== '' ? $comment : null, $machine_id]);
+                } elseif ($event_type === 'repair') {
+                    $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = 'active', notes = NULL WHERE id = ?");
+                    $stmt->execute([$machine_id]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW() WHERE id = ?");
+                    $stmt->execute([$machine_id]);
+                }
             } else {
                 // Машина ещё не описана — создаём минимальную карточку
                 $stmt = $pdo->prepare("
-                    INSERT INTO location_machines (location_operator_id, machine_type, last_service_at, status)
-                    VALUES (?, 'other', NOW(), 'active')
+                    INSERT INTO location_machines (location_operator_id, machine_type, last_service_at, status, notes)
+                    VALUES (?, 'other', NOW(), ?, ?)
                 ");
-                $stmt->execute([$location_operator_id]);
+                $stmt->execute([$location_operator_id, $newMachineStatus, $event_type === 'broken' && $comment !== '' ? $comment : null]);
                 $machine_id = $pdo->lastInsertId();
             }
 
@@ -724,11 +752,20 @@ switch ($action) {
             // чтобы не держать транзакцию открытой на время работы с файлами
             $photosResult = saveServicePhotos('log', $log_id, 'photos');
 
-            // Уведомление собственнику — постфактум, без запроса на подтверждение
-            $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт'];
+            // Уведомление собственнику — постфактум, без запроса на подтверждение.
+            // Поломку выделяем отдельным типом уведомления (своя категория,
+            // своя иконка) — это не рядовая отметка обслуживания, а то, что
+            // реально требует внимания собственника.
+            $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт', 'broken' => 'поломку'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
-            $message = 'Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
-            notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);
+            if ($event_type === 'broken') {
+                $message = 'Оператор сообщил о поломке вендинга на точке ' . $lo['location_title']
+                    . ($comment !== '' ? ': ' . $comment : '');
+                notify($pdo, $lo['owner_id'], 'machine_broken', $message, $link, ['log_id' => $log_id]);
+            } else {
+                $message = 'Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
+                notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);
+            }
 
             echo json_encode(['success' => true, 'log_id' => $log_id, 'machine_id' => $machine_id, 'photos_saved' => $photosResult['saved'], 'photo_errors' => $photosResult['errors']]);
         } catch (Throwable $e) {

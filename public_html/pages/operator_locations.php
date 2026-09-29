@@ -95,6 +95,9 @@ function daysSince($dateString) {
                             <?php if ($loc['installed_at']): ?><span><b>Установлен:</b> <?php echo date('d.m.Y', strtotime($loc['installed_at'])); ?></span><?php endif; ?>
                         </div>
                         <div>
+                            <?php if ($loc['machine_status'] === 'broken'): ?>
+                                <span class="service-badge service-broken"><?php echo rr_icon('warning'); ?> Сломан</span>
+                            <?php endif; ?>
                             <span class="service-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
                         </div>
                         <div class="machine-actions">
@@ -173,6 +176,7 @@ function daysSince($dateString) {
                     <option value="maintenance">Плановое обслуживание</option>
                     <option value="restock">Пополнение товара</option>
                     <option value="repair">Ремонт</option>
+                    <option value="broken">Сообщить о поломке</option>
                 </select>
             </div>
             <div class="form-group">

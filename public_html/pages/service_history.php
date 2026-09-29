@@ -81,6 +81,7 @@ $exportQuery = http_build_query(array_filter($filters));
                 <option value="maintenance" <?php echo $filters['event_type'] === 'maintenance' ? 'selected' : ''; ?>>Плановое ТО</option>
                 <option value="restock" <?php echo $filters['event_type'] === 'restock' ? 'selected' : ''; ?>>Пополнение</option>
                 <option value="repair" <?php echo $filters['event_type'] === 'repair' ? 'selected' : ''; ?>>Ремонт</option>
+                <option value="broken" <?php echo $filters['event_type'] === 'broken' ? 'selected' : ''; ?>>Поломка</option>
                 <option value="removal" <?php echo $filters['event_type'] === 'removal' ? 'selected' : ''; ?>>Демонтаж</option>
             </select>
         </div>
