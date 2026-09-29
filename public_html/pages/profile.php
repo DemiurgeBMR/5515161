@@ -105,8 +105,97 @@ if ($user_role === 'owner') {
             $my_locations[] = $loc;
         }
     }
+
+    // ★★★ "Требует внимания" — та же логика, что и на operator_dashboard.php,
+    // зеркально для собственника (свои локации вместо своих закреплений). ★★★
+    $eventTypeLabels = [
+        'installation' => 'Установка',
+        'maintenance'  => 'Обслуживание',
+        'restock'      => 'Пополнение',
+        'repair'       => 'Ремонт',
+        'removal'      => 'Демонтаж',
+    ];
+
+    // Точки, где вендинги давно не обслуживались.
+    $cutoff = serviceDueCutoffDate();
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*)
+        FROM location_machines m
+        JOIN location_operators lo ON lo.id = m.location_operator_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND m.status != 'removed'
+          AND COALESCE(m.last_service_at, m.installed_at) IS NOT NULL
+          AND COALESCE(m.last_service_at, m.installed_at) < ?
+    ");
+    $stmt->execute([$user_id, $cutoff]);
+    $maintenance_due_count = $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("
+        SELECT l.title, l.city, COALESCE(m.last_service_at, m.installed_at) as last_touch
+        FROM location_machines m
+        JOIN location_operators lo ON lo.id = m.location_operator_id
+        JOIN locations l ON l.id = lo.location_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND m.status != 'removed'
+          AND COALESCE(m.last_service_at, m.installed_at) IS NOT NULL
+          AND COALESCE(m.last_service_at, m.installed_at) < ?
+        ORDER BY last_touch ASC
+        LIMIT 3
+    ");
+    $stmt->execute([$user_id, $cutoff]);
+    $maintenance_due_list = $stmt->fetchAll();
+
+    // Визиты, предложенные оператором и ждущие подтверждения собственника.
+    $stmt = $pdo->prepare("
+        SELECT e.event_type, e.proposed_datetime, e.is_emergency, l.title, l.city
+        FROM installation_events e
+        JOIN location_operators lo ON lo.id = e.location_operator_id
+        JOIN locations l ON l.id = lo.location_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND e.status IN ('requested', 'reviewing')
+          AND e.requested_by != ?
+        ORDER BY e.proposed_datetime ASC
+    ");
+    $stmt->execute([$user_id, $user_id]);
+    $pending_visits_list = $stmt->fetchAll();
+    $pending_visits_count = count($pending_visits_list);
+
+    // Подтверждённые, но ещё не закрытые визиты — без ограничения по дате,
+    // остаются "требующими внимания" до самого закрытия (action=complete).
+    $stmt = $pdo->prepare("
+        SELECT e.event_type, COALESCE(e.confirmed_datetime, e.proposed_datetime) as visit_at, l.title, l.city
+        FROM installation_events e
+        JOIN location_operators lo ON lo.id = e.location_operator_id
+        JOIN locations l ON l.id = lo.location_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND e.status = 'confirmed'
+        ORDER BY visit_at ASC
+    ");
+    $stmt->execute([$user_id]);
+    $open_visits_list = $stmt->fetchAll();
+    $open_visits_count = count($open_visits_list);
+
+    // Непрочитанные сообщения от операторов, сгруппированные по заявке.
+    $stmt = $pdo->prepare("
+        SELECT a.id as application_id, l.title, l.city, u.full_name as operator_name,
+               COUNT(m.id) as unread_count, MAX(m.created_at) as last_at
+        FROM messages m
+        JOIN applications a ON a.id = m.application_id
+        JOIN locations l ON l.id = a.location_id
+        JOIN users u ON u.id = a.operator_id
+        WHERE m.receiver_id = ? AND m.is_read = 0
+        GROUP BY a.id, l.title, l.city, u.full_name
+        ORDER BY last_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $unread_threads = $stmt->fetchAll();
+    $unread_messages_count = count($unread_threads);
 }
-    
+
 } catch (PDOException $e) {
     error_log('profile.php: ' . $e->getMessage());
     $error = 'Ошибка загрузки профиля';
@@ -182,6 +271,95 @@ unset($_SESSION['flash']);
         <main class="profile-main">
             <?php if ($flash): ?>
                 <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
+            <?php endif; ?>
+
+            <?php if ($user_role === 'owner'): ?>
+            <h3 class="attention-heading"><?php echo rr_icon('bell'); ?> Требует внимания</h3>
+            <?php if ($maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
+                <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
+            <?php else: ?>
+                <div class="attention-groups">
+                    <?php if ($maintenance_due_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('warning'); ?> Обслуживание (<?php echo $maintenance_due_count; ?>)</span>
+                                <a href="/pages/owner_operators.php">Мои операторы →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach ($maintenance_due_list as $m): ?>
+                                    <li>
+                                        <a href="/pages/owner_operators.php">
+                                            <?php echo htmlspecialchars($m['title'] . ', ' . $m['city']); ?>
+                                            — не обслуживалась с <?php echo formatDateRu($m['last_touch']); ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($pending_visits_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('calendar'); ?> Ждут подтверждения (<?php echo $pending_visits_count; ?>)</span>
+                                <a href="/pages/events_calendar.php">Календарь →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($pending_visits_list, 0, 3) as $v): ?>
+                                    <li>
+                                        <a href="/pages/events_calendar.php">
+                                            <?php echo htmlspecialchars($eventTypeLabels[$v['event_type']] ?? $v['event_type']); ?> —
+                                            <?php echo htmlspecialchars($v['title'] . ', ' . $v['city']); ?>,
+                                            <?php echo formatDateRu($v['proposed_datetime']); ?>
+                                            <?php echo $v['is_emergency'] ? ' ' . rr_icon('warning') : ''; ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($open_visits_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('clock'); ?> Ожидают завершения (<?php echo $open_visits_count; ?>)</span>
+                                <a href="/pages/events_calendar.php">Календарь →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($open_visits_list, 0, 3) as $v): ?>
+                                    <li>
+                                        <a href="/pages/events_calendar.php">
+                                            <?php echo htmlspecialchars($eventTypeLabels[$v['event_type']] ?? $v['event_type']); ?> —
+                                            <?php echo htmlspecialchars($v['title'] . ', ' . $v['city']); ?>,
+                                            <?php echo formatDateRu($v['visit_at']); ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($unread_messages_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('message-circle'); ?> Ждут ответа (<?php echo $unread_messages_count; ?>)</span>
+                                <a href="/pages/owner_applications.php">Все заявки →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($unread_threads, 0, 3) as $t): ?>
+                                    <li>
+                                        <a href="/pages/application_chat.php?application_id=<?php echo $t['application_id']; ?>">
+                                            <?php echo htmlspecialchars($t['operator_name']); ?> —
+                                            <?php echo htmlspecialchars($t['title']); ?>
+                                            (<?php echo $t['unread_count']; ?> <?php echo $t['unread_count'] == 1 ? 'сообщение' : 'сообщения'; ?>)
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
             <?php endif; ?>
 
             <h2><?php echo rr_icon('list'); ?> Мои локации</h2>
