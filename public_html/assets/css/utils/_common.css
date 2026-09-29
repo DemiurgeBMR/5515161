@@ -3,6 +3,31 @@
    собственного CSS-партиала (operator_applications.php, owner_applications.php,
    operator_favorites.php и т.п.). */
 
+/* Кнопка "в избранное" — единый вид на карточках каталога, странице
+   локации и в самом списке избранного; позиционирование (оверлей на
+   картинке карточки/инлайн рядом с заголовком) — в CSS конкретной
+   страницы, здесь только форма и цвет. */
+.favorite-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    padding: 0;
+    flex-shrink: 0;
+}
+.favorite-btn:hover { background: rgba(0, 0, 0, 0.65); transform: scale(1.08); }
+.favorite-btn:disabled { opacity: 0.6; cursor: default; transform: none; }
+.favorite-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; }
+.favorite-btn.active { color: #e94560; }
+.favorite-btn.active svg { fill: currentColor; }
+
 .page-container-900 {
     max-width: 900px;
     margin: 40px auto;

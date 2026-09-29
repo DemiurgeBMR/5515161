@@ -129,4 +129,51 @@
             if (ok) window.location.href = link.href;
         });
     });
+
+    /**
+     * Кнопка "в избранное" — <button class="favorite-btn" data-location-id="123"
+     * aria-pressed="true|false">. Один обработчик на весь сайт вместо
+     * дублирования fetch-логики в catalog.php/location.php/operator_favorites.php —
+     * везде, где кнопка встречается, она уже работает без отдельного <script>.
+     * На operator_favorites.php (список избранного) клик снимает карточку со
+     * страницы целиком, а не просто гасит иконку — там кнопка это "убрать",
+     * а не "переключить".
+     */
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.favorite-btn');
+        if (!btn || btn.disabled) return;
+        e.preventDefault();
+
+        var locationId = btn.dataset.locationId;
+        if (!locationId) return;
+
+        btn.disabled = true;
+        var formData = new FormData();
+        formData.append('action', 'toggle');
+        formData.append('location_id', locationId);
+
+        fetch('/api/favorites.php', { method: 'POST', body: formData })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.error) {
+                    showToast('Ошибка: ' + data.error, 'error');
+                    return;
+                }
+                if (btn.classList.contains('favorite-btn-remove')) {
+                    var card = btn.closest('.favorite-remove-scope');
+                    if (card) card.remove();
+                    showToast('Убрано из избранного', 'success');
+                    return;
+                }
+                btn.classList.toggle('active', data.favorited);
+                btn.setAttribute('aria-pressed', data.favorited ? 'true' : 'false');
+                btn.title = data.favorited ? 'Убрать из избранного' : 'В избранное';
+            })
+            .catch(function () {
+                showToast('Ошибка соединения', 'error');
+            })
+            .finally(function () {
+                btn.disabled = false;
+            });
+    });
 })();

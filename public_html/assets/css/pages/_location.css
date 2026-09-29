@@ -135,6 +135,12 @@
 }
 
 /* Отметка модерации — над главным фото и пилюля рядом с названием */
+.favorite-btn-photo {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 2;
+}
 .verified-badge-photo {
     position: absolute;
     top: 15px;

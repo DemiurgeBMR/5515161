@@ -159,6 +159,7 @@ $locations = $stmt->fetchAll();
 // Какие из показанных на этой странице локаций оператор уже разблокировал —
 // один запрос на всю страницу вместо проверки на каждую карточку отдельно.
 $unlockedIds = $is_operator ? rr_unlocked_location_ids($pdo, $user_id, array_column($locations, 'id')) : [];
+$favoritedIds = $is_operator ? rr_favorited_location_ids($pdo, $user_id, array_column($locations, 'id')) : [];
 
 // ★★★ МАППИНГ ТИПОВ ДЛЯ КРАСИВОГО ОТОБРАЖЕНИЯ ★★★
 $space_types = [
@@ -341,8 +342,14 @@ $filterParams = array_filter($_GET, function ($k) {
         <?php if (count($locations) > 0): ?>
             <div class="catalog-grid">
                 <?php foreach ($locations as $loc): ?>
-                    <?php $locHasFullAccess = $is_admin || $loc['owner_id'] == $user_id || in_array($loc['id'], $unlockedIds, true); ?>
+                    <?php
+                        $locHasFullAccess = $is_admin || $loc['owner_id'] == $user_id || in_array($loc['id'], $unlockedIds, true);
+                        $isFavorited = in_array($loc['id'], $favoritedIds, true);
+                    ?>
                     <div class="catalog-card">
+                        <?php if ($is_operator): ?>
+                            <button type="button" class="favorite-btn<?php echo $isFavorited ? ' active' : ''; ?>" data-location-id="<?php echo $loc['id']; ?>" aria-pressed="<?php echo $isFavorited ? 'true' : 'false'; ?>" title="<?php echo $isFavorited ? 'Убрать из избранного' : 'В избранное'; ?>"><?php echo rr_icon('heart'); ?></button>
+                        <?php endif; ?>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="catalog-card-link">
                             <?php if (!empty($loc['main_photo'])): ?>
                                 <img src="/<?php echo htmlspecialchars($loc['main_photo']); ?>" alt="<?php echo htmlspecialchars($loc['title']); ?>">

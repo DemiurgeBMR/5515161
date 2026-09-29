@@ -103,6 +103,9 @@
                 <?php endif; ?>
             </div>
             <a href="<?php echo $profileLink; ?>" class="account-dd-item"><?php echo rr_icon($profileIcon); ?> <?php echo htmlspecialchars($profileLabel); ?></a>
+            <?php if ($role === 'operator'): ?>
+                <a href="/pages/operator_favorites.php" class="account-dd-item"><?php echo rr_icon('heart'); ?> Избранное</a>
+            <?php endif; ?>
             <?php if ($creditsSummary !== null): ?>
                 <a href="/pages/subscription.php" class="account-dd-item"><?php echo rr_icon('card'); ?> Пополнить баланс</a>
             <?php endif; ?>

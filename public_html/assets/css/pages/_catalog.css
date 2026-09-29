@@ -254,6 +254,12 @@
     box-shadow: var(--shadow-md);
     border-color: var(--border-strong, #3a3a45);
 }
+.catalog-card .favorite-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+}
 .catalog-card-link {
     text-decoration: none;
     color: inherit;

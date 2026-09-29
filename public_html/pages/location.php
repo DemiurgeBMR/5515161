@@ -77,6 +77,7 @@ if ($isOperator && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['unlock
 $isUnlocked = $isOperator && rr_location_unlocked($pdo, $user_id, $id);
 $hasFullAccess = $is_admin || $isOwnListing || $isUnlocked;
 $creditsSummary = $isOperator ? rr_credits_summary($pdo, $user_id) : null;
+$isFavorited = $isOperator ? !empty(rr_favorited_location_ids($pdo, $user_id, [$id])) : false;
 
 // ★★★ Локация уже занята активно закреплённым оператором? ★★★
 // Как только собственник закрепил оператора за точкой, она перестаёт быть
@@ -277,6 +278,9 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
             <!-- Главное фото -->
             <?php if ($isVerified): ?>
                 <span class="verified-badge-photo"><?php echo rr_icon('check'); ?> Верифицировано</span>
+            <?php endif; ?>
+            <?php if ($isOperator && !$isOwnListing): ?>
+                <button type="button" class="favorite-btn favorite-btn-photo<?php echo $isFavorited ? ' active' : ''; ?>" data-location-id="<?php echo $location['id']; ?>" aria-pressed="<?php echo $isFavorited ? 'true' : 'false'; ?>" title="<?php echo $isFavorited ? 'Убрать из избранного' : 'В избранное'; ?>"><?php echo rr_icon('heart'); ?></button>
             <?php endif; ?>
             <?php if (!empty($location['main_photo'])): ?>
                 <img src="/<?php echo $location['main_photo']; ?>" alt="<?php echo htmlspecialchars($location['title']); ?>" class="main-photo">

@@ -478,6 +478,25 @@ function rr_unlocked_location_ids(PDO $pdo, $operatorId, array $locationIds) {
 }
 
 /**
+ * То же самое, но для избранного (favorites) — набор id локаций из
+ * переданного списка, которые оператор уже добавил в избранное. Тот же
+ * приём, что и rr_unlocked_location_ids(): один запрос на всю страницу
+ * карточек вместо проверки на каждую отдельно.
+ */
+function rr_favorited_location_ids(PDO $pdo, $userId, array $locationIds) {
+    if (empty($locationIds)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($locationIds), '?'));
+    $stmt = $pdo->prepare("
+        SELECT location_id FROM favorites
+        WHERE user_id = ? AND location_id IN ($placeholders)
+    ");
+    $stmt->execute(array_merge([$userId], $locationIds));
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/**
  * Тратит 1 кредит на разблокировку локации — сначала из сгорающей
  * месячной квоты (чтобы не пропадала зря), потом из несгораемого баланса.
  * Возвращает true при успехе, false — если кредитов не хватает или
