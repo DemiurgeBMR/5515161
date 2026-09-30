@@ -60,7 +60,7 @@ if ($stmt->fetch()) {
 // исключениях как подстраховка для заявок, оставшихся approved ещё до
 // введения статуса unassigned — к этой строке мы бы не дошли, если бы
 // закрепление было всё ещё активно (точка уже не числится занятой, см. выше).
-$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'placed', 'rejected', 'approved', 'unassigned')");
+$stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'rejected', 'approved', 'unassigned')");
 $stmt->execute([$location_id, $operator_id]);
 if ($stmt->fetch()) {
     $error = 'Вы уже отправили заявку на эту локацию.';

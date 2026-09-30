@@ -45,7 +45,7 @@ if (!$app || ($app['operator_id'] != $user_id && $app['owner_id'] != $user_id)) 
     echo json_encode(['error' => 'Access denied']);
     exit;
 }
-if ($app['status'] == 'cancelled' || $app['status'] == 'placed') {
+if ($app['status'] == 'cancelled') {
     http_response_code(400);
     echo json_encode(['error' => 'Chat is closed']);
     exit;

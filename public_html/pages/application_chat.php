@@ -407,7 +407,7 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed' && $hasActiveAssignment): ?>
+                <?php elseif ($currentPublicStatus !== 'cancelled' && $hasActiveAssignment): ?>
                     <div class="event-card">
                         <span class="event-icon"><?php echo rr_icon('calendar'); ?></span>
                         <div class="event-body">
@@ -420,7 +420,7 @@ $current_event = $stmt->fetch();
                             </div>
                         </div>
                     </div>
-                <?php elseif ($currentPublicStatus !== 'cancelled' && $currentPublicStatus !== 'placed'): ?>
+                <?php elseif ($currentPublicStatus !== 'cancelled'): ?>
                     <div class="event-empty">Планировать выезд можно после того, как собственник закрепит оператора за этой локацией.</div>
                 <?php else: ?>
                     <div class="event-empty">Нет активных событий.</div>

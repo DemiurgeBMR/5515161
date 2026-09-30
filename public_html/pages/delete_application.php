@@ -45,7 +45,7 @@ if ($app['status'] === 'approved') {
     $hasActiveAssignment = (bool) $stmt->fetchColumn();
 }
 
-if ($hasActiveAssignment || $app['status'] === 'placed') {
+if ($hasActiveAssignment) {
     $backUrl = ($user_id == $app['operator_id']) ? '/pages/operator_applications.php' : '/pages/owner_applications.php';
     $_SESSION['flash'] = 'Нельзя удалить заявку с активным закреплением — сначала откажитесь от него.';
     header('Location: ' . $backUrl);
