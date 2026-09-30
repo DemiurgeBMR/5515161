@@ -299,3 +299,58 @@
 .attention-list a:hover {
     color: var(--text, #f2f2f5);
 }
+
+@media (max-width: 768px) {
+    .dashboard-wrapper {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin: 20px auto;
+        padding: 0 16px;
+    }
+    .dashboard-sidebar {
+        padding: 16px;
+    }
+    .dashboard-sidebar .avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        margin-bottom: 8px;
+    }
+    .dashboard-nav a {
+        padding: 10px 12px;
+        font-size: 15px;
+    }
+    .dashboard-main {
+        padding: 16px;
+    }
+    .dash-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .credits-card,
+    .next-visit-card {
+        flex-wrap: wrap;
+    }
+    .credits-card-link,
+    .next-visit-link {
+        flex-basis: 100%;
+        text-align: right;
+        margin-top: 4px;
+    }
+    .quick-actions {
+        flex-direction: column;
+    }
+    .quick-actions .btn {
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .dash-stat-card .number {
+        font-size: 22px;
+    }
+    .attention-group-head {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+}

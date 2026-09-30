@@ -48,7 +48,8 @@
 
 .checkbox-group {
     display: flex;
-    gap: 20px;
+    flex-wrap: wrap;
+    gap: 12px 20px;
     margin-top: 8px;
 }
 .checkbox-group label {
@@ -104,4 +105,11 @@
     padding: 10px;
     background: #e8f8ed;
     border-radius: 6px;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
 }

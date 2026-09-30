@@ -80,6 +80,80 @@
     color: var(--accent);
 }
 
+.nav-primary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    row-gap: 8px;
+}
+.nav-utility {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+/* Гамбургер основных ссылок (Локации/Карта/Как это работает/Подписка) —
+   скрыт на широких экранах, где они и так помещаются в одну строку рядом
+   с иконками аккаунта/уведомлений/темы. */
+.nav-toggle-btn {
+    display: none;
+    margin-left: 10px;
+    background: var(--bg-elevated-2, #1c1c24);
+    border: 1px solid var(--border, #2a2a33);
+    color: var(--text, #f2f2f5);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+}
+.nav-toggle-btn:hover {
+    border-color: var(--border-strong, #3a3a45);
+}
+
+@media (max-width: 860px) {
+    .nav {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .nav-toggle-btn {
+        display: inline-flex;
+    }
+    /* .nav-primary "проваливается" на всю ширину под первую строку (логотип +
+       .nav-utility) и по умолчанию скрыт — раньше эти ссылки просто
+       переносились по словам в несколько неаккуратных строк вперемешку с
+       иконками, теперь они либо скрыты целиком, либо показаны единым
+       вертикальным списком под гамбургером. */
+    .nav-primary {
+        display: none;
+        flex-basis: 100%;
+        order: 3;
+        flex-direction: column;
+        align-items: stretch;
+        row-gap: 2px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border, #2a2a33);
+    }
+    .nav-primary.open {
+        display: flex;
+    }
+    .nav-primary a {
+        margin-left: 0;
+        padding: 10px 6px;
+        border-radius: 8px;
+    }
+    .nav-primary a:hover {
+        background: var(--bg-elevated-2, #1c1c24);
+    }
+    .nav-utility {
+        order: 2;
+    }
+}
+
 .btn-nav {
     background: var(--accent);
     padding: 8px 20px;

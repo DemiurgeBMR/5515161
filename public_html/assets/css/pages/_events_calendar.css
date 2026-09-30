@@ -718,9 +718,11 @@ textarea.cal-form-control { resize: vertical; }
         align-items: stretch;
         flex-direction: column;
     }
-    .toolbar-left, .toolbar-right { width: 100%; }
+    .toolbar-left, .toolbar-right { width: 100%; flex-wrap: wrap; }
     .cal-search-box { flex: 1; }
     .cal-search-box input { width: 100%; }
+    .filter-select { flex: 1 1 140px; min-width: 0; }
+    .filter-select#operatorFilter { min-width: 0; }
 }
 @media (max-width: 600px) {
     .calendar-container { padding: 15px 10px 30px; }
@@ -755,6 +757,7 @@ textarea.cal-form-control { resize: vertical; }
     .fc .fc-daygrid-event { font-size: 10px; }
     .detail-grid { grid-template-columns: 1fr; }
     .cal-modal-box { padding: 18px; border-radius: 15px; }
+    .filter-select { flex: 1 1 100%; }
 }
 /* Принудительные стили для кнопок в модалках */
 .cal-modal-buttons .cal-btn-secondary {

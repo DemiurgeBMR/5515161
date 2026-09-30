@@ -42,11 +42,19 @@
             </a>
             
             <nav class="nav">
-                <a href="/pages/catalog.php">Локации</a>
-                <a href="/pages/map.php">Карта</a>
-                <a href="/pages/how_it_works.php">Как это работает</a>
-                <a href="/pages/subscription.php">Подписка</a>
-
+                <!-- Основные ссылки — на узких экранах сворачиваются под гамбургер
+                     (см. .nav-toggle-btn ниже), чтобы не расползаться в несколько
+                     неаккуратных строк вместе с иконками аккаунта/уведомлений. -->
+                <div class="nav-primary" id="navPrimary">
+                    <a href="/pages/catalog.php">Локации</a>
+                    <a href="/pages/map.php">Карта</a>
+                    <a href="/pages/how_it_works.php">Как это работает</a>
+                    <a href="/pages/subscription.php">Подписка</a>
+<?php if (isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'owner'): ?>
+                    <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
+<?php endif; ?>
+                </div>
+                <div class="nav-utility">
 <?php if (isset($_SESSION['user_id'])): ?>
     <?php
     $role = $_SESSION['user_role'] ?? null;
@@ -71,9 +79,6 @@
     // не заметить.
     $creditsSummary = $role === 'operator' ? rr_credits_summary(getDbConnection(), $_SESSION['user_id']) : null;
     ?>
-    <?php if ($role === 'owner'): ?>
-        <a href="/pages/add_location.php" class="nav-link-spaced accent"><?php echo rr_icon('plus-circle'); ?> Добавить место</a>
-    <?php endif; ?>
     <!-- Меню аккаунта: профиль/дашборд, подписка, выход — раньше были отдельными
          ссылками вподряд и не помещались в шапку на узких экранах. -->
     <div class="account-menu-wrap">
@@ -138,7 +143,9 @@
         </div>
     </div>
 <?php endif; ?>
+                <button type="button" id="navToggleBtn" class="nav-toggle-btn" aria-label="Меню" aria-haspopup="true" aria-expanded="false" aria-controls="navPrimary"><?php echo rr_icon('list'); ?></button>
                 <button type="button" id="themeToggleBtn" class="theme-toggle-btn" title="Переключить тему" aria-label="Переключить светлую/тёмную тему"><?php echo rr_icon('moon'); ?></button>
+                </div>
             </nav>
         </div>
     </header>
@@ -181,6 +188,36 @@
             document.addEventListener('click', function(e) {
                 if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
                     dropdown.classList.remove('open');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        })();
+    </script>
+    <script>
+        // Гамбургер основных ссылок шапки — виден только на узких экранах
+        // (см. .nav-toggle-btn), где им самим не хватает места в одну строку
+        // с иконками аккаунта/уведомлений/темы.
+        (function() {
+            var btn = document.getElementById('navToggleBtn');
+            var panel = document.getElementById('navPrimary');
+            if (!btn || !panel) return;
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var isOpen = panel.classList.toggle('open');
+                btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            document.addEventListener('click', function(e) {
+                if (!panel.contains(e.target) && !btn.contains(e.target)) {
+                    panel.classList.remove('open');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+            // При переходе на широкий экран (или повороте телефона) убираем
+            // класс open, иначе панель осталась бы видимой уже как строка
+            // рядом с логотипом — .nav-primary.open там ничего не должен значить.
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 860) {
+                    panel.classList.remove('open');
                     btn.setAttribute('aria-expanded', 'false');
                 }
             });
