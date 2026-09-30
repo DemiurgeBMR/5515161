@@ -1346,6 +1346,7 @@ const NOTIFICATION_META = [
     'event_completed'      => ['category' => 'visits',      'icon' => 'check'],
     'quick_service'        => ['category' => 'maintenance', 'icon' => 'wrench'],
     'machine_broken'       => ['category' => 'maintenance', 'icon' => 'warning'],
+    'machine_needs_service'=> ['category' => 'maintenance', 'icon' => 'wrench'],
     'maintenance_due'      => ['category' => 'maintenance', 'icon' => 'warning'],
     'maintenance_due_owner'=> ['category' => 'maintenance', 'icon' => 'info-circle'],
     'operator_assigned'    => ['category' => 'assignment',  'icon' => 'check'],

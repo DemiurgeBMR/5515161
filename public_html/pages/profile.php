@@ -132,6 +132,22 @@ if ($user_role === 'owner') {
     $broken_machines_list = $stmt->fetchAll();
     $broken_machines_count = count($broken_machines_list);
 
+    // Точки, где вендинг ещё работает, но оператор отметил, что пора чинить
+    // (мягче "поломки" — см. api/installation.php, event_type=needs_service).
+    $stmt = $pdo->prepare("
+        SELECT l.title, l.city, m.notes
+        FROM location_machines m
+        JOIN location_operators lo ON lo.id = m.location_operator_id
+        JOIN locations l ON l.id = lo.location_id
+        WHERE lo.owner_id = ?
+          AND lo.status = 'active'
+          AND m.status = 'needs_service'
+        ORDER BY m.updated_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    $needs_service_machines_list = $stmt->fetchAll();
+    $needs_service_machines_count = count($needs_service_machines_list);
+
     // Точки, где вендинги давно не обслуживались.
     $cutoff = serviceDueCutoffDate();
     $stmt = $pdo->prepare("
@@ -295,7 +311,7 @@ unset($_SESSION['flash']);
                 <span class="attention-toggle-chevron" id="attentionToggleChevron"><?php echo rr_icon('chevron-down'); ?></span>
             </button>
             <div id="attentionContent">
-            <?php if ($broken_machines_count === 0 && $maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
+            <?php if ($broken_machines_count === 0 && $needs_service_machines_count === 0 && $maintenance_due_count === 0 && $pending_visits_count === 0 && $open_visits_count === 0 && $unread_messages_count === 0): ?>
                 <div class="attention-empty"><?php echo rr_icon('check'); ?> Всё под контролем — срочных дел нет.</div>
             <?php else: ?>
                 <div class="attention-groups">
@@ -311,6 +327,25 @@ unset($_SESSION['flash']);
                                         <a href="/pages/owner_operators.php">
                                             <?php echo htmlspecialchars($b['title'] . ', ' . $b['city']); ?>
                                             <?php if (!empty($b['notes'])): ?> — <?php echo htmlspecialchars($b['notes']); ?><?php endif; ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($needs_service_machines_count > 0): ?>
+                        <div class="attention-group">
+                            <div class="attention-group-head">
+                                <span><?php echo rr_icon('wrench'); ?> Требуют ремонта (<?php echo $needs_service_machines_count; ?>)</span>
+                                <a href="/pages/owner_operators.php">Мои операторы →</a>
+                            </div>
+                            <ul class="attention-list">
+                                <?php foreach (array_slice($needs_service_machines_list, 0, 3) as $n): ?>
+                                    <li>
+                                        <a href="/pages/owner_operators.php">
+                                            <?php echo htmlspecialchars($n['title'] . ', ' . $n['city']); ?>
+                                            <?php if (!empty($n['notes'])): ?> — <?php echo htmlspecialchars($n['notes']); ?><?php endif; ?>
                                         </a>
                                     </li>
                                 <?php endforeach; ?>

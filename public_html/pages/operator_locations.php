@@ -97,6 +97,8 @@ function daysSince($dateString) {
                         <div>
                             <?php if ($loc['machine_status'] === 'broken'): ?>
                                 <span class="service-badge service-broken"><?php echo rr_icon('warning'); ?> Сломан</span>
+                            <?php elseif ($loc['machine_status'] === 'needs_service'): ?>
+                                <span class="service-badge service-needs-service"><?php echo rr_icon('wrench'); ?> Требует ремонта</span>
                             <?php endif; ?>
                             <span class="service-badge <?php echo $badgeClass; ?>"><?php echo $badgeText; ?></span>
                         </div>
@@ -175,6 +177,7 @@ function daysSince($dateString) {
                 <select id="serviceType" required>
                     <option value="maintenance">Плановое обслуживание</option>
                     <option value="restock">Пополнение товара</option>
+                    <option value="needs_service">Требует ремонта (не критично)</option>
                     <option value="repair">Ремонт</option>
                     <option value="broken">Сообщить о поломке</option>
                 </select>

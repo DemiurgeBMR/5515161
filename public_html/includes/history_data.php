@@ -132,6 +132,7 @@ function serviceEventTypeLabel($type) {
         'repair'       => 'Ремонт',
         'removal'      => 'Демонтаж',
         'broken'       => 'Поломка',
+        'needs_service'=> 'Требует ремонта',
     ];
     return $labels[$type] ?? $type;
 }

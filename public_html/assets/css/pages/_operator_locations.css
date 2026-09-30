@@ -127,6 +127,7 @@
 .service-due { background: var(--accent-soft); color: var(--accent); }
 .service-unknown { background: var(--bg-elevated-2, #1c1c24); color: var(--text-muted, #9a9aa5); }
 .service-broken { background: #fdecea; color: #c0392b; margin-right: 6px; }
+.service-needs-service { background: #fef5e7; color: #b7791f; margin-right: 6px; }
 
 .machine-actions {
     margin-top: 12px;

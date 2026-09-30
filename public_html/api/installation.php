@@ -656,6 +656,32 @@ switch ($action) {
         attachServicePhotos($events, 'event');
         attachServicePhotos($quick_logs, 'log');
 
+        // История изменений расписания (кто создал/подтвердил/перенёс/отменил/
+        // завершил визит) — пишется в installation_event_log с самого начала,
+        // но нигде не читалась и не показывалась. Тянем одним запросом на все
+        // события разом, без N+1.
+        if ($events) {
+            $eventIds = array_column($events, 'id');
+            $placeholders = implode(',', array_fill(0, count($eventIds), '?'));
+            $stmt = $pdo->prepare("
+                SELECT l.event_id, l.action, l.old_datetime, l.new_datetime, l.created_at,
+                       u.full_name as user_name
+                FROM installation_event_log l
+                JOIN users u ON u.id = l.user_id
+                WHERE l.event_id IN ($placeholders)
+                ORDER BY l.created_at ASC
+            ");
+            $stmt->execute($eventIds);
+            $historyByEvent = [];
+            foreach ($stmt->fetchAll() as $h) {
+                $historyByEvent[$h['event_id']][] = $h;
+            }
+            foreach ($events as &$ev) {
+                $ev['history'] = $historyByEvent[$ev['id']] ?? [];
+            }
+            unset($ev);
+        }
+
         echo json_encode(['events' => $events, 'quick_logs' => $quick_logs]);
         break;
 
@@ -666,7 +692,7 @@ switch ($action) {
         $event_type = $_POST['event_type'] ?? 'maintenance';
         $comment = trim($_POST['comment'] ?? '');
 
-        $allowed_types = ['maintenance', 'restock', 'repair', 'broken'];
+        $allowed_types = ['maintenance', 'restock', 'repair', 'broken', 'needs_service'];
         if (!in_array($event_type, $allowed_types, true)) {
             echo json_encode(['error' => 'Invalid event type']);
             exit;
@@ -711,17 +737,19 @@ switch ($action) {
             // достаточно было отметить любое другое обслуживание, и она
             // "чинилась" сама собой в базе. Теперь статус трогают только
             // 'repair' (чинили — снова исправен, заодно снимаем прежний
-            // комментарий о поломке — он больше не актуален) и 'broken'
-            // (сообщили о поломке, комментарий сохраняем в notes для
-            // "Требует внимания" у собственника, без лишнего JOIN на историю);
-            // 'maintenance'/'restock' статус и notes не трогают.
-            $newMachineStatus = $event_type === 'broken' ? 'broken' : 'active';
+            // комментарий — он больше не актуален), 'broken' (вендинг не
+            // работает вовсе) и 'needs_service' (работает, но пора чинить —
+            // мягче, чем 'broken'); в обоих случаях комментарий сохраняем в
+            // notes для "Требует внимания" у собственника, без лишнего JOIN
+            // на историю. 'maintenance'/'restock' статус и notes не трогают.
+            $statusByEventType = ['broken' => 'broken', 'needs_service' => 'needs_service', 'repair' => 'active'];
+            $newMachineStatus = $statusByEventType[$event_type] ?? 'active';
 
             if ($machine) {
                 $machine_id = $machine['id'];
-                if ($event_type === 'broken') {
-                    $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = 'broken', notes = ? WHERE id = ?");
-                    $stmt->execute([$comment !== '' ? $comment : null, $machine_id]);
+                if ($event_type === 'broken' || $event_type === 'needs_service') {
+                    $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = ?, notes = ? WHERE id = ?");
+                    $stmt->execute([$newMachineStatus, $comment !== '' ? $comment : null, $machine_id]);
                 } elseif ($event_type === 'repair') {
                     $stmt = $pdo->prepare("UPDATE location_machines SET last_service_at = NOW(), status = 'active', notes = NULL WHERE id = ?");
                     $stmt->execute([$machine_id]);
@@ -735,7 +763,8 @@ switch ($action) {
                     INSERT INTO location_machines (location_operator_id, machine_type, last_service_at, status, notes)
                     VALUES (?, 'other', NOW(), ?, ?)
                 ");
-                $stmt->execute([$location_operator_id, $newMachineStatus, $event_type === 'broken' && $comment !== '' ? $comment : null]);
+                $needsNote = ($event_type === 'broken' || $event_type === 'needs_service') && $comment !== '';
+                $stmt->execute([$location_operator_id, $newMachineStatus, $needsNote ? $comment : null]);
                 $machine_id = $pdo->lastInsertId();
             }
 
@@ -753,15 +782,19 @@ switch ($action) {
             $photosResult = saveServicePhotos('log', $log_id, 'photos');
 
             // Уведомление собственнику — постфактум, без запроса на подтверждение.
-            // Поломку выделяем отдельным типом уведомления (своя категория,
-            // своя иконка) — это не рядовая отметка обслуживания, а то, что
-            // реально требует внимания собственника.
-            $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт', 'broken' => 'поломку'];
+            // Поломку и "требует ремонта" выделяем отдельными типами уведомления
+            // (своя категория, своя иконка) — это не рядовая отметка обслуживания,
+            // а то, что реально требует внимания собственника.
+            $typeLabels = ['maintenance' => 'обслуживание', 'restock' => 'пополнение товара', 'repair' => 'ремонт', 'broken' => 'поломку', 'needs_service' => 'необходимость ремонта'];
             $link = '/pages/location.php?id=' . $lo['location_id'];
             if ($event_type === 'broken') {
                 $message = 'Оператор сообщил о поломке вендинга на точке ' . $lo['location_title']
                     . ($comment !== '' ? ': ' . $comment : '');
                 notify($pdo, $lo['owner_id'], 'machine_broken', $message, $link, ['log_id' => $log_id]);
+            } elseif ($event_type === 'needs_service') {
+                $message = 'Оператор отметил: вендинг требует ремонта на точке ' . $lo['location_title']
+                    . ($comment !== '' ? ': ' . $comment : '');
+                notify($pdo, $lo['owner_id'], 'machine_needs_service', $message, $link, ['log_id' => $log_id]);
             } else {
                 $message = 'Оператор отметил: ' . ($typeLabels[$event_type] ?? $event_type) . ' на точке ' . $lo['location_title'];
                 notify($pdo, $lo['owner_id'], 'quick_service', $message, $link, ['log_id' => $log_id]);

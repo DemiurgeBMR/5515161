@@ -664,6 +664,34 @@ textarea.cal-form-control { resize: vertical; }
     color: #7f1d1d;
     line-height: 1.45;
 }
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+.history-entry {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--gray-bg);
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+.history-action {
+    font-weight: 800;
+    color: var(--text);
+}
+.history-meta {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-light);
+}
+.history-detail {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text);
+}
 .detail-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -391,6 +391,14 @@ document.addEventListener('DOMContentLoaded', function () {
         return '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + (colors[status] || '#bbb') + '"></span>';
     }
 
+    function historyActionLabel(action) {
+        const map = {
+            'created': 'Заявка создана', 'confirmed': 'Подтверждено',
+            'rescheduled': 'Перенесено', 'cancelled': 'Отменено', 'completed': 'Завершено'
+        };
+        return map[action] || action;
+    }
+
     function formatLocalDate(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -508,7 +516,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 proposed_datetime: ev.proposed_datetime,
                                 confirmed_datetime: ev.confirmed_datetime,
                                 emergency_comment: ev.emergency_comment || '',
-                                photos: ev.photos || []
+                                photos: ev.photos || [],
+                                history: ev.history || []
                             }
                         };
                     });
@@ -918,6 +927,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         html += renderPhotosBlock(props.photos);
+
+        if (props.history && props.history.length > 0) {
+            html += `<div class="detail-item spaced"><div class="detail-label">История изменений</div><div class="history-list">`;
+            props.history.forEach(function(h) {
+                html += `<div class="history-entry">
+                    <span class="history-action">${escapeHtml(historyActionLabel(h.action))}</span>
+                    <span class="history-meta">${escapeHtml(h.user_name)} · ${escapeHtml(formatDateTimeString(h.created_at))}</span>`;
+                if (h.action === 'rescheduled') {
+                    html += `<div class="history-detail">${escapeHtml(formatDateTimeString(h.old_datetime))} → ${escapeHtml(formatDateTimeString(h.new_datetime))}</div>`;
+                }
+                html += `</div>`;
+            });
+            html += `</div></div>`;
+        }
 
         html += `<div class="detail-actions">`;
         html += `<button class="cal-btn-primary full" onclick="openRelatedPage()">${props.application_id ? '<?php echo rr_icon('message-circle'); ?> Открыть заявку' : '<?php echo rr_icon('map-pin'); ?> Открыть точку'}</button>`;
