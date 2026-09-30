@@ -505,23 +505,29 @@ fileInput.addEventListener('change', function(e) {
                             status.classList.add('status-error'); status.classList.remove('status-ok');
                             return;
                         }
-                        suggestions.innerHTML = data.map(item => 
-                            `<div class="suggestion-item" data-value="${item.value}">${item.label}</div>`
-                        ).join('');
-                        suggestions.style.display = 'block';
-                        
-                        suggestions.querySelectorAll('.suggestion-item').forEach(el => {
+                        // Строим элементы через DOM API, а не innerHTML-шаблон — так
+                        // item.value/item.label (данные из БД) не нужно экранировать
+                        // вручную, textContent/dataset никогда не интерпретируют HTML.
+                        suggestions.innerHTML = '';
+                        data.forEach(item => {
+                            const el = document.createElement('div');
+                            el.className = 'suggestion-item';
+                            el.dataset.value = item.value;
+                            el.textContent = item.label;
                             el.addEventListener('click', function() {
                                 const cityName = this.dataset.value;
                                 input.value = cityName;
                                 hidden.value = cityName;
                                 selectedCity = cityName;
                                 suggestions.style.display = 'none';
-                                status.innerHTML = '<?php echo rr_icon('check'); ?> Выбран город: ' + cityName;
+                                status.innerHTML = '<?php echo rr_icon('check'); ?> ';
+                                status.appendChild(document.createTextNode('Выбран город: ' + cityName));
                                 status.classList.add('status-ok'); status.classList.remove('status-error');
                                 input.setCustomValidity('');
                             });
+                            suggestions.appendChild(el);
                         });
+                        suggestions.style.display = 'block';
                     })
                     .catch(() => {
                         suggestions.style.display = 'none';
@@ -534,7 +540,8 @@ fileInput.addEventListener('change', function(e) {
                 if (!selectedCity) {
                     const val = input.value.trim();
                     if (val.length > 0) {
-                        status.innerHTML = '<?php echo rr_icon('info-circle'); ?> Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.';
+                        status.innerHTML = '<?php echo rr_icon('info-circle'); ?> ';
+                        status.appendChild(document.createTextNode('Город будет сохранён как введено: «' + val + '». Если появится в подсказках — можно выбрать его оттуда для единообразия.'));
                         status.classList.add('status-ok'); status.classList.remove('status-error');
                     }
                 }

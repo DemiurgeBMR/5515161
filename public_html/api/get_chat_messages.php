@@ -20,6 +20,15 @@ if ($application_id <= 0) {
     exit;
 }
 
+// Технически GET, но с реальным побочным эффектом (помечает чужие сообщения
+// прочитанными) — без проверки CSRF сторонняя страница могла бы тихо
+// подделать этот запрос и скрыть от жертвы непрочитанные сообщения.
+if (!csrf_verify($_GET['csrf'] ?? '')) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Invalid CSRF token']);
+    exit;
+}
+
 $user_id = $_SESSION['user_id'];
 $pdo = getDbConnection();
 rr_enforce_rate_limit($pdo, 'get_chat_messages:' . $user_id, 60, 60);

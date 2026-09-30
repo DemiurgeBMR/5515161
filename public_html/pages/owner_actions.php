@@ -166,8 +166,8 @@ if ($action === 'toggle') {
             // Удаляем новые фото из временной папки
             if (!empty($data['new_photos'])) {
                 foreach ($data['new_photos'] as $path) {
-                    $fullPath = __DIR__ . '/../' . $path;
-                    if (file_exists($fullPath)) {
+                    $fullPath = rr_safe_revision_photo_path($path);
+                    if ($fullPath && file_exists($fullPath)) {
                         unlink($fullPath);
                     }
                 }
@@ -236,8 +236,8 @@ if ($action === 'toggle') {
                 // ★★★ Для уже опубликованной локации - удаляем временные фото и сбрасываем пометки удаления ★★★
                 if (!empty($data['new_photos'])) {
                     foreach ($data['new_photos'] as $path) {
-                        $fullPath = __DIR__ . '/../' . $path;
-                        if (file_exists($fullPath)) {
+                        $fullPath = rr_safe_revision_photo_path($path);
+                        if ($fullPath && file_exists($fullPath)) {
                             unlink($fullPath);
                         }
                     }

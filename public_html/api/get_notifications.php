@@ -72,6 +72,14 @@ if ($action === 'recent') {
 }
 
 if ($action === 'mark_read') {
+    // Технически GET, но с реальным побочным эффектом (тихо гасит бейдж
+    // непрочитанных, вплоть до "прочитать все сразу" без id) — без проверки
+    // CSRF сторонняя страница могла бы подделать этот запрос за жертву.
+    if (!csrf_verify($_GET['csrf'] ?? '')) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Invalid CSRF token']);
+        exit;
+    }
     $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     if ($id > 0) {
         $stmt = $pdo->prepare("UPDATE notifications SET read_at = NOW() WHERE id = ? AND user_id = ? AND read_at IS NULL");

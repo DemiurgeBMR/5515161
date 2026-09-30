@@ -16,7 +16,23 @@ define('DB_PASS', getenv('DB_PASS') ?: '');            // По умолчани�
 
 // --- ГЛОБАЛЬНЫЕ ПАРАМЕТРЫ ---
 define('SITE_NAME', 'RR - Riveg Rent');
-define('SITE_URL', 'http://riveg-rent.local');
+// В отличие от локального дефолта DB_*, здесь неправильное значение не упадёт
+// с ошибкой, а тихо разошлёт письма/sitemap/og:url с адресом riveg-rent.local —
+// обязательно задать SITE_URL через окружение на реальном домене.
+define('SITE_URL', getenv('SITE_URL') ?: 'http://riveg-rent.local');
+
+// --- ЧАСОВОЙ ПОЯС ---
+// Все datetime в базе и весь UI — "наивное" локальное время без указания
+// смещения (пользователь вводит "14:00" в форме визита, и это же "14:00"
+// потом и хранится, и показывается везде без пересчёта). Это работает только пока
+// часовой пояс PHP и часовой пояс MySQL (NOW(), CURRENT_TIMESTAMP) совпадают.
+// Без явного date_default_timezone_set() PHP берёт системный часовой пояс
+// контейнера (обычно UTC у большинства образов) — если он разъедется с
+// часовым поясом контейнера MySQL, сравнения вида "не обслуживалась N дней"
+// (cron_check.php) или окно антиспама уведомлений (REMINDER_COOLDOWN_DAYS)
+// начнут ошибаться на разницу поясов. Явно фиксируем и делаем настраиваемым
+// через окружение — контейнер MySQL должен быть выставлен в тот же пояс.
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'Europe/Moscow');
 
 // --- РЕЖИМ РАЗРАБОТКИ ---
 // true = показывать ошибки и стектрейсы, false = скрывать (для продакшена).
@@ -528,23 +544,37 @@ function rr_unlock_location(PDO $pdo, $operatorId, $locationId) {
         return true;
     }
 
-    $summary = rr_credits_summary($pdo, $operatorId);
-    if ($summary['total_available'] <= 0) {
+    // Именной лок на оператора — без него остаток кредитов читается отдельным
+    // запросом ДО INSERT, и UNIQUE(operator_id, location_id) не спасает от
+    // двойного клика по РАЗНЫМ локациям в двух вкладках: с ровно 1 кредитом
+    // на балансе оба запроса видят total_available=1, оба проходят проверку
+    // "> 0" и оба вставляют свою строку — итог 2 разблокировки за 1 кредит.
+    // Лок сериализует все разблокировки одного оператора без изменений схемы.
+    $lockKey = 'rr_unlock_location:' . $operatorId;
+    $gotLock = (bool) $pdo->query('SELECT GET_LOCK(' . $pdo->quote($lockKey) . ', 5)')->fetchColumn();
+    if (!$gotLock) {
         return false;
     }
 
-    $source = $summary['monthly_remaining'] > 0 ? 'subscription_allowance' : 'permanent_credit';
-
     try {
+        $summary = rr_credits_summary($pdo, $operatorId);
+        if ($summary['total_available'] <= 0) {
+            return false;
+        }
+
+        $source = $summary['monthly_remaining'] > 0 ? 'subscription_allowance' : 'permanent_credit';
+
         $pdo->prepare("
             INSERT INTO location_unlocks (operator_id, location_id, source)
             VALUES (?, ?, ?)
         ")->execute([$operatorId, $locationId, $source]);
         return true;
     } catch (PDOException $e) {
-        // UNIQUE(operator_id, location_id) — параллельный повторный клик
-        // не спишет кредит дважды, просто считаем локацию уже разблокированной.
+        // UNIQUE(operator_id, location_id) — параллельный повторный клик по
+        // ТОЙ ЖЕ локации не спишет кредит дважды, просто считаем локацию уже разблокированной.
         return rr_location_unlocked($pdo, $operatorId, $locationId);
+    } finally {
+        $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lockKey) . ')');
     }
 }
 
@@ -1087,6 +1117,24 @@ function rr_service_order_attachments_dir() {
 }
 
 /**
+ * Проверяет, что путь к временному фото ревизии (location_revisions.data
+ * -> new_photos[]) действительно указывает на файл в uploads/revisions/ —
+ * без вложенных директорий/../ — и возвращает абсолютный путь, либо null.
+ * Сегодня эти пути всегда генерируются сервером (add_location.php/
+ * edit_location.php, uniqid() + известное расширение), так что попасть сюда
+ * произвольной строкой напрямую нельзя — но это единственное место, где
+ * такой путь превращается в реальную файловую операцию (rename/unlink), и
+ * если завтра что-то ещё начнёт писать в location_revisions.data не через
+ * тот же код, эта проверка не даст ../ выйти за пределы папки.
+ */
+function rr_safe_revision_photo_path($relPath) {
+    if (!is_string($relPath) || !preg_match('#^uploads/revisions/[A-Za-z0-9_.-]+$#', $relPath)) {
+        return null;
+    }
+    return __DIR__ . '/' . $relPath;
+}
+
+/**
  * Список поддерживаемых типов вложений: ключ — РЕАЛЬНЫЙ MIME-тип файла
  * (проверяется через finfo, не по расширению из имени файла клиента — иначе
  * .php с переименованным расширением мог бы проскочить), значение —
@@ -1264,16 +1312,29 @@ function rr_enforce_rate_limit(PDO $pdo, $key, $maxRequests, $windowSeconds) {
 }
 
 /**
- * IP клиента с учётом X-Forwarded-For от прокси/балансировщика (берём первый
- * адрес в цепочке — исходный клиент) — для rate-limit ключей у эндпоинтов без
- * авторизации, где нет user_id для идентификации запрашивающего.
+ * IP клиента — для rate-limit ключей у эндпоинтов без авторизации, где нет
+ * user_id для идентификации запрашивающего. X-Forwarded-For — обычный
+ * заголовок запроса, его может выставить кто угодно: без проверки, что запрос
+ * и правда пришёл через доверенный reverse-proxy, любой аноним обходил бы
+ * IP-based rate-limit (login, forgot_password и т.п.), меняя это значение на
+ * каждый запрос. Доверяем заголовку, только если REMOTE_ADDR входит в
+ * TRUSTED_PROXY_IPS (список через запятую в окружении — IP контейнера/
+ * балансировщика перед PHP). Если переменная не задана (PHP смотрит в
+ * интернет напрямую, без прокси перед собой) — используем только
+ * REMOTE_ADDR, это безопасный дефолт.
  */
 function rr_client_ip() {
-    $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
-    if ($forwarded !== '') {
-        return trim(explode(',', $forwarded)[0]);
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+    $trustedProxies = array_filter(array_map('trim', explode(',', getenv('TRUSTED_PROXY_IPS') ?: '')));
+    if (!empty($trustedProxies) && in_array($remoteAddr, $trustedProxies, true)) {
+        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        if ($forwarded !== '') {
+            return trim(explode(',', $forwarded)[0]);
+        }
     }
-    return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+    return $remoteAddr;
 }
 
 function formatDateRu($date) {

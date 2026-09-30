@@ -18,6 +18,11 @@ $pdo = getDbConnection();
 
 if (!empty($_SESSION['is_verified'])) {
     $_SESSION['flash'] = 'Email уже подтверждён.';
+} elseif (!rr_check_rate_limit($pdo, 'resend_verification:' . $_SESSION['user_id'], 3, 600)) {
+    // Ссылка лежит открытым текстом на странице (edit_profile.php) — без
+    // лимита её можно было бы дёргать без остановки и заваливать себе же
+    // почту письмами.
+    $_SESSION['flash'] = 'Слишком много запросов письма. Попробуйте через несколько минут.';
 } else {
     $link = rr_issue_verify_link($pdo, $_SESSION['user_id']);
     if (rr_mail_configured()) {

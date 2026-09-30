@@ -42,23 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
     } elseif (isset($_POST['resend'])) {
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expires = date('Y-m-d H:i:s', time() + 10 * 60);
-        $pdo->prepare("UPDATE users SET two_factor_code = ?, two_factor_code_expires = ? WHERE id = ?")
-            ->execute([$code, $expires, $user['id']]);
+        // Без лимита эту кнопку можно было бы жать без остановки и заваливать
+        // почту жертвы письмами (пароль от аккаунта уже известен нападающему —
+        // иначе он бы сюда не попал, — так что это не подбор кода, а спам).
+        if (!rr_check_rate_limit($pdo, 'verify_2fa_resend:' . $user['id'], 3, 600)) {
+            $error = 'Слишком много запросов кода. Попробуйте через несколько минут.';
+        } else {
+            $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $expires = date('Y-m-d H:i:s', time() + 10 * 60);
+            $pdo->prepare("UPDATE users SET two_factor_code = ?, two_factor_code_expires = ? WHERE id = ?")
+                ->execute([$code, $expires, $user['id']]);
 
-        $stmtEmail = $pdo->prepare("SELECT email FROM users WHERE id = ?");
-        $stmtEmail->execute([$user['id']]);
-        rr_send_email(
-            $stmtEmail->fetchColumn(),
-            'Код подтверждения входа — ' . SITE_NAME,
-            '<p>Код для входа на ' . htmlspecialchars(SITE_NAME) . ': <strong style="font-size:20px">' . htmlspecialchars($code) . '</strong></p>'
-                . '<p>Код действует 10 минут. Если вы не пытались войти в аккаунт — просто проигнорируйте это письмо.</p>'
-        );
+            $stmtEmail = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+            $stmtEmail->execute([$user['id']]);
+            rr_send_email(
+                $stmtEmail->fetchColumn(),
+                'Код подтверждения входа — ' . SITE_NAME,
+                '<p>Код для входа на ' . htmlspecialchars(SITE_NAME) . ': <strong style="font-size:20px">' . htmlspecialchars($code) . '</strong></p>'
+                    . '<p>Код действует 10 минут. Если вы не пытались войти в аккаунт — просто проигнорируйте это письмо.</p>'
+            );
 
-        $user['two_factor_code'] = $code;
-        $user['two_factor_code_expires'] = $expires;
-        $codeExpired = false;
+            $user['two_factor_code'] = $code;
+            $user['two_factor_code_expires'] = $expires;
+            $codeExpired = false;
+        }
     } else {
         $enteredCode = trim($_POST['code'] ?? '');
 

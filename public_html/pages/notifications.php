@@ -127,7 +127,7 @@ document.getElementById('notifList')?.querySelectorAll('.notif-item').forEach(fu
         var id = this.dataset.id;
         var link = this.dataset.link;
         if (this.classList.contains('unread')) {
-            fetch('/api/get_notifications.php?action=mark_read&id=' + id);
+            fetch('/api/get_notifications.php?action=mark_read&id=' + id + '&csrf=' + encodeURIComponent(window.csrfToken));
             this.classList.remove('unread');
         }
         if (link) {

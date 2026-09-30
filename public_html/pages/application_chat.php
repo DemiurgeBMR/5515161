@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ПОЛЛИНГ НОВЫХ СООБЩЕНИЙ ---
     function checkNewMessages() {
-        fetch('/api/get_chat_messages.php?application_id=' + applicationId + '&last_id=' + lastMessageId)
+        fetch('/api/get_chat_messages.php?application_id=' + applicationId + '&last_id=' + lastMessageId + '&csrf=' + encodeURIComponent(window.csrfToken))
         .then(response => response.json())
         .then(data => {
             if (data.messages && data.messages.length > 0) {

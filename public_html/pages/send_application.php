@@ -78,44 +78,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
     if (empty($message)) {
         $error = 'Пожалуйста, напишите сообщение собственнику.';
     } else {
-        try {
-            $pdo->beginTransaction();
+        // Именной лок MySQL на пару (локация, оператор) — без него узкое окно
+        // между проверкой "уже подавали?" выше и INSERT ниже позволяло
+        // двойному клику/повторной отправке формы создать две заявки на одну
+        // и ту же локацию: partial unique index на "NOT IN (терминальные
+        // статусы)" MySQL не поддерживает, а обычный UNIQUE(location_id,
+        // operator_id) сломал бы законную повторную подачу после отказа.
+        // Лок сериализует конкретно эту пару без изменений схемы и
+        // автоматически снимается MySQL при закрытии соединения, даже если
+        // до явного RELEASE_LOCK ниже дело почему-то не дойдёт.
+        $lockKey = 'send_application:' . $location_id . ':' . $operator_id;
+        $gotLock = (bool) $pdo->query('SELECT GET_LOCK(' . $pdo->quote($lockKey) . ', 5)')->fetchColumn();
+        if (!$gotLock) {
+            $error = 'Не удалось обработать запрос, попробуйте ещё раз.';
+        } else {
+            // Перепроверяем внутри лока — заявка могла появиться, пока мы его ждали.
+            $stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'rejected', 'approved', 'unassigned')");
+            $stmt->execute([$location_id, $operator_id]);
+            if ($stmt->fetch()) {
+                $error = 'Вы уже отправили заявку на эту локацию.';
+                $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lockKey) . ')');
+            } else {
+                try {
+                    $pdo->beginTransaction();
 
-            // Создаём заявку
-            $stmt = $pdo->prepare("
-                INSERT INTO applications (location_id, operator_id, owner_id, initial_message, status)
-                VALUES (?, ?, ?, ?, 'pending')
-            ");
-            $stmt->execute([$location_id, $operator_id, $owner_id, $message]);
-            $application_id = $pdo->lastInsertId();
+                    // Создаём заявку
+                    $stmt = $pdo->prepare("
+                        INSERT INTO applications (location_id, operator_id, owner_id, initial_message, status)
+                        VALUES (?, ?, ?, ?, 'pending')
+                    ");
+                    $stmt->execute([$location_id, $operator_id, $owner_id, $message]);
+                    $application_id = $pdo->lastInsertId();
 
-            // Создаём первое сообщение (сообщение оператора)
-            $stmt = $pdo->prepare("
-                INSERT INTO messages (application_id, sender_id, receiver_id, message)
-                VALUES (?, ?, ?, ?)
-            ");
-            $stmt->execute([$application_id, $operator_id, $owner_id, $message]);
+                    // Создаём первое сообщение (сообщение оператора)
+                    $stmt = $pdo->prepare("
+                        INSERT INTO messages (application_id, sender_id, receiver_id, message)
+                        VALUES (?, ?, ?, ?)
+                    ");
+                    $stmt->execute([$application_id, $operator_id, $owner_id, $message]);
 
-            // Этот INSERT — единственное место на сайте, где создаётся первое
-            // сообщение чата (все следующие идут через api/send_message.php,
-            // который сам уведомляет получателя). Раньше уведомления здесь не
-            // было вообще — собственник узнавал о новой заявке, только
-            // случайно заглянув в список заявок, а не по факту первого
-            // контакта, как для всех последующих сообщений в этом же чате.
-            $preview = mb_substr($message, 0, 80) . (mb_strlen($message) > 80 ? '…' : '');
-            notify($pdo, $owner_id, 'new_message', $preview, '/pages/application_chat.php?application_id=' . $application_id, [
-                'application_id' => $application_id,
-                'sender_name'    => $_SESSION['user_name'] ?? '',
-                'location_title' => $location['title'],
-            ]);
+                    // Этот INSERT — единственное место на сайте, где создаётся
+                    // первое сообщение чата (все следующие идут через
+                    // api/send_message.php, который сам уведомляет
+                    // получателя). Раньше уведомления здесь не было вообще —
+                    // собственник узнавал о новой заявке, только случайно
+                    // заглянув в список заявок, а не по факту первого
+                    // контакта, как для всех последующих сообщений в этом же чате.
+                    $preview = mb_substr($message, 0, 80) . (mb_strlen($message) > 80 ? '…' : '');
+                    notify($pdo, $owner_id, 'new_message', $preview, '/pages/application_chat.php?application_id=' . $application_id, [
+                        'application_id' => $application_id,
+                        'sender_name'    => $_SESSION['user_name'] ?? '',
+                        'location_title' => $location['title'],
+                    ]);
 
-            $pdo->commit();
-            header('Location: /pages/application_chat.php?application_id=' . $application_id);
-            exit;
-        } catch (PDOException $e) {
-            $pdo->rollBack();
-            error_log('send_application.php: ' . $e->getMessage());
-            $error = DEBUG_MODE ? ('Ошибка при отправке заявки: ' . $e->getMessage()) : 'Не удалось отправить заявку. Попробуйте ещё раз позже.';
+                    $pdo->commit();
+                    $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lockKey) . ')');
+                    header('Location: /pages/application_chat.php?application_id=' . $application_id);
+                    exit;
+                } catch (PDOException $e) {
+                    $pdo->rollBack();
+                    $pdo->query('SELECT RELEASE_LOCK(' . $pdo->quote($lockKey) . ')');
+                    error_log('send_application.php: ' . $e->getMessage());
+                    $error = DEBUG_MODE ? ('Ошибка при отправке заявки: ' . $e->getMessage()) : 'Не удалось отправить заявку. Попробуйте ещё раз позже.';
+                }
+            }
         }
     }
 }

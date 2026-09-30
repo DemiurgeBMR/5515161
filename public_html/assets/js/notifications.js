@@ -66,7 +66,7 @@ $(document).ready(function () {
     }
 
     function markRead(id) {
-        $.get('/api/get_notifications.php', { action: 'mark_read', id: id });
+        $.get('/api/get_notifications.php', { action: 'mark_read', id: id, csrf: window.csrfToken });
     }
 
     // === Тост: единый рендер и для чата, и для системных уведомлений ===
@@ -214,7 +214,7 @@ $(document).ready(function () {
         if (markAllBtn) {
             markAllBtn.addEventListener('click', function (e) {
                 e.preventDefault();
-                $.get('/api/get_notifications.php', { action: 'mark_read' }, function () {
+                $.get('/api/get_notifications.php', { action: 'mark_read', csrf: window.csrfToken }, function () {
                     updateBadge(0);
                     loadDropdown();
                 });
