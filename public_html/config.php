@@ -327,6 +327,27 @@ function rr_active_subscription(PDO $pdo, $userId) {
 }
 
 /**
+ * Прибавляет $months календарных месяцев к $timestamp, "прижимая" число
+ * месяца к последнему дню целевого месяца, если такого числа в нём нет —
+ * вместо strtotime('+N months', ...), который в этом случае "перетекает"
+ * в следующий месяц (31 января + 1 месяц → 3 марта, минуя февраль целиком,
+ * т.к. в феврале нет 31-го числа). Из-за этого переноса расчётный период
+ * у подписок, оформленных 29/30/31 числа, растягивался почти на два
+ * месяца и дальше продолжал плыть на ту же величину — общая точка правды
+ * для даты окончания тарифа (rr_purchase_subscription()) и для помесячного
+ * сброса квоты (rr_current_period_start()).
+ */
+function rr_add_months_clamped($timestamp, $months) {
+    $parts = getdate($timestamp);
+    $totalMonths = $parts['year'] * 12 + ($parts['mon'] - 1) + $months;
+    $year = intdiv($totalMonths, 12);
+    $month = ($totalMonths % 12) + 1;
+    $lastDayOfMonth = (int) date('t', mktime(0, 0, 0, $month, 1, $year));
+    $day = min($parts['mday'], $lastDayOfMonth);
+    return mktime($parts['hours'], $parts['minutes'], $parts['seconds'], $month, $day, $year);
+}
+
+/**
  * Оформляет тариф с квотой для пользователя. Если у него уже есть активный
  * тариф, новый срок прибавляется к его остатку (а не пересчитывается от
  * "сейчас") — докупить тариф впрок не должно значить потерять уже
@@ -342,7 +363,7 @@ function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
 
     $current = rr_active_subscription($pdo, $userId);
     $base = $current ? max(strtotime($current['end_date']), time()) : time();
-    $endDate = date('Y-m-d H:i:s', strtotime('+' . $plan['months'] . ' months', $base));
+    $endDate = date('Y-m-d H:i:s', rr_add_months_clamped($base, $plan['months']));
 
     $stmt = $pdo->prepare("
         INSERT INTO subscriptions (user_id, plan, price_paid, start_date, end_date, is_active)
@@ -398,10 +419,10 @@ function rr_current_period_start($subscription) {
     $start = strtotime($subscription['start_date']);
     $now = time();
     $monthsElapsed = 0;
-    while (strtotime('+' . ($monthsElapsed + 1) . ' months', $start) <= $now) {
+    while (rr_add_months_clamped($start, $monthsElapsed + 1) <= $now) {
         $monthsElapsed++;
     }
-    return date('Y-m-d H:i:s', strtotime('+' . $monthsElapsed . ' months', $start));
+    return date('Y-m-d H:i:s', rr_add_months_clamped($start, $monthsElapsed));
 }
 
 /**
