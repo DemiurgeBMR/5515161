@@ -28,7 +28,11 @@ WORKDIR /var/www/html
 
 COPY . .
 COPY docker/entrypoint.sh /usr/local/bin/rr-entrypoint.sh
-RUN chmod +x /usr/local/bin/rr-entrypoint.sh \
+## sed -i 's/\r$//' — на случай, если репозиторий склонировали на Windows
+## с git core.autocrlf=true: без этого bash внутри контейнера падает с
+## "bash\r: No such file or directory" на самом первом запуске.
+RUN sed -i 's/\r$//' /usr/local/bin/rr-entrypoint.sh \
+    && chmod +x /usr/local/bin/rr-entrypoint.sh \
     && mkdir -p public_html/uploads cache/recommendations private_uploads/service_order_attachments \
     && chown -R www-data:www-data public_html/uploads cache private_uploads
 
