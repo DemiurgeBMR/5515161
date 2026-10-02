@@ -1,0 +1,9 @@
+.git
+.github
+.osp
+database/seed
+public_html/uploads
+cache
+private_uploads
+.env
+*.md

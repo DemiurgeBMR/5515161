@@ -22,3 +22,12 @@
 Thumbs.db
 .idea/
 .vscode/
+
+# Переменные окружения для docker-compose — пароли и прочие секреты,
+# не для git (см. .env.example с описанием всех переменных).
+/.env
+
+# Твой экспорт справочника городов для database/seed/ (см. docker-compose.yml,
+# сервис seed-cities) — несколько гигабайт данных, не для git.
+/database/seed/*
+!/database/seed/.gitkeep

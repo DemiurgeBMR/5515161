@@ -1,0 +1,71 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-riveg_rent}
+      DB_USER: ${DB_USER:-riveg_rent}
+      DB_PASS: ${DB_PASS:?нужно задать DB_PASS в .env}
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_ENCRYPTION: ${SMTP_ENCRYPTION:-tls}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+    volumes:
+      - uploads:/var/www/html/public_html/uploads
+      - cache:/var/www/html/cache
+      - private_uploads:/var/www/html/private_uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-riveg_rent}
+      MYSQL_USER: ${DB_USER:-riveg_rent}
+      MYSQL_PASSWORD: ${DB_PASS:?нужно задать DB_PASS в .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:?нужно задать DB_ROOT_PASS в .env}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Разовая загрузка справочника городов (таблицы _cities/_countries/_regions)
+  # из твоего собственного экспорта phpMyAdmin — не запускается сама, только
+  # вручную: docker compose --profile seed run --rm seed-cities
+  # Положи файл с данными (экспорт "только данные", не структура) в
+  # database/seed/cities.sql — этот путь в .gitignore, в репозиторий не попадёт.
+  seed-cities:
+    image: mysql:8.0
+    profiles: ["seed"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-riveg_rent}
+      DB_USER: ${DB_USER:-riveg_rent}
+      DB_PASS: ${DB_PASS:?нужно задать DB_PASS в .env}
+    volumes:
+      - ${CITIES_DUMP_PATH:-./database/seed/cities.sql}:/seed/cities.sql:ro
+    entrypoint: ["sh", "-c", "mysql -h \"$$DB_HOST\" -u \"$$DB_USER\" -p\"$$DB_PASS\" \"$$DB_NAME\" < /seed/cities.sql && echo 'Города загружены.'"]
+
+volumes:
+  db_data:
+  uploads:
+  cache:
+  private_uploads:
