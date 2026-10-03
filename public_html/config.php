@@ -662,6 +662,11 @@ $pdo = new PDO(
     DB_PASS
 );
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // Контейнер MySQL по умолчанию живёт в UTC и не знает про APP_TIMEZONE
+        // (см. комментарий выше). Выставляем часовой пояс сессии явно, тем же
+        // смещением, что уже действует в PHP — иначе NOW()/CURRENT_TIMESTAMP
+        // в базе и date()/time() в коде расходятся на величину смещения.
+        $pdo->exec("SET time_zone = '" . date('P') . "'");
         return $pdo;
     } catch (PDOException $e) {
         error_log('getDbConnection: ' . $e->getMessage());
