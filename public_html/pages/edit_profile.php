@@ -223,12 +223,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <div class="form-row">
                     <div class="form-group">
                         <label>Новый пароль</label>
-                        <input type="password" name="password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                        <input type="password" name="password" autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                         <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                     </div>
                     <div class="form-group">
                         <label>Подтверждение</label>
-                        <input type="password" name="password_confirm" placeholder="Повторите пароль">
+                        <input type="password" name="password_confirm" autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
                     </div>
                 </div>
             </div>
@@ -249,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <h2 class="ep-card-title"><?php echo rr_icon('check'); ?> Подтверждение</h2>
                 <div class="form-group">
                     <label>Текущий пароль *</label>
-                    <input type="password" name="current_password" required placeholder="Введите текущий пароль, чтобы сохранить изменения">
+                    <input type="password" name="current_password" required autocomplete="current-password" placeholder="Введите текущий пароль, чтобы сохранить изменения">
                 </div>
                 <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
             </div>

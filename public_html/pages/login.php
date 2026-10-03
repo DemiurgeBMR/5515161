@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label>Пароль</label>
-                <input type="password" name="password" required placeholder="********">
+                <input type="password" name="password" required autocomplete="current-password" placeholder="********">
             </div>
 
             <button type="submit" class="btn-submit">Войти</button>

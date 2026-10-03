@@ -114,6 +114,11 @@
             <?php if ($creditsSummary !== null): ?>
                 <a href="/pages/subscription.php" class="account-dd-item"><?php echo rr_icon('card'); ?> Пополнить баланс</a>
             <?php endif; ?>
+            <?php if (rr_onboarding_applies($role)): ?>
+                <!-- Запуск/повтор интерактивного обучения (assets/js/rr-tour.js).
+                     Без JS ссылка просто ведёт на текстовое описание. -->
+                <a href="/pages/how_it_works.php" class="account-dd-item" id="rrTourRestart" data-rr-tour-start><?php echo rr_icon('help-circle'); ?> Обучение</a>
+            <?php endif; ?>
             <div class="account-dd-divider"></div>
             <a href="/pages/logout.php" class="account-dd-item danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
         </div>

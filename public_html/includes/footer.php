@@ -56,5 +56,24 @@
     </script>
     <script src="/assets/js/notifications.js"></script>
     <script src="/assets/js/rr-ui.js"></script>
+<?php
+// Интерактивное обучение — только для собственников и операторов. Скрипт
+// сам решает, что показать (приглашение, продолжение или ничего) по статусу
+// прохождения; если состояние прочитать не удалось (rr_onboarding_state()
+// вернул null) — обучения просто нет, страница от этого не страдает.
+$rrOnboarding = (isset($_SESSION['user_id']) && rr_onboarding_applies($_SESSION['user_role'] ?? null))
+    ? rr_onboarding_state(getDbConnection(), $_SESSION['user_id'])
+    : null;
+if ($rrOnboarding !== null):
+?>
+    <script>
+    window.rrOnboarding = <?php echo json_encode([
+        'role'    => $_SESSION['user_role'],
+        'status'  => $rrOnboarding['status'],
+        'chapter' => $rrOnboarding['chapter'],
+    ], JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+    </script>
+    <script src="/assets/js/rr-tour.js"></script>
+<?php endif; ?>
 </body>
 </html>

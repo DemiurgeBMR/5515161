@@ -39,6 +39,7 @@ function columnExists(PDO $pdo, $table, $column) {
 
 $checks = [
     ['table' => 'users', 'column' => 'privacy_consent_at', 'migration' => '2026_09_17_add_privacy_consent_to_users.sql'],
+    ['table' => 'users', 'column' => 'onboarding_status', 'migration' => '2026_10_03_add_onboarding_to_users.sql'],
     ['table' => 'users', 'column' => 'failed_login_attempts', 'migration' => '2026_09_11_add_login_security_fields_to_users.sql'],
     ['table' => 'users', 'column' => 'reset_token', 'migration' => '2026_09_11_add_login_security_fields_to_users.sql'],
     ['table' => 'users', 'column' => 'verify_token', 'migration' => '2026_09_11_add_verification_2fa_ban_to_users.sql'],

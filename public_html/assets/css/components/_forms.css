@@ -40,6 +40,65 @@
     color: var(--text-muted, #9a9aa5);
 }
 
+/* ===== ПОЛЕ ПАРОЛЯ С «ГЛАЗИКОМ» (assets/js/rr-ui.js) =====
+   Обёртку и кнопку добавляет скрипт — на странице остаётся обычный
+   <input type="password">, без JS поле работает как раньше. */
+.rr-pw-wrap {
+    position: relative;
+}
+.form-group .rr-pw-wrap > input.rr-pw-input {
+    padding-right: 48px;
+}
+.rr-pw-toggle {
+    position: absolute;
+    top: 50%;
+    right: 6px;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-muted, #9a9aa5);
+    cursor: pointer;
+}
+.rr-pw-toggle .rr-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: 0;
+}
+.rr-pw-toggle:hover {
+    color: var(--text, #f2f2f5);
+    background: var(--bg-elevated-2, #1c1c24);
+}
+.rr-pw-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+.rr-pw-toggle[aria-pressed="true"] {
+    color: var(--accent);
+}
+/* Edge/IE рисуют собственный «глазик» внутри поля пароля — второй рядом
+   с нашим был бы лишним. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}
+/* .form-hint задаёт display: block — без этого атрибут hidden не сработал бы. */
+.form-hint[hidden] {
+    display: none;
+}
+.form-hint.rr-match-hint.is-ok {
+    color: var(--success);
+}
+.form-hint.rr-match-hint.is-bad {
+    color: var(--danger);
+}
+
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
