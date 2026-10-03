@@ -10,7 +10,7 @@
  * Состояние (статус и номер главы) лежит в БД — users.onboarding_status /
  * onboarding_chapter, см. api/onboarding.php: «новый пользователь» — свойство
  * аккаунта, а не браузера. Подключается из includes/footer.php только для
- * собственников и операторов вместе с window.rrOnboarding = {role, status, chapter}.
+ * собственников и операторов вместе с window.rrOnboarding = {role, status, chapter, ...}.
  *
  *   pending     → на любой странице предлагаем начать (окно-приглашение);
  *                 «Пропустить»/Esc — это skipped, повторно не навязываемся
@@ -24,6 +24,16 @@
  * на узком экране блок) — шаг показывается по центру без подсветки, а не
  * пропадает: текст важнее подсветки.
  *
+ * Чат открывается только по конкретной заявке (application_id в адресе), у
+ * нового пользователя её может не быть. Такая глава («чат») задаётся через
+ * entry/via: с «входной» страницы (список заявок) обучение переходит по первой
+ * ссылке на чат, а если заявок ещё нет — проводит главу на месте, пояснениями
+ * по центру без подсветки (demo-режим).
+ *
+ * Номера глав сохраняются в БД (onboarding_chapter) — новые главы добавляйте
+ * в КОНЕЦ списка и не переставляйте старые, иначе у тех, кто сейчас в
+ * середине обучения, оно «съедет» на другую страницу.
+ *
  * Тексты и шаги — в TOURS ниже. Селекторы привязаны к вёрстке страниц
  * (pages/operator_dashboard.php, pages/profile.php и т.д.): меняя вёрстку,
  * проверьте и обучение.
@@ -35,18 +45,90 @@
     if (!state || !state.role) return;
 
     /* ===== СОДЕРЖАНИЕ ОБУЧЕНИЯ =====
+       Глава:
+         name      — название раздела в счётчике шагов («Чат · 2 из 6»)
+         page      — адрес страницы (pathname), на которой идёт глава
+         entry/via — для страниц, открывающихся по конкретной ссылке (чат):
+                     «входная» страница и селектор ссылки на page; без ссылки
+                     (нет заявок) глава идёт на entry в demo-режиме
+         demoNote  — пояснение, которое добавляется к каждому шагу demo-режима
+         nextLabel — подпись кнопки на последнем шаге главы (переход к следующей)
        Шаг:
          target    — CSS-селектор (или массив: берётся первый видимый элемент)
          closest   — подняться от найденного элемента к ближайшему предку по селектору
          also      — второй селектор: подсвечиваем объединение двух блоков
          placement — предпочтительная сторона карточки: bottom | top | right | left
-         menu      — 'account': на этом шаге раскрыть меню аккаунта
+         open      — раскрыть на время шага: 'account' (меню аккаунта в шапке) или
+                     'chatSidebar' (панель деталей чата — на телефоне это выезжающая шторка)
          title, text (абзацы через пустую строку), items (список: строка или
          [жирное начало, продолжение]), ordered (нумерованный список)
        Без target шаг показывается по центру экрана. */
+
+    var CHAT_DEMO_NOTE = 'У вас пока нет ни одной заявки, поэтому чат показываем без подсветки. ' +
+        'Когда появится первая переписка, обучение можно пройти ещё раз: меню аккаунта → «Обучение».';
+
+    var FINAL_STEP = {
+        target: '#rrTourRestart', open: 'account', placement: 'left',
+        title: 'Это всё!',
+        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».'
+    };
+
+    // Календарь выездов одинаков для обеих ролей — различаются только пара фраз.
+    function calendarChapter(role) {
+        var isOwner = role === 'owner';
+        return {
+            name: 'Календарь',
+            page: '/pages/events_calendar.php',
+            steps: [
+                {
+                    target: '.calendar-actions', placement: 'bottom',
+                    title: 'Выезды и обслуживание',
+                    text: 'Календарь — общее место, где вы и ' + (isOwner ? 'оператор' : 'собственник') + ' согласуете установку автомата и обслуживание. Кнопки сверху:',
+                    items: [
+                        ['Новый выезд', 'запросить визит: выберите точку, тип (обслуживание, пополнение, ремонт, установка, демонтаж), дату и время. ' + (isOwner ? 'Нужен хотя бы один закреплённый оператор.' : 'Нужна хотя бы одна закреплённая за вами точка.')],
+                        ['История и экспорт', 'журнал всех выездов и обслуживания; его можно выгрузить в CSV (Excel) или PDF'],
+                        ['Обновить', 'перечитать календарь']
+                    ]
+                },
+                {
+                    target: '.calendar-stats', placement: 'bottom',
+                    title: 'Сводка',
+                    text: 'Сколько событий сегодня, сколько ждут подтверждения, сколько срочных и сколько выполнено за месяц. Нажмите на плитку — календарь отфильтруется по ней.'
+                },
+                {
+                    target: '.calendar-toolbar', placement: 'bottom',
+                    title: 'Поиск и фильтры',
+                    text: 'Ищите по названию точки, городу' + (isOwner ? ' или оператору' : '') + ' и фильтруйте по типу выезда, статусу и срочности' + (isOwner ? ' — а также по конкретному оператору' : '') + '.'
+                },
+                {
+                    target: '.today-sidebar', placement: 'right',
+                    title: 'Сегодня',
+                    text: 'Слева — события сегодняшнего дня: время, точка и статус. Удобно открыть утром, чтобы понять, что запланировано.'
+                },
+                {
+                    target: ['.calendar-card .fc-header-toolbar', '.calendar-card'], placement: 'bottom',
+                    title: 'Календарь',
+                    text: 'Стрелки и «Сегодня» листают период, кнопки «Месяц», «Неделя», «День» меняют вид.\n\nНажмите на событие в сетке — откроется карточка: там можно подтвердить время, предложить другое, завершить выезд или отменить его.'
+                },
+                {
+                    title: 'Как согласуется выезд',
+                    ordered: true,
+                    items: [
+                        'Один из вас предлагает дату — кнопкой «Новый выезд» здесь или «Предложить дату» в чате заявки.',
+                        'Другая сторона получает уведомление: подтверждает время или предлагает своё.',
+                        'Когда время подтверждено, после работ нажмите «Завершить» — по желанию приложите фото. Запись попадёт в «Историю и экспорт».',
+                        'Если случилась срочная проблема, выезд можно пометить срочным и описать причину.'
+                    ]
+                },
+                FINAL_STEP
+            ]
+        };
+    }
+
     var TOURS = {
         operator: [
             {
+                name: 'Кабинет',
                 page: '/pages/operator_dashboard.php',
                 nextLabel: 'Открыть каталог →',
                 steps: [
@@ -92,7 +174,9 @@
                 ]
             },
             {
+                name: 'Каталог',
                 page: '/pages/catalog.php',
+                nextLabel: 'Мои заявки →',
                 steps: [
                     {
                         target: '.catalog-filters .search-box', placement: 'bottom',
@@ -124,18 +208,100 @@
                             'Договоритесь об условиях. Когда всё решено, нажмите в чате «Запросить закрепление» — собственник подтвердит его.',
                             'Точка появится в «Моих точках», а выезды на установку и обслуживание вы согласуете в календаре.'
                         ]
-                    },
-                    {
-                        target: '#rrTourRestart', menu: 'account', placement: 'left',
-                        title: 'Это всё!',
-                        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».'
                     }
                 ]
-            }
+            },
+            {
+                name: 'Заявки',
+                page: '/pages/operator_applications.php',
+                nextLabel: 'Открыть чат →',
+                steps: [
+                    {
+                        target: ['.btn-view[href*="application_chat.php"]', '.page-container-1000 .page-intro'],
+                        closest: '.admin-table', placement: 'bottom',
+                        title: 'Мои заявки и чаты',
+                        text: 'Каждая заявка на аренду — отдельный чат с собственником. В списке видны локация, собственник, статус и дата, а кнопка «Чат» открывает переписку.\n\n' +
+                              'Заявка появляется здесь, когда вы отправляете её со страницы локации.'
+                    }
+                ]
+            },
+            {
+                name: 'Чат',
+                page: '/pages/application_chat.php',
+                entry: '/pages/operator_applications.php',
+                via: '.btn-view[href*="application_chat.php?application_id="]',
+                demoNote: CHAT_DEMO_NOTE,
+                nextLabel: 'Мои точки →',
+                steps: [
+                    {
+                        target: '#chatMessages', placement: 'right',
+                        title: 'Переписка',
+                        text: 'Здесь вся переписка с собственником по этой локации. Ваши сообщения — справа, галочки показывают статус: ✓ отправлено, ✓✓ прочитано собеседником.'
+                    },
+                    {
+                        target: '.chat-input', placement: 'top',
+                        title: 'Написать сообщение',
+                        text: 'Введите текст и нажмите ➤. Собеседник сразу получит уведомление на сайте. Обсудите цену, условия и сроки — всё остаётся в одном месте.'
+                    },
+                    {
+                        target: '#requestAssignmentBlock', open: 'chatSidebar', placement: 'left',
+                        title: 'Закрепление за локацией',
+                        text: 'Когда договорились с собственником, нажмите «Запросить закрепление». Он получит уведомление и одобрит или отклонит запрос.\n\n' +
+                              'После одобрения точка появится в «Моих точках», и можно планировать выезды.'
+                    },
+                    {
+                        target: '.status-wrapper', closest: '.sidebar-section', open: 'chatSidebar', placement: 'left',
+                        title: 'Статус заявки',
+                        text: 'Ваша личная отметка: «Ожидает», «В переговорах», «Договорённость», «Размещено» или «Отменена». Она видна только вам — у собственника свой статус.\n\n' +
+                              'Итог закрепления («подтверждено», «отклонено», «снято») общий для вас обоих.'
+                    },
+                    {
+                        target: '#eventBlock', open: 'chatSidebar', placement: 'left',
+                        title: 'Выезд',
+                        text: 'Когда вы закреплены за локацией, здесь планируется выезд: нажмите «Предложить дату». Собственник подтвердит время или предложит другое, а после визита выезд отмечается как завершённый. Все выезды видны и в календаре.'
+                    },
+                    {
+                        target: '.sidebar-action-row', closest: '.sidebar-section', open: 'chatSidebar', placement: 'left',
+                        title: 'Уведомления и удаление',
+                        text: 'Переключатель отключает уведомления по этой заявке. «Удалить чат» стирает заявку и всю переписку безвозвратно — пользуйтесь осторожно.'
+                    }
+                ]
+            },
+            {
+                name: 'Точки и вендинги',
+                page: '/pages/operator_locations.php',
+                nextLabel: 'Календарь →',
+                steps: [
+                    {
+                        target: ['.ol-location-card', '.locations-container .empty'], placement: 'bottom',
+                        title: 'Закреплённые точки',
+                        text: 'Здесь точки, за которыми вы закреплены после одобрения собственником: адрес, собственник и быстрые ссылки на локацию и календарь.\n\n' +
+                              'Пока закреплений нет — карточки появятся после первого одобренного запроса.'
+                    },
+                    {
+                        target: '.machine-box', placement: 'top',
+                        title: 'Карточка вендинга',
+                        text: 'Для каждой точки укажите вендинг: тип (снеки, напитки, кофе, комбо), модель, серийный номер и дату установки. Кнопка «Указать вендинг» создаёт карточку, «Изменить данные» — правит её в любой момент.'
+                    },
+                    {
+                        target: '.btn-service', placement: 'top',
+                        title: 'Отметить обслуживание',
+                        text: 'После каждого визита нажмите «Отметить обслуживание»: выберите, что сделано (плановое ТО, пополнение, ремонт), добавьте комментарий и фото.\n\n' +
+                              'Если автомат сломался или ему нужен ремонт — сообщите об этом здесь же: собственник увидит это в «Требует внимания».'
+                    },
+                    {
+                        target: '.service-badge', placement: 'top',
+                        title: 'Статус обслуживания',
+                        text: 'Метка показывает, давно ли автомат обслуживали, а также «Сломан» или «Требует ремонта». Если прошло больше ' + (state.serviceDueDays || 14) + ' дней, точка получит отметку «Требует обслуживания» и попадёт в «Требует внимания»: напомнят и вам, и собственнику.'
+                    }
+                ]
+            },
+            calendarChapter('operator')
         ],
 
         owner: [
             {
+                name: 'Кабинет',
                 page: '/pages/profile.php',
                 nextLabel: 'Открыть форму →',
                 steps: [
@@ -183,7 +349,9 @@
                 ]
             },
             {
+                name: 'Новая локация',
                 page: '/pages/add_location.php',
+                nextLabel: 'Заявки и чат →',
                 steps: [
                     {
                         target: '#cityInput', closest: '.form-group', placement: 'right',
@@ -224,14 +392,91 @@
                             'Договоритесь об условиях. Когда договорённость достигнута, оператор запросит закрепление — подтвердите его в чате.',
                             'Установку и обслуживание автомата согласуйте в календаре «Выезды».'
                         ]
-                    },
-                    {
-                        target: '#rrTourRestart', menu: 'account', placement: 'left',
-                        title: 'Это всё!',
-                        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».'
                     }
                 ]
-            }
+            },
+            {
+                name: 'Заявки',
+                page: '/pages/owner_applications.php',
+                nextLabel: 'Открыть чат →',
+                steps: [
+                    {
+                        target: ['.btn-view[href*="application_chat.php"]', '.page-container-1000 .page-intro'],
+                        closest: '.admin-table', placement: 'bottom',
+                        title: 'Заявки и чаты',
+                        text: 'Когда оператора заинтересует ваша локация, он напишет вам — так появляется заявка и отдельный чат. В списке видны локация, оператор, статус и дата, а кнопка «Чат» открывает переписку.\n\n' +
+                              'О новом сообщении сообщит колокольчик.'
+                    }
+                ]
+            },
+            {
+                name: 'Чат',
+                page: '/pages/application_chat.php',
+                entry: '/pages/owner_applications.php',
+                via: '.btn-view[href*="application_chat.php?application_id="]',
+                demoNote: CHAT_DEMO_NOTE,
+                nextLabel: 'Мои операторы →',
+                steps: [
+                    {
+                        target: '#chatMessages', placement: 'right',
+                        title: 'Переписка',
+                        text: 'Здесь вся переписка с оператором по этой локации. Ваши сообщения — справа, галочки показывают статус: ✓ отправлено, ✓✓ прочитано собеседником.'
+                    },
+                    {
+                        target: '.chat-input', placement: 'top',
+                        title: 'Ответить оператору',
+                        text: 'Введите текст и нажмите ➤. Оператор сразу получит уведомление на сайте. Обсудите цену, условия и сроки размещения — всё остаётся в одном месте.'
+                    },
+                    {
+                        target: '#assignmentRequestBlock', open: 'chatSidebar', placement: 'left',
+                        title: 'Запрос на закрепление',
+                        text: 'Когда вы договорились, оператор запрашивает закрепление — здесь появятся кнопки «Одобрить» и «Отклонить».\n\n' +
+                              'После одобрения оператор закреплён за локацией, а она скрывается из каталога.'
+                    },
+                    {
+                        target: '.status-wrapper', closest: '.sidebar-section', open: 'chatSidebar', placement: 'left',
+                        title: 'Статус заявки',
+                        text: 'Ваша личная отметка: «Ожидает», «В переговорах», «Договорённость», «Размещено» или «Отменена». Она видна только вам — у оператора свой статус.\n\n' +
+                              'Итог закрепления («подтверждено», «отклонено», «снято») общий для вас обоих.'
+                    },
+                    {
+                        target: '#eventBlock', open: 'chatSidebar', placement: 'left',
+                        title: 'Выезд',
+                        text: 'Когда оператор закреплён за локацией, здесь планируется выезд: «Предложить дату» или «Срочный выезд» (например, при поломке). Оператор подтвердит время или предложит другое, а после визита выезд отмечается как завершённый. Все выезды видны и в календаре.'
+                    },
+                    {
+                        target: '.sidebar-action-row', closest: '.sidebar-section', open: 'chatSidebar', placement: 'left',
+                        title: 'Уведомления и удаление',
+                        text: 'Переключатель отключает уведомления по этой заявке. «Удалить чат» стирает заявку и всю переписку безвозвратно — пользуйтесь осторожно.'
+                    }
+                ]
+            },
+            {
+                name: 'Операторы и вендинги',
+                page: '/pages/owner_operators.php',
+                nextLabel: 'Календарь →',
+                steps: [
+                    {
+                        target: '#addAssignmentBtn', placement: 'bottom',
+                        title: 'Закрепить оператора',
+                        text: 'Обычно оператор сам просит закрепление в чате, а вы его подтверждаете. Но можно закрепить и напрямую: выберите локацию и оператора, который уже писал вам по заявке.'
+                    },
+                    {
+                        target: ['.assignments-table', '.oo-container .empty'], placement: 'top',
+                        title: 'Закреплённые операторы',
+                        text: 'Здесь видно, какой оператор за какой локацией закреплён. Кнопка «Открепить» снимает закрепление.'
+                    },
+                    {
+                        title: 'Вендинги на ваших точках',
+                        text: 'Данные об автомате — тип, модель, обслуживание — вносит закреплённый оператор. Вы видите результат:',
+                        items: [
+                            ['Требует внимания', 'сюда в профиле попадают сломанные автоматы и те, что требуют ремонта или обслуживания'],
+                            ['Календарь → История и экспорт', 'вся история выездов и обслуживания, с выгрузкой в CSV и PDF']
+                        ]
+                    }
+                ]
+            },
+            calendarChapter('owner')
         ]
     };
 
@@ -289,13 +534,6 @@
             });
     }
 
-    function chapterIndexForPath(path) {
-        for (var i = 0; i < chapters.length; i++) {
-            if (chapters[i].page === path) return i;
-        }
-        return -1;
-    }
-
     // Меню аккаунта в шапке: открываем на шаге «Это всё!», чтобы показать, где
     // живёт пункт «Обучение». Разметка и классы — includes/header.php.
     function setAccountMenu(open) {
@@ -305,6 +543,19 @@
         dropdown.classList.toggle('open', open);
         btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
+
+    // Панель деталей чата: на телефоне (≤ 768px) это выезжающая шторка, и
+    // подсвечивать лежащие в ней блоки можно, только раскрыв её. На широком
+    // экране панель и так видна — ничего не делаем. Классы — pages/application_chat.php.
+    function setChatSidebar(open) {
+        if (!window.matchMedia('(max-width: 768px)').matches) return;
+        var sidebar = document.getElementById('chatSidebar');
+        var backdrop = document.getElementById('sidebarBackdrop');
+        if (sidebar) sidebar.classList.toggle('open', open);
+        if (backdrop) backdrop.classList.toggle('show', open);
+    }
+
+    var OPENERS = { account: setAccountMenu, chatSidebar: setChatSidebar };
 
     // Окно/карточка с «ловушкой» фокуса и закрытием по Esc. Одновременно
     // открыто не больше одного — активное хранится в activeDialog.
@@ -459,7 +710,7 @@
             ci: ci, si: 0, layer: layer, spot: spot, pop: pop,
             count: count, barFill: barFill, title: title, body: body,
             skipBtn: skipBtn, prevBtn: prevBtn, nextBtn: nextBtn,
-            target: null, busy: false, raf: 0, timers: [], menuOpen: false
+            target: null, busy: false, raf: 0, timers: [], opened: null, demo: false
         };
 
         closeBtn.addEventListener('click', skipTour);
@@ -469,7 +720,7 @@
         return r;
     }
 
-    function startChapter(ci) {
+    function startChapter(ci, demo) {
         removeWelcome();
         removePill();
         if (!run) {
@@ -489,12 +740,13 @@
             });
         }
         run.ci = ci;
+        run.demo = !!demo;
         run.busy = false;
         showStep(0);
     }
 
     function findTarget(step) {
-        if (!step.target) return null;
+        if (!step.target || run.demo) return null;
         var selectors = Array.isArray(step.target) ? step.target : [step.target];
         for (var i = 0; i < selectors.length; i++) {
             var found = firstVisible(selectors[i]);
@@ -530,23 +782,31 @@
         var isLastOfChapter = si === ch.steps.length - 1;
         var isLastOfTour = isLastOfChapter && run.ci === chapters.length - 1;
 
-        // Меню аккаунта — только пока идёт «его» шаг.
-        var wantMenu = step.menu === 'account';
-        if (wantMenu !== run.menuOpen) {
-            setAccountMenu(wantMenu);
-            run.menuOpen = wantMenu;
+        // Раскрывающиеся элементы (меню аккаунта, шторка чата) держим открытыми
+        // только пока идёт «их» шаг.
+        var wantOpen = step.open || null;
+        if (wantOpen !== run.opened) {
+            if (run.opened) OPENERS[run.opened](false);
+            if (wantOpen) OPENERS[wantOpen](true);
+            run.opened = wantOpen;
         }
 
-        // Содержимое
+        // Содержимое. В счётчике — название раздела и шаг внутри него (общее
+        // число шагов по всему обучению пугало бы), полоса — общий прогресс.
         var done = globalIndex() + 1;
-        run.count.textContent = 'Шаг ' + done + ' из ' + totalSteps;
+        run.count.textContent = (ch.name ? ch.name + ' · ' : '') + (si + 1) + ' из ' + ch.steps.length;
+        run.count.title = 'Раздел ' + (run.ci + 1) + ' из ' + chapters.length + ' · всего шагов: ' + totalSteps;
         run.barFill.style.width = Math.round(done / totalSteps * 100) + '%';
         run.title.textContent = step.title;
         run.body.textContent = '';
         if (step.text) appendParagraphs(run.body, step.text);
         if (step.items) appendList(run.body, step.items, !!step.ordered);
+        if (run.demo && ch.demoNote) run.body.appendChild(el('p', 'rr-tour-note', ch.demoNote));
 
         run.prevBtn.disabled = si === 0;
+        // Кнопку блокирует переход между главами (goToChapter) — если новая глава
+        // открылась на этой же странице, её нужно включить обратно.
+        run.nextBtn.disabled = false;
         run.nextBtn.textContent = isLastOfTour ? 'Завершить' : (isLastOfChapter ? (ch.nextLabel || 'Далее →') : 'Далее →');
 
         // Цель и позиция
@@ -566,9 +826,29 @@
         run.timers = [];
     }
 
+    // Цель может лежать в прокручиваемом контейнере (боковая панель чата) —
+    // показываем её там, прежде чем выравнивать саму страницу. Только по
+    // вертикали и только контейнеры с overflow auto/scroll: scrollIntoView() тут
+    // не годится — он ещё и сдвигает по горизонтали контейнеры с overflow: hidden
+    // (на телефоне так «уезжала» вся карточка чата вместе с выехавшей шторкой).
+    function scrollNestedContainers(node) {
+        for (var parent = node.parentElement; parent && parent !== document.body && parent !== document.documentElement; parent = parent.parentElement) {
+            var overflowY = window.getComputedStyle(parent).overflowY;
+            if ((overflowY !== 'auto' && overflowY !== 'scroll') || parent.scrollHeight <= parent.clientHeight) continue;
+            var box = parent.getBoundingClientRect();
+            var rect = node.getBoundingClientRect();
+            if (rect.top < box.top) {
+                parent.scrollTop -= (box.top - rect.top) + 8;
+            } else if (rect.bottom > box.bottom) {
+                parent.scrollTop += (rect.bottom - box.bottom) + 8;
+            }
+        }
+    }
+
     // Прокручиваем страницу так, чтобы цель была на виду целиком и не пряталась
     // под карточкой (на телефоне карточка — «шторка» внизу экрана).
     function ensureVisible(node, step) {
+        scrollNestedContainers(node);
         var rect = targetRect(step, node);
         var vh = window.innerHeight;
         var margin = 16;
@@ -679,6 +959,36 @@
         showStep(run.si - 1);
     }
 
+    // Куда вести пользователя в главу ci: на её страницу, а для «чатовых» глав
+    // (entry/via) — по ссылке с входной страницы либо, если ссылки нет, проводим
+    // главу на месте в demo-режиме.
+    function enterChapter(ci) {
+        var ch = chapters[ci];
+        if (ch.page === currentPath) {
+            startChapter(ci);
+            return;
+        }
+        if (!ch.entry) {
+            window.location.href = ch.page;
+            return;
+        }
+        if (ch.entry !== currentPath) {
+            window.location.href = ch.entry;
+            return;
+        }
+
+        var link = firstVisible(ch.via);
+        var target = null;
+        try {
+            target = link ? new URL(link.href, window.location.href) : null;
+        } catch (e) { /* битая ссылка — как будто её нет */ }
+        if (target && target.origin === window.location.origin && target.pathname === ch.page) {
+            window.location.href = target.pathname + target.search;
+        } else {
+            startChapter(ci, true);
+        }
+    }
+
     // Переход к следующей главе: сначала сохраняем прогресс, потом уходим на
     // её страницу — иначе после перехода обучение не знало бы, где продолжать.
     function goToChapter(ci) {
@@ -693,11 +1003,7 @@
             }
             state.status = 'in_progress';
             state.chapter = ci;
-            if (chapters[ci].page === currentPath) {
-                startChapter(ci);
-            } else {
-                window.location.href = chapters[ci].page;
-            }
+            enterChapter(ci);
         }).catch(function () {
             if (!run) return;
             run.busy = false;
@@ -735,7 +1041,7 @@
         window.removeEventListener('resize', schedulePlace);
         window.removeEventListener('scroll', schedulePlace, true);
         window.removeEventListener('load', schedulePlace);
-        if (run.menuOpen) setAccountMenu(false);
+        if (run.opened) OPENERS[run.opened](false);
         if (run.layer.parentNode) run.layer.parentNode.removeChild(run.layer);
         run = null;
         closeDialog();
@@ -818,7 +1124,7 @@
         document.body.appendChild(node);
         pill = node;
 
-        goBtn.addEventListener('click', function () { window.location.href = chapters[ci].page; });
+        goBtn.addEventListener('click', function () { window.location.href = chapters[ci].entry || chapters[ci].page; });
         stopBtn.addEventListener('click', skipTour);
     }
 
@@ -847,7 +1153,7 @@
                 starting = false;
                 startChapter(0);
             } else {
-                window.location.href = chapters[0].page;
+                window.location.href = chapters[0].entry || chapters[0].page;
             }
         }).catch(function () {
             starting = false;
@@ -871,8 +1177,8 @@
             showWelcome();
         } else if (state.status === 'in_progress') {
             var ci = Math.max(0, Math.min(chapters.length - 1, parseInt(state.chapter, 10) || 0));
-            if (chapters[ci].page === currentPath) {
-                startChapter(ci);
+            if (chapters[ci].page === currentPath || chapters[ci].entry === currentPath) {
+                enterChapter(ci);
             } else {
                 showPill(ci);
             }

@@ -219,6 +219,7 @@ function onboardingCall($baseUrl, $jar, $csrf, $fields) {
 check(strpos($ownerPage, 'window.rrOnboarding') !== false && strpos($ownerPage, 'rr-tour.js') !== false, 'owner: tour config and script are on the page');
 check(strpos($ownerPage, '"status":"pending"') !== false, 'owner: a new account starts with onboarding_status = pending');
 check(strpos($ownerPage, 'data-rr-tour-start') !== false, 'owner: account menu has the «Обучение» entry');
+check(strpos($ownerPage, '"serviceDueDays":' . SERVICE_DUE_DAYS) !== false, 'owner: the service threshold is passed to the tour from SERVICE_DUE_DAYS');
 $ownerCsrf = preg_match('/window\.csrfToken = "([^"]+)"/', $ownerPage, $m) ? $m[1] : '';
 
 [$code] = httpPost($baseUrl . '/api/onboarding.php', ['action' => 'skip'], $ownerJar);
