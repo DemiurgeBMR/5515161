@@ -150,7 +150,7 @@ check($code === 403, "guest POST /api/onboarding.php -> 403 (got $code)");
 // --- Регистрация: подтверждение пароля и стартовый статус обучения ---
 // У register.php свой rate-limit по IP (5 попыток за 5 минут) — чистим ключ,
 // чтобы повторные локальные прогоны смока не упирались в него.
-$pdo->exec("DELETE FROM rate_limits WHERE rate_key LIKE 'register:%'");
+$pdo->exec("DELETE FROM rate_limits WHERE rate_key = 'register:127.0.0.1'");
 $pdo->exec("DELETE FROM users WHERE email = 'smoke_register@example.test'");
 [, $registerPage] = httpGet($baseUrl . '/pages/register.php', $guestJar);
 check(strpos($registerPage, 'name="password_confirm"') !== false, 'register form has the password confirmation field');
@@ -177,7 +177,7 @@ $stmt = $pdo->prepare("SELECT onboarding_status FROM users WHERE email = ?");
 $stmt->execute(['smoke_register@example.test']);
 check($stmt->fetchColumn() === 'pending', 'register: matching passwords create the account with onboarding_status = pending');
 $pdo->exec("DELETE FROM users WHERE email = 'smoke_register@example.test'");
-$pdo->exec("DELETE FROM rate_limits WHERE rate_key LIKE 'register:%'");
+$pdo->exec("DELETE FROM rate_limits WHERE rate_key = 'register:127.0.0.1'");
 unlink($guestJar);
 
 // --- Оператор: логин + свои страницы ---
@@ -230,6 +230,12 @@ check($code === 400, "onboarding API rejects an unknown action (got $code)");
 check($code === 200 && $res['status'] === 'in_progress' && $res['chapter'] === 0, 'onboarding start -> in_progress, chapter 0');
 [$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '1']);
 check($res['status'] === 'in_progress' && $res['chapter'] === 1, 'onboarding progress -> chapter 1');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '0']);
+check($res['status'] === 'in_progress' && $res['chapter'] === 1, 'a stale tab cannot rewind progress to an earlier chapter');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress']);
+check($code === 400, "progress without a chapter is rejected, not treated as chapter 0 (got $code)");
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => 'abc']);
+check($code === 400, "progress with a non-numeric chapter is rejected (got $code)");
 [$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '9999']);
 check($res['chapter'] === ONBOARDING_MAX_CHAPTER, 'onboarding progress clamps an out-of-range chapter');
 [, $ownerPage] = httpGet($baseUrl . '/pages/profile.php', $ownerJar);

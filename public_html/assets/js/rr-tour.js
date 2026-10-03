@@ -14,8 +14,10 @@
  *
  *   pending     → на любой странице предлагаем начать (окно-приглашение);
  *                 «Пропустить»/Esc — это skipped, повторно не навязываемся
- *   in_progress → на странице текущей главы продолжаем, на другой — плашка
- *                 «Продолжить обучение» (сами никуда не перекидываем)
+ *   in_progress → на странице текущей главы продолжаем, на другой (в том числе
+ *                 на входной странице чат-главы) — плашка «Продолжить обучение»;
+ *                 сами никуда не перекидываем, только после явного нажатия
+ *                 на «Продолжить» или на кнопку перехода к следующей главе
  *   completed / skipped → ничего не показываем; заново — по кнопке
  *                 [data-rr-tour-start] (меню аккаунта → «Обучение», страница
  *                 «Как это работает»)
@@ -646,6 +648,12 @@
 
     var run = null; // { ci, si, layer, spot, pop, ..., target, busy, raf, timers }
 
+    // Растёт при каждом пропуске и новом запуске. Ответ на запрос, отправленный
+    // раньше (нажали «Далее» и сразу «Пропустить»), сверяет свою эпоху с текущей
+    // и, если она устарела, ничего не открывает — иначе обучение «воскресало» бы
+    // после пропуска.
+    var epoch = 0;
+
     function currentStep() {
         return chapters[run.ci].steps[run.si];
     }
@@ -992,9 +1000,11 @@
     // Переход к следующей главе: сначала сохраняем прогресс, потом уходим на
     // её страницу — иначе после перехода обучение не знало бы, где продолжать.
     function goToChapter(ci) {
+        var myEpoch = epoch;
         run.busy = true;
         run.nextBtn.disabled = true;
         api('progress', ci).then(function (data) {
+            if (myEpoch !== epoch || !run) return;
             if (data.status !== 'in_progress') {
                 // Обучение успели остановить в другой вкладке.
                 state.status = data.status;
@@ -1023,6 +1033,7 @@
     }
 
     function skipTour() {
+        epoch++;
         endRun();
         removeWelcome();
         removePill();
@@ -1117,14 +1128,24 @@
         node.appendChild(el('span', 'rr-tour-pill-text', 'Вы не закончили обучение'));
         var goBtn = el('button', 'rr-tour-btn rr-tour-btn-primary', 'Продолжить');
         goBtn.type = 'button';
-        var stopBtn = el('button', 'rr-tour-btn', 'Закрыть');
+        var stopBtn = el('button', 'rr-tour-btn', 'Пропустить');
         stopBtn.type = 'button';
+        stopBtn.title = 'Пропустить обучение — позже его можно пройти заново из меню аккаунта';
         node.appendChild(goBtn);
         node.appendChild(stopBtn);
         document.body.appendChild(node);
         pill = node;
 
-        goBtn.addEventListener('click', function () { window.location.href = chapters[ci].entry || chapters[ci].page; });
+        goBtn.addEventListener('click', function () {
+            var ch = chapters[ci];
+            // Мы уже на входной странице главы (список заявок) — продолжаем на месте.
+            if (ch.page === currentPath || ch.entry === currentPath) {
+                removePill();
+                enterChapter(ci);
+            } else {
+                window.location.href = ch.entry || ch.page;
+            }
+        });
         stopBtn.addEventListener('click', skipTour);
     }
 
@@ -1143,8 +1164,13 @@
     function startTour(button) {
         if (starting) return;
         starting = true;
+        var myEpoch = ++epoch;
         if (button) button.disabled = true;
         api('start').then(function () {
+            if (myEpoch !== epoch) {
+                starting = false;
+                return;
+            }
             state.status = 'in_progress';
             state.chapter = 0;
             removeWelcome();
@@ -1154,6 +1180,9 @@
                 startChapter(0);
             } else {
                 window.location.href = chapters[0].entry || chapters[0].page;
+                // Переход могут отменить (например, окно «уйти со страницы?») —
+                // тогда кнопка запуска не должна остаться «залипшей».
+                setTimeout(function () { starting = false; }, 4000);
             }
         }).catch(function () {
             starting = false;
@@ -1177,8 +1206,8 @@
             showWelcome();
         } else if (state.status === 'in_progress') {
             var ci = Math.max(0, Math.min(chapters.length - 1, parseInt(state.chapter, 10) || 0));
-            if (chapters[ci].page === currentPath || chapters[ci].entry === currentPath) {
-                enterChapter(ci);
+            if (chapters[ci].page === currentPath) {
+                startChapter(ci);
             } else {
                 showPill(ci);
             }

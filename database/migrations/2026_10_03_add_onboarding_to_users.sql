@@ -13,15 +13,21 @@
 --                        обучение идёт по нескольким страницам, и при
 --                        возврате на сайт оно продолжается с неё, а не с нуля.
 --
--- Все уже существующие аккаунты помечаются как 'skipped': им обучение
--- автоматически не показывается (оно для новых пользователей), но запустить
--- его вручную можно в любой момент — меню аккаунта → «Обучение». Для этого
--- колонка сначала создаётся с DEFAULT 'skipped' (так заполняются старые
--- строки), а затем значение по умолчанию меняется на 'pending' — для всех,
--- кто зарегистрируется после этой миграции.
+-- Значение по умолчанию — 'pending': оно достаётся всем, кто зарегистрируется
+-- после этой миграции. Все уже существующие аккаунты следующей командой
+-- помечаются как 'skipped': им обучение автоматически не показывается (оно для
+-- новых пользователей), но запустить его вручную можно в любой момент — меню
+-- аккаунта → «Обучение».
+--
+-- Порядок выбран намеренно: колонка сразу создаётся с правильным DEFAULT
+-- 'pending', а «пропуск» для старых аккаунтов — отдельным UPDATE. Если этот
+-- UPDATE по какой-то причине не выполнится, худший исход безобиден (старые
+-- аккаунты один раз увидят приглашение), в отличие от обратного порядка, где
+-- сбой на смене DEFAULT оставил бы 'skipped' всем новым пользователям.
+-- `updated_at = updated_at` — чтобы массовый UPDATE не перезаписал
+-- users.updated_at (ON UPDATE CURRENT_TIMESTAMP) у всех существующих аккаунтов.
 ALTER TABLE `users`
-    ADD COLUMN `onboarding_status` enum('pending','in_progress','completed','skipped') NOT NULL DEFAULT 'skipped' AFTER `privacy_consent_at`,
+    ADD COLUMN `onboarding_status` enum('pending','in_progress','completed','skipped') NOT NULL DEFAULT 'pending' AFTER `privacy_consent_at`,
     ADD COLUMN `onboarding_chapter` tinyint unsigned NOT NULL DEFAULT 0 AFTER `onboarding_status`;
 
-ALTER TABLE `users`
-    ALTER COLUMN `onboarding_status` SET DEFAULT 'pending';
+UPDATE `users` SET `onboarding_status` = 'skipped', `updated_at` = `updated_at`;
