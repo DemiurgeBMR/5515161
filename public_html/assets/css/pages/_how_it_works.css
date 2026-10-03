@@ -20,6 +20,61 @@
     margin-bottom: 36px;
 }
 
+/* Плашка запуска интерактивного обучения (rr-tour.js) — только для
+   залогиненных собственников и операторов. */
+.hiw-tour-callout {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 28px;
+}
+.hiw-tour-callout-icon {
+    font-size: 28px;
+    line-height: 1;
+    color: var(--accent);
+    flex-shrink: 0;
+}
+.hiw-tour-callout-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-muted, #9a9aa5);
+}
+.hiw-tour-callout-text strong {
+    font-size: 16px;
+    color: var(--text, #f2f2f5);
+}
+.hiw-tour-btn {
+    flex-shrink: 0;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 26px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.hiw-tour-btn:hover {
+    background: var(--accent-hover);
+}
+@media (max-width: 600px) {
+    .hiw-tour-callout {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .hiw-tour-btn {
+        width: 100%;
+    }
+}
+
 .hiw-columns {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -72,12 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
                 <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                 <div class="form-group">
                     <label>Новый пароль</label>
-                    <input type="password" name="password" required minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                    <input type="password" name="password" required autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                     <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                 </div>
                 <div class="form-group">
                     <label>Подтверждение пароля</label>
-                    <input type="password" name="password_confirm" required placeholder="Повторите пароль">
+                    <input type="password" name="password_confirm" required autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
                 </div>
                 <button type="submit" class="btn-submit">Сохранить новый пароль</button>
             </form>

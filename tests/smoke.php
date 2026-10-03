@@ -142,6 +142,42 @@ foreach (['/pages/add_location.php', '/pages/profile.php', '/admin/index.php'] a
     [$code] = httpGet($baseUrl . $path, $guestJar, false);
     check($code === 302, "guest GET $path -> 302 redirect to login (got $code)");
 }
+[, $guestCatalog] = httpGet($baseUrl . '/pages/catalog.php', $guestJar);
+check(strpos($guestCatalog, 'rr-tour.js') === false, 'guest: interactive tour script is not loaded');
+[$code] = httpPost($baseUrl . '/api/onboarding.php', ['action' => 'start'], $guestJar);
+check($code === 403, "guest POST /api/onboarding.php -> 403 (got $code)");
+
+// --- Регистрация: подтверждение пароля и стартовый статус обучения ---
+// У register.php свой rate-limit по IP (5 попыток за 5 минут) — чистим ключ,
+// чтобы повторные локальные прогоны смока не упирались в него.
+$pdo->exec("DELETE FROM rate_limits WHERE rate_key LIKE 'register:%'");
+$pdo->exec("DELETE FROM users WHERE email = 'smoke_register@example.test'");
+[, $registerPage] = httpGet($baseUrl . '/pages/register.php', $guestJar);
+check(strpos($registerPage, 'name="password_confirm"') !== false, 'register form has the password confirmation field');
+$registerFields = [
+    'csrf_token' => extractCsrf($registerPage),
+    'role' => 'operator',
+    'full_name' => 'Smoke Register',
+    'email' => 'smoke_register@example.test',
+    'phone' => '',
+    'password' => 'Smoke123!pass',
+    'privacy_consent' => '1',
+    'terms_consent' => '1',
+];
+[, $mismatchBody] = httpPost($baseUrl . '/pages/register.php', $registerFields + ['password_confirm' => 'Smoke123!other'], $guestJar);
+check(strpos($mismatchBody, 'Пароли не совпадают') !== false, 'register rejects a mismatching password confirmation');
+check(strpos($mismatchBody, 'name="email"') !== false, 'register stays on the form after a mismatch');
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email = ?");
+$stmt->execute(['smoke_register@example.test']);
+check((int) $stmt->fetchColumn() === 0, 'register: no account is created on a password mismatch');
+[, $missingConfirmBody] = httpPost($baseUrl . '/pages/register.php', $registerFields, $guestJar);
+check(strpos($missingConfirmBody, 'Пароли не совпадают') !== false, 'register rejects a request with no confirmation field at all');
+httpPost($baseUrl . '/pages/register.php', $registerFields + ['password_confirm' => 'Smoke123!pass'], $guestJar);
+$stmt = $pdo->prepare("SELECT onboarding_status FROM users WHERE email = ?");
+$stmt->execute(['smoke_register@example.test']);
+check($stmt->fetchColumn() === 'pending', 'register: matching passwords create the account with onboarding_status = pending');
+$pdo->exec("DELETE FROM users WHERE email = 'smoke_register@example.test'");
+$pdo->exec("DELETE FROM rate_limits WHERE rate_key LIKE 'register:%'");
 unlink($guestJar);
 
 // --- Оператор: логин + свои страницы ---
@@ -173,6 +209,41 @@ foreach ([
     [$code] = httpGet($baseUrl . $path, $ownerJar);
     check($code === 200, "owner GET $path -> 200 (got $code)");
 }
+
+// --- Интерактивное обучение: состояние и API (api/onboarding.php) ---
+function onboardingCall($baseUrl, $jar, $csrf, $fields) {
+    [$code, $body] = httpPost($baseUrl . '/api/onboarding.php', $fields + ['csrf_token' => $csrf], $jar);
+    return [$code, json_decode($body, true)];
+}
+[, $ownerPage] = httpGet($baseUrl . '/pages/profile.php', $ownerJar);
+check(strpos($ownerPage, 'window.rrOnboarding') !== false && strpos($ownerPage, 'rr-tour.js') !== false, 'owner: tour config and script are on the page');
+check(strpos($ownerPage, '"status":"pending"') !== false, 'owner: a new account starts with onboarding_status = pending');
+check(strpos($ownerPage, 'data-rr-tour-start') !== false, 'owner: account menu has the «Обучение» entry');
+$ownerCsrf = preg_match('/window\.csrfToken = "([^"]+)"/', $ownerPage, $m) ? $m[1] : '';
+
+[$code] = httpPost($baseUrl . '/api/onboarding.php', ['action' => 'skip'], $ownerJar);
+check($code === 403, "onboarding API without a CSRF token -> 403 (got $code)");
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'nonsense']);
+check($code === 400, "onboarding API rejects an unknown action (got $code)");
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'start']);
+check($code === 200 && $res['status'] === 'in_progress' && $res['chapter'] === 0, 'onboarding start -> in_progress, chapter 0');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '1']);
+check($res['status'] === 'in_progress' && $res['chapter'] === 1, 'onboarding progress -> chapter 1');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '9999']);
+check($res['chapter'] === ONBOARDING_MAX_CHAPTER, 'onboarding progress clamps an out-of-range chapter');
+[, $ownerPage] = httpGet($baseUrl . '/pages/profile.php', $ownerJar);
+check(strpos($ownerPage, '"status":"in_progress"') !== false, 'in-progress state is passed to the page');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'skip']);
+check($res['status'] === 'skipped', 'onboarding skip -> skipped');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'progress', 'chapter' => '1']);
+check($res['status'] === 'skipped', 'a stale tab cannot revive a skipped tour via progress');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'start']);
+check($res['status'] === 'in_progress', 'restart after skip -> in_progress');
+[$code, $res] = onboardingCall($baseUrl, $ownerJar, $ownerCsrf, ['action' => 'complete']);
+check($res['status'] === 'completed', 'onboarding complete -> completed');
+$stmt = $pdo->prepare("SELECT onboarding_status FROM users WHERE id = 90001");
+$stmt->execute();
+check($stmt->fetchColumn() === 'completed', 'onboarding state is persisted in the database');
 unlink($ownerJar);
 
 // --- Админ: логин + панель ---
@@ -187,6 +258,11 @@ foreach ([
     [$code] = httpGet($baseUrl . $path, $adminJar);
     check($code === 200, "admin GET $path -> 200 (got $code)");
 }
+[, $adminCatalog] = httpGet($baseUrl . '/pages/catalog.php', $adminJar);
+check(strpos($adminCatalog, 'rr-tour.js') === false && strpos($adminCatalog, 'data-rr-tour-start') === false, 'admin: no tour script or menu entry');
+$adminCsrf = preg_match('/window\.csrfToken = "([^"]+)"/', $adminCatalog, $m) ? $m[1] : '';
+[$code] = httpPost($baseUrl . '/api/onboarding.php', ['action' => 'start', 'csrf_token' => $adminCsrf], $adminJar);
+check($code === 403, "admin POST /api/onboarding.php -> 403 (got $code)");
 unlink($adminJar);
 
 // ---------- 4. Убираем тестовые данные ----------

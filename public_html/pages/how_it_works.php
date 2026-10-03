@@ -29,6 +29,18 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 контакты самостоятельно не нужно.
             </p>
 
+            <?php if (rr_onboarding_applies($role)): ?>
+                <!-- Запуск интерактивного обучения (assets/js/rr-tour.js) -->
+                <div class="hiw-tour-callout">
+                    <span class="hiw-tour-callout-icon"><?php echo rr_icon('help-circle'); ?></span>
+                    <div class="hiw-tour-callout-text">
+                        <strong>Покажем прямо на сайте</strong>
+                        <span>Интерактивное обучение за пару минут: что где нажимать именно в вашем кабинете. Его можно пропустить и пройти заново в любой момент.</span>
+                    </div>
+                    <button type="button" class="hiw-tour-btn" data-rr-tour-start>Пройти обучение</button>
+                </div>
+            <?php endif; ?>
+
             <div class="hiw-columns">
                 <div class="hiw-column<?php echo $role === 'owner' ? ' hiw-column-active' : ''; ?>">
                     <div class="hiw-column-header">

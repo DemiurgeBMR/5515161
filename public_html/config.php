@@ -632,6 +632,95 @@ function rr_login_redirect_url($role) {
     return '/pages/profile.php';
 }
 
+// --- ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ НОВЫХ ПОЛЬЗОВАТЕЛЕЙ ---
+// Пошаговая подсветка интерфейса для собственников и операторов (сами шаги и
+// тексты — в assets/js/rr-tour.js, здесь только состояние прохождения;
+// колонки users.onboarding_*, см. миграцию 2026_10_03_add_onboarding_to_users.sql).
+// Новый аккаунт стартует в 'pending' — при первом заходе ему предлагают
+// пройти обучение; пропустить и пройти заново можно в любой момент.
+const ONBOARDING_STATUSES = ['pending', 'in_progress', 'completed', 'skipped'];
+const ONBOARDING_ROLES = ['owner', 'operator'];
+// Верхняя граница номера «главы» — только защита от мусора в запросе,
+// реальное число глав определяет сам скрипт обучения.
+const ONBOARDING_MAX_CHAPTER = 9;
+
+/**
+ * Обучение есть у собственников и операторов; у администратора — нет.
+ */
+function rr_onboarding_applies($role) {
+    return in_array($role, ONBOARDING_ROLES, true);
+}
+
+/**
+ * ['status' => ..., 'chapter' => ...] текущего пользователя или null, если
+ * состояние прочитать не удалось (например, миграция с колонками ещё не
+ * накатилась) — обучение тогда просто не показывается, а не роняет страницу.
+ *
+ * Завершённое/пропущенное состояние запоминается в сессии: оно меняется
+ * только по явному действию пользователя (перезапуск идёт через
+ * rr_onboarding_update(), который сбрасывает это значение), поэтому на каждом
+ * следующем просмотре страницы лишний запрос в БД не нужен.
+ */
+function rr_onboarding_state(PDO $pdo, $userId) {
+    // Кэш привязан к id пользователя — на случай, если в сессии когда-нибудь
+    // сменится аккаунт без её пересоздания, чужой статус подставляться не должен.
+    $cached = $_SESSION['onboarding_closed'] ?? null;
+    if (is_array($cached) && ($cached['user_id'] ?? null) == $userId
+        && in_array($cached['status'] ?? null, ['completed', 'skipped'], true)) {
+        return ['status' => $cached['status'], 'chapter' => 0];
+    }
+
+    try {
+        $stmt = $pdo->prepare("SELECT onboarding_status, onboarding_chapter FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+    } catch (PDOException $e) {
+        error_log('rr_onboarding_state: ' . $e->getMessage());
+        return null;
+    }
+
+    if (!$row || !in_array($row['onboarding_status'], ONBOARDING_STATUSES, true)) {
+        return null;
+    }
+
+    if ($row['onboarding_status'] === 'completed' || $row['onboarding_status'] === 'skipped') {
+        $_SESSION['onboarding_closed'] = ['user_id' => $userId, 'status' => $row['onboarding_status']];
+    }
+
+    return ['status' => $row['onboarding_status'], 'chapter' => (int) $row['onboarding_chapter']];
+}
+
+/**
+ * Меняет состояние обучения. $status — одно из ONBOARDING_STATUSES.
+ *
+ * 'progress' (переход к следующей главе) применяется, только если обучение
+ * сейчас идёт: если пользователь уже пропустил его в соседней вкладке, устаревшая
+ * вкладка не должна «воскресить» обучение. Остальные переходы (старт, завершение,
+ * пропуск) безусловны — пользователь явно этого хотел.
+ *
+ * Возвращает актуальное состояние после операции или null при ошибке БД.
+ */
+function rr_onboarding_update(PDO $pdo, $userId, $status, $chapter = 0, $onlyIfInProgress = false) {
+    if (!in_array($status, ONBOARDING_STATUSES, true)) {
+        return null;
+    }
+    $chapter = max(0, min(ONBOARDING_MAX_CHAPTER, (int) $chapter));
+
+    try {
+        $sql = "UPDATE users SET onboarding_status = ?, onboarding_chapter = ? WHERE id = ?";
+        if ($onlyIfInProgress) {
+            $sql .= " AND onboarding_status = 'in_progress'";
+        }
+        $pdo->prepare($sql)->execute([$status, $chapter, $userId]);
+    } catch (PDOException $e) {
+        error_log('rr_onboarding_update: ' . $e->getMessage());
+        return null;
+    }
+
+    unset($_SESSION['onboarding_closed']);
+    return rr_onboarding_state($pdo, $userId);
+}
+
 // Единственно допустимые цвета аватара — используется и для валидации при
 // сохранении, и для отрисовки палитры выбора, чтобы эти два места не разъезжались.
 define('ALLOWED_AVATAR_COLORS', [

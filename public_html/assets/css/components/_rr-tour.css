@@ -1,0 +1,278 @@
+/* ===== ИНТЕРАКТИВНОЕ ОБУЧЕНИЕ (assets/js/rr-tour.js) =====
+   Подсветка элемента страницы + карточка с пояснением, приглашение в
+   начале и плашка «продолжить», если обучение прервали. Цвета — только
+   через переменные темы, поэтому одинаково работает в тёмной и светлой. */
+
+/* Слой поверх всей страницы: перехватывает клики, чтобы во время
+   обучения нельзя было случайно уйти со страницы или нажать лишнее. */
+.rr-tour-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 110000;
+    transition: background-color 0.2s ease;
+}
+/* Шаг без привязки к элементу (и приглашение) — затемняем слой целиком;
+   шаг с подсветкой затемняет сама «дыра» (см. .rr-tour-spot). */
+.rr-tour-layer.rr-tour-dim {
+    background: rgba(6, 12, 10, 0.68);
+}
+
+.rr-tour-spot {
+    position: fixed;
+    border-radius: 12px;
+    pointer-events: none;
+    box-shadow: 0 0 0 100vmax rgba(6, 12, 10, 0.68);
+    outline: 2px solid var(--accent);
+    outline-offset: 0;
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, opacity 0.2s ease;
+}
+
+.rr-tour-pop {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    width: 380px;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow: hidden;
+    padding: 18px 20px 16px;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+}
+.rr-tour-pop:focus {
+    outline: none;
+}
+.rr-tour-pop.is-center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.rr-tour-pop.rr-tour-welcome {
+    width: 460px;
+    padding: 26px 26px 22px;
+}
+
+.rr-tour-x {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text-faint);
+    cursor: pointer;
+}
+.rr-tour-x:hover {
+    color: var(--text);
+    background: var(--bg-elevated-2);
+}
+
+.rr-tour-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-right: 28px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+.rr-tour-bar {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+}
+.rr-tour-bar > i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.25s ease;
+}
+
+.rr-tour-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+    line-height: 1.3;
+    color: var(--text);
+}
+.rr-tour-welcome .rr-tour-title {
+    font-size: 22px;
+    padding-right: 24px;
+}
+/* На низком экране прокручивается только текст — заголовок со счётчиком и
+   кнопки остаются на месте, «Далее» всегда под рукой. */
+.rr-tour-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+.rr-tour-progress,
+.rr-tour-title,
+.rr-tour-actions {
+    flex: 0 0 auto;
+}
+.rr-tour-body p {
+    margin: 0 0 8px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+.rr-tour-body ul,
+.rr-tour-body ol {
+    margin: 6px 0 4px;
+    padding-left: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+.rr-tour-body li {
+    margin-bottom: 5px;
+}
+.rr-tour-body li strong {
+    color: var(--text);
+}
+
+.rr-tour-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+.rr-tour-welcome .rr-tour-actions {
+    justify-content: flex-end;
+}
+.rr-tour-skip {
+    margin-right: auto;
+    padding: 6px 2px;
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: underline;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.rr-tour-skip:hover {
+    color: var(--text);
+}
+.rr-tour-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+}
+.rr-tour-btn:hover:not(:disabled) {
+    background: var(--bg-elevated-2);
+}
+.rr-tour-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+.rr-tour-btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+}
+.rr-tour-btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+.rr-tour-btn[hidden] {
+    display: none;
+}
+.rr-tour-x:focus-visible,
+.rr-tour-skip:focus-visible,
+.rr-tour-btn:focus-visible,
+.rr-tour-pill button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Плашка, если обучение не завершено, а пользователь ушёл со страницы,
+   на которой оно продолжалось. Слева внизу — справа уже живут тосты. */
+.rr-tour-pill {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    z-index: 60000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    box-shadow: var(--shadow-md);
+    font-size: 14px;
+}
+.rr-tour-pill-text {
+    font-weight: 600;
+}
+.rr-tour-pill .rr-tour-btn {
+    padding: 7px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    /* На телефоне карточка прижата к низу экрана «шторкой», а элемент
+       прокручивается в верхнюю часть — иначе она закрывала бы подсвеченное. */
+    .rr-tour-pop.is-sheet {
+        top: auto;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        max-width: none;
+        max-height: 55vh;
+    }
+    .rr-tour-pop.rr-tour-welcome {
+        padding: 22px 18px 18px;
+    }
+    .rr-tour-actions {
+        flex-wrap: wrap;
+    }
+    .rr-tour-pop .rr-tour-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    .rr-tour-pill {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        max-width: none;
+        flex-wrap: wrap;
+    }
+    .rr-tour-pill-text {
+        flex-basis: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rr-tour-layer,
+    .rr-tour-spot,
+    .rr-tour-bar > i {
+        transition: none;
+    }
+}

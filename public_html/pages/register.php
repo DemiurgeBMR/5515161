@@ -27,6 +27,7 @@ $termsConsent = !empty($_POST['terms_consent']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
+    $passwordConfirm = $_POST['password_confirm'] ?? '';
 
     if (!csrf_verify($_POST['csrf_token'] ?? '')) {
         $error = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
@@ -41,6 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Некорректный email адрес';
     } elseif ($passwordError = rr_validate_password_strength($password)) {
         $error = $passwordError;
+    } elseif ($password !== $passwordConfirm) {
+        // Пароль в форме скрыт точками — опечатку не видно, а восстановить
+        // доступ к только что созданному аккаунту можно только через почту.
+        $error = 'Пароли не совпадают';
     } elseif ($phoneError = rr_validate_phone($phone)) {
         $error = $phoneError;
     } elseif (!$privacyConsent) {
@@ -193,8 +198,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="form-group">
                         <label>Пароль *</label>
-                        <input type="password" name="password" required minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                        <input type="password" name="password" required autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                         <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
+                    </div>
+                    <div class="form-group">
+                        <label>Повторите пароль *</label>
+                        <input type="password" name="password_confirm" required autocomplete="new-password" data-rr-match="[name=password]" placeholder="Введите пароль ещё раз">
                     </div>
 
                     <div class="reg-panel-actions">
