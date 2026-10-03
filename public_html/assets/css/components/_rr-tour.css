@@ -132,6 +132,16 @@
     line-height: 1.55;
     color: var(--text-muted);
 }
+/* Пояснение demo-режима («заявок ещё нет — показываем без подсветки») */
+.rr-tour-body p.rr-tour-note {
+    margin-top: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    color: var(--text-muted);
+}
 .rr-tour-body ul,
 .rr-tour-body ol {
     margin: 6px 0 4px;

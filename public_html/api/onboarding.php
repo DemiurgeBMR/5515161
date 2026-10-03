@@ -4,7 +4,8 @@
  *
  * POST action=...
  *   start    — начать (или пройти заново) с первой главы
- *   progress — перейти к главе `chapter`; только если обучение сейчас идёт
+ *   progress — перейти к главе `chapter`; только если обучение сейчас идёт и
+ *              только вперёд (устаревшая вкладка не откатывает прогресс)
  *   complete — обучение пройдено до конца
  *   skip     — пользователь его пропустил/закрыл
  *
@@ -55,6 +56,13 @@ switch ($action) {
         $state = rr_onboarding_update($pdo, $userId, 'in_progress', 0);
         break;
     case 'progress':
+        // Номер главы обязателен и должен быть числом — иначе (int)-приведение
+        // тихо превратило бы мусор в 0 и сбросило прогресс.
+        if (!is_string($chapter) || !ctype_digit($chapter)) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid chapter']);
+            exit;
+        }
         $state = rr_onboarding_update($pdo, $userId, 'in_progress', $chapter, true);
         break;
     case 'complete':

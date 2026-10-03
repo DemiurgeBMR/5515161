@@ -71,6 +71,9 @@ if ($rrOnboarding !== null):
         'role'    => $_SESSION['user_role'],
         'status'  => $rrOnboarding['status'],
         'chapter' => $rrOnboarding['chapter'],
+        // Порог «пора обслуживать» — число в тексте обучения берётся отсюда,
+        // а не дублируется в JS.
+        'serviceDueDays' => SERVICE_DUE_DAYS,
     ], JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     </script>
     <script src="/assets/js/rr-tour.js"></script>

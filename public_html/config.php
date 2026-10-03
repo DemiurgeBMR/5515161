@@ -643,6 +643,7 @@ const ONBOARDING_ROLES = ['owner', 'operator'];
 // Верхняя граница номера «главы» — только защита от мусора в запросе,
 // реальное число глав определяет сам скрипт обучения.
 const ONBOARDING_MAX_CHAPTER = 9;
+const ONBOARDING_CACHE_TTL = 300; // секунд
 
 /**
  * Обучение есть у собственников и операторов; у администратора — нет.
@@ -659,14 +660,18 @@ function rr_onboarding_applies($role) {
  * Завершённое/пропущенное состояние запоминается в сессии: оно меняется
  * только по явному действию пользователя (перезапуск идёт через
  * rr_onboarding_update(), который сбрасывает это значение), поэтому на каждом
- * следующем просмотре страницы лишний запрос в БД не нужен.
+ * следующем просмотре страницы лишний запрос в БД не нужен. Запоминается
+ * ненадолго (ONBOARDING_CACHE_TTL): если обучение перезапустили с другого
+ * устройства, эта сессия узнает об этом не позже чем через несколько минут,
+ * а не только после перелогина.
  */
 function rr_onboarding_state(PDO $pdo, $userId) {
     // Кэш привязан к id пользователя — на случай, если в сессии когда-нибудь
     // сменится аккаунт без её пересоздания, чужой статус подставляться не должен.
     $cached = $_SESSION['onboarding_closed'] ?? null;
     if (is_array($cached) && ($cached['user_id'] ?? null) == $userId
-        && in_array($cached['status'] ?? null, ['completed', 'skipped'], true)) {
+        && in_array($cached['status'] ?? null, ['completed', 'skipped'], true)
+        && time() - (int) ($cached['at'] ?? 0) < ONBOARDING_CACHE_TTL) {
         return ['status' => $cached['status'], 'chapter' => 0];
     }
 
@@ -684,7 +689,7 @@ function rr_onboarding_state(PDO $pdo, $userId) {
     }
 
     if ($row['onboarding_status'] === 'completed' || $row['onboarding_status'] === 'skipped') {
-        $_SESSION['onboarding_closed'] = ['user_id' => $userId, 'status' => $row['onboarding_status']];
+        $_SESSION['onboarding_closed'] = ['user_id' => $userId, 'status' => $row['onboarding_status'], 'at' => time()];
     }
 
     return ['status' => $row['onboarding_status'], 'chapter' => (int) $row['onboarding_chapter']];
@@ -693,10 +698,11 @@ function rr_onboarding_state(PDO $pdo, $userId) {
 /**
  * Меняет состояние обучения. $status — одно из ONBOARDING_STATUSES.
  *
- * 'progress' (переход к следующей главе) применяется, только если обучение
- * сейчас идёт: если пользователь уже пропустил его в соседней вкладке, устаревшая
- * вкладка не должна «воскресить» обучение. Остальные переходы (старт, завершение,
- * пропуск) безусловны — пользователь явно этого хотел.
+ * 'progress' ($onlyIfInProgress) — переход к следующей главе: применяется, только
+ * если обучение сейчас идёт, и только вперёд. Если пользователь уже пропустил его
+ * в соседней вкладке, устаревшая вкладка не должна «воскресить» обучение, а если
+ * он ушёл дальше — «отмотать» прогресс назад. Остальные переходы (старт,
+ * завершение, пропуск) безусловны — пользователь явно этого хотел.
  *
  * Возвращает актуальное состояние после операции или null при ошибке БД.
  */
@@ -707,11 +713,15 @@ function rr_onboarding_update(PDO $pdo, $userId, $status, $chapter = 0, $onlyIfI
     $chapter = max(0, min(ONBOARDING_MAX_CHAPTER, (int) $chapter));
 
     try {
-        $sql = "UPDATE users SET onboarding_status = ?, onboarding_chapter = ? WHERE id = ?";
         if ($onlyIfInProgress) {
-            $sql .= " AND onboarding_status = 'in_progress'";
+            $pdo->prepare("
+                UPDATE users SET onboarding_chapter = GREATEST(onboarding_chapter, ?)
+                WHERE id = ? AND onboarding_status = 'in_progress'
+            ")->execute([$chapter, $userId]);
+        } else {
+            $pdo->prepare("UPDATE users SET onboarding_status = ?, onboarding_chapter = ? WHERE id = ?")
+                ->execute([$status, $chapter, $userId]);
         }
-        $pdo->prepare($sql)->execute([$status, $chapter, $userId]);
     } catch (PDOException $e) {
         error_log('rr_onboarding_update: ' . $e->getMessage());
         return null;

@@ -285,6 +285,12 @@
         confirmInput.addEventListener('input', update);
         confirmInput.addEventListener('change', update);
         confirmInput.addEventListener('blur', function () { touched = true; update(); });
+        // Значения может вернуть сам браузер (кнопка «Назад», автозаполнение,
+        // сброс формы) — часто без событий input/change.
+        window.addEventListener('pageshow', update);
+        if (confirmInput.form) {
+            confirmInput.form.addEventListener('reset', function () { setTimeout(update, 0); });
+        }
         update();
     }
 
