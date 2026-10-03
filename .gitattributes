@@ -1,0 +1,4 @@
+# Скрипты для контейнера должны остаться с Unix-переносами строк (LF),
+# даже если кто-то клонирует репозиторий на Windows с autocrlf=true —
+# иначе bash внутри контейнера падает с "bash\r: No such file or directory".
+*.sh text eol=lf
