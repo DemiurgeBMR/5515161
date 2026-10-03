@@ -9,6 +9,7 @@ RUN apt-get update \
         libwebp-dev \
         libfreetype6-dev \
         libcurl4-openssl-dev \
+        libonig-dev \
         default-mysql-client \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" gd pdo_mysql mysqli mbstring curl \
