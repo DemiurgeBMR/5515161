@@ -7,7 +7,7 @@ require_once __DIR__ . '/../config.php';
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Политика обработки персональных данных — RR</title>
     <meta name="description" content="Политика обработки персональных данных сервиса RR (Riveg Rent) в соответствии со статьёй 18.1 Федерального закона № 152-ФЗ «О персональных данных».">
     <link rel="stylesheet" href="/assets/css/style.css">

@@ -196,7 +196,7 @@ $filterParams = array_filter($_GET, function ($k) {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Каталог локаций для вендинга — RR</title>
     <meta name="description" content="Каталог мест под вендинговые автоматы: фильтры по городу, цене и типу помещения. Подберите точку для установки или сдайте своё помещение в аренду.">
     <meta property="og:type" content="website">

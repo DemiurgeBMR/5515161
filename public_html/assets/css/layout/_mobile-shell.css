@@ -1,0 +1,625 @@
+/* ===== МОБИЛЬНАЯ «ОБОЛОЧКА» (телефоны, ≤ 768px) =====
+   Компактная липкая шапка, нижняя панель вкладок, шторка «Профиль/Ещё», безопасные
+   зоны (вырезы/«чёлка» и полоска жестов), модалки-шторки, тосты над панелью.
+
+   ПРАВИЛО ПРОЕКТА: на экранах шире 768px (десктоп, планшет лёжа) ничего не меняется.
+   Поэтому здесь всё, что видно и влияет на вёрстку, — только внутри
+   @media (max-width: 768px); вне его — лишь переменные и display:none для
+   мобильных блоков. Проверяется скриншотами (mt/dcheck.js).
+
+   Шкала брейкпоинтов: 768 (телефон/планшет-портрет — «режим приложения»),
+   600 и 400 — для подстройки уже внутри режима; 1024/1100 и прочие — прежний десктоп.
+   Разметка панели и шторки — includes/mobile_nav.php, поведение — assets/js/rr-mobile.js.
+
+   Слои (z-index): шапка 900 < панель 1000 < фон шторки 8000 < шторка 8010 <
+   тосты/модалки подтверждения 9999+ < обучение 110000. */
+
+:root {
+    --m-header-h: 52px;
+    --m-tabbar-h: 58px;
+    --m-gutter: 12px;
+    --m-tap: 44px;
+    --m-radius: 16px;
+    --m-safe-t: env(safe-area-inset-top, 0px);
+    --m-safe-b: env(safe-area-inset-bottom, 0px);
+    --m-danger-solid: #ff5a6a;
+}
+
+/* Мобильные блоки по умолчанию скрыты — на десктопе их нет. */
+.m-tabbar,
+.m-sheet-backdrop,
+.m-menu-sheet {
+    display: none;
+}
+
+@media (max-width: 768px) {
+
+    html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+    }
+    body {
+        -webkit-tap-highlight-color: transparent;
+        /* Место под нижнюю панель: контент не прячется за ней. */
+        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
+    }
+    /* Страницы-«детали» (чат с полем ввода, карточка с липкой кнопкой) убирают панель. */
+    body.m-no-tabbar {
+        padding-bottom: var(--m-safe-b);
+    }
+    body.m-no-tabbar .m-tabbar,
+    html.m-kb .m-tabbar {
+        display: none;
+    }
+    /* Шторка открыта — страница под ней не прокручивается. */
+    html.m-lock,
+    html.m-lock body {
+        overflow: hidden;
+    }
+
+    /* ---------- Шапка ---------- */
+    .header {
+        position: sticky;
+        top: 0;
+        z-index: 900;
+        padding: var(--m-safe-t) 0 0;
+        box-shadow: none;
+    }
+    .header .container {
+        flex-wrap: nowrap;
+        row-gap: 0;
+        gap: 8px;
+        min-height: var(--m-header-h);
+        padding: 0 var(--m-gutter);
+    }
+    .logo {
+        min-width: var(--m-tap);
+        min-height: var(--m-tap);
+    }
+    .logo-mark {
+        height: 30px;
+    }
+    .nav {
+        width: auto;
+        flex: 1 1 auto;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        row-gap: 0;
+    }
+    /* Основные ссылки, меню аккаунта, гамбургер и тема — в нижней панели и шторке «Профиль». */
+    .nav-primary,
+    .nav-toggle-btn,
+    .account-menu-wrap,
+    .theme-toggle-btn {
+        display: none !important;
+    }
+    .nav-utility {
+        gap: 6px;
+    }
+    .nav a {
+        margin-left: 0;
+    }
+    .nav-utility > .nav-link-spaced {
+        display: none;            /* «Вход» — вкладка панели */
+    }
+    .btn-nav {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        padding: 0 16px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .notification-bell-wrap + .theme-toggle-btn {
+        margin-left: 0;
+    }
+    .notification-bell {
+        width: var(--m-tap);
+        height: var(--m-tap);
+    }
+    .notification-badge {
+        top: 2px;
+        right: 0;
+        font-size: 12px;
+    }
+    /* Превью уведомлений — во всю ширину под шапкой, а не 340px колонкой справа. */
+    .notif-dropdown {
+        position: fixed;
+        top: calc(var(--m-header-h) + var(--m-safe-t) + 4px);
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: none;
+        max-height: calc(100vh - var(--m-header-h) - var(--m-tabbar-h) - 32px);
+        max-height: calc(100dvh - var(--m-header-h) - var(--m-tabbar-h) - var(--m-safe-t) - var(--m-safe-b) - 24px);
+        overflow-y: auto;
+    }
+
+    /* ---------- Плашки над контентом ---------- */
+    .howitworks-banner {
+        display: none !important;   /* «Как это работает» — пункт шторки; первый экран — под контент */
+    }
+    .verify-banner-inner {
+        padding: 8px var(--m-gutter);
+        gap: 4px 10px;
+        flex-wrap: nowrap;
+    }
+    .verify-banner-text {
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    .verify-banner-link-action {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    /* ---------- Контейнер и подвал (правила style.css стоят после импортов — отсюда
+       перебиваем повышенной специфичностью) ---------- */
+    body .container {
+        padding-left: var(--m-gutter);
+        padding-right: var(--m-gutter);
+    }
+    body .footer {
+        padding: 18px 0 14px;
+        font-size: 12px;
+    }
+    body .footer p {
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 4px 0;
+    }
+    body .footer p.footer-legal-links a {
+        display: inline-block;
+        padding: 6px 2px;
+    }
+
+    /* ---------- Нижняя панель ---------- */
+    .m-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000;
+        height: calc(var(--m-tabbar-h) + var(--m-safe-b));
+        padding: 0 0 var(--m-safe-b);
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.16);
+    }
+    .m-tab {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 4px 2px 2px;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.1;
+        text-decoration: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .nav a.m-tab {
+        margin-left: 0;
+    }
+    .m-tab.is-active {
+        color: var(--accent);
+    }
+    .m-tab:active .m-tab-ic {
+        transform: scale(0.92);
+    }
+    .m-tab-ic {
+        position: relative;
+        width: 30px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.12s ease;
+    }
+    .m-tab-ic .rr-icon {
+        width: 24px;
+        height: 24px;
+    }
+    .m-tab.is-active .m-tab-ic .rr-icon {
+        stroke-width: 2.3;
+    }
+    .m-tab-lb {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Центральная кнопка «+» (собственник — «Добавить место») */
+    .m-tab-add .m-tab-ic {
+        width: 46px;
+        height: 46px;
+        margin-top: -18px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        border: 3px solid var(--bg-elevated);
+        box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.4);
+    }
+    .m-tab-add .m-tab-ic .rr-icon {
+        width: 24px;
+        height: 24px;
+        stroke-width: 2.4;
+    }
+    .m-tab-add.is-active .m-tab-lb {
+        color: var(--accent);
+    }
+    .m-badge {
+        position: absolute;
+        top: -4px;
+        right: -9px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 9px;
+        background: var(--m-danger-solid);
+        color: #fff;
+        font-family: inherit;
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 18px;
+        text-align: center;
+        box-shadow: 0 0 0 2px var(--bg-elevated);
+    }
+    .m-badge[hidden] {
+        display: none;
+    }
+
+    /* ---------- Шторка (общая: меню, фильтры, действия) ----------
+       <div class="m-sheet" id="…"> .m-sheet-handle · .m-sheet-head · .m-sheet-body · .m-sheet-foot
+       Открывается через [data-m-sheet-open="id"], закрывается [data-m-sheet-close], фоном, Esc
+       и кнопкой «Назад» (assets/js/rr-mobile.js). На десктопе .m-sheet — обычный блок без стилей. */
+    .m-sheet-backdrop {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 8000;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .m-sheet-backdrop[hidden] {
+        display: none;
+    }
+    .m-sheet-backdrop.is-open {
+        opacity: 1;
+    }
+    .m-sheet {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 8010;
+        display: flex;
+        flex-direction: column;
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - var(--m-safe-t) - 16px);
+        background: var(--bg-elevated);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+        overscroll-behavior: contain;
+        transform: translateY(105%);
+        visibility: hidden;
+        transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.26s;
+    }
+    .m-sheet.is-open {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+    }
+    /* Высокая шторка (фильтры): почти на весь экран */
+    .m-sheet.m-sheet--tall {
+        height: calc(100vh - 56px);
+        height: calc(100dvh - var(--m-safe-t) - 56px);
+    }
+    .m-sheet-handle {
+        flex: none;
+        width: 42px;
+        height: 5px;
+        margin: 9px auto 4px;
+        border-radius: 3px;
+        background: var(--border-strong);
+    }
+    .m-sheet-head {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 12px 10px 18px;
+    }
+    .m-sheet-title,
+    .m-sheet-head > b {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .m-sheet-head .m-sheet-link {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        padding: 0 4px;
+        background: none;
+        border: 0;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .m-sheet-x {
+        flex: none;
+        margin-left: auto;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: var(--bg-elevated-2);
+        border: 0;
+        border-radius: 50%;
+        color: var(--text);
+        cursor: pointer;
+    }
+    .m-sheet-x .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .m-sheet-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        padding: 0 18px 12px;
+    }
+    .m-sheet-foot {
+        flex: none;
+        padding: 12px 18px calc(12px + var(--m-safe-b));
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+    }
+
+    /* Шторка меню «Профиль/Ещё» */
+    .m-menu-sheet {
+        display: flex;
+    }
+    .m-menu-sheet .m-sheet-body {
+        padding: 0 8px calc(12px + var(--m-safe-b));
+    }
+    .m-avatar {
+        flex: none;
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 18px;
+        font-weight: 800;
+    }
+    .m-sheet-who {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .m-sheet-who b {
+        font-size: 17px;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-sheet-who small {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .m-menu {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .m-menu-item {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        min-height: 52px;
+        padding: 0 12px;
+        background: none;
+        border: 0;
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .m-menu-item:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-menu-item > .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        color: var(--text-muted);
+    }
+    .m-menu-item > span:not(.m-switch) {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .m-menu-item .m-menu-go {
+        width: 18px;
+        height: 18px;
+        color: var(--text-faint);
+    }
+    .m-menu-item .m-badge {
+        position: static;
+        flex: none;
+        box-shadow: none;
+    }
+    .m-menu-item.is-accent,
+    .m-menu-item.is-accent > .rr-icon {
+        color: var(--accent);
+    }
+    .m-menu-item.is-danger,
+    .m-menu-item.is-danger > .rr-icon {
+        color: var(--danger);
+    }
+    .m-switch {
+        flex: none;
+        position: relative;
+        width: 46px;
+        height: 28px;
+        border-radius: 14px;
+        background: var(--accent);
+        transition: background 0.2s ease;
+    }
+    .m-switch i {
+        position: absolute;
+        top: 3px;
+        left: 21px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        transition: left 0.2s ease;
+    }
+    :root[data-theme="light"] .m-switch {
+        background: var(--border-strong);
+    }
+    :root[data-theme="light"] .m-switch i {
+        left: 3px;
+    }
+
+    /* ---------- Модальные окна сайта → шторки снизу ---------- */
+    .modal-overlay {
+        align-items: flex-end;
+    }
+    .modal-box {
+        width: 100%;
+        max-width: none;
+        max-height: 88vh;
+        max-height: 88dvh;
+        padding: 22px 18px calc(18px + var(--m-safe-b));
+        border-radius: 22px 22px 0 0;
+        border-bottom: 0;
+    }
+    .modal-box .close-btn {
+        width: var(--m-tap);
+        height: var(--m-tap);
+        top: 6px;
+        right: 6px;
+    }
+    .rr-confirm-box {
+        text-align: left;
+    }
+    .rr-confirm-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+    .rr-confirm-btn {
+        flex: none;
+        width: 100%;
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    /* ---------- Тосты — над нижней панелью, а не под ней ---------- */
+    body .toast-container,
+    body .rr-toast-container {
+        left: 8px;
+        right: 8px;
+        bottom: calc(var(--m-tabbar-h) + var(--m-safe-b) + 8px);
+        max-width: none;
+        width: auto;
+        z-index: 9999;
+    }
+    body.m-no-tabbar .toast-container,
+    body.m-no-tabbar .rr-toast-container {
+        bottom: calc(var(--m-safe-b) + 8px);
+    }
+    body .rr-toast {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+    }
+    body .toast-notification {
+        padding: 12px 14px;
+    }
+    /* Всплывающие уведомления от поллера: на телефоне не больше двух сразу и не поверх открытой шторки */
+    body .toast-container .toast-notification:nth-last-child(n+3) {
+        display: none;
+    }
+    html.m-lock .toast-container {
+        display: none;
+    }
+
+    /* ---------- Поля ввода: 16px — иначе iOS приближает страницу при фокусе ---------- */
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+    select,
+    textarea {
+        font-size: 16px;
+    }
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]),
+    select {
+        min-height: var(--m-tap);
+    }
+    button,
+    input[type="submit"],
+    input[type="button"] {
+        min-height: var(--m-tap);
+    }
+}
+
+/* Планшет-портрет и телефон: полоса «обучение прервано» — компактнее */
+@media (max-width: 768px) {
+    .rr-tour-pill-inner {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .m-sheet,
+    .m-sheet-backdrop,
+    .m-tab-ic,
+    .m-switch,
+    .m-switch i {
+        transition: none !important;
+    }
+}

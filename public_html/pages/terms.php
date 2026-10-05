@@ -7,7 +7,7 @@ require_once __DIR__ . '/../config.php';
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Пользовательское соглашение — RR</title>
     <meta name="description" content="Пользовательское соглашение (публичная оферта) сервиса RR (Riveg Rent) — правила размещения объявлений, взаимодействия собственников и операторов, ответственность сторон.">
     <link rel="stylesheet" href="/assets/css/style.css">

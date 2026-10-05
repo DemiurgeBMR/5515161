@@ -38,6 +38,37 @@
 @import 'admin/_admin-preview-revision.css';
 @import 'admin/_admin-view-revisions.css';
 
+/* Мобильная версия (телефоны ≤ 768px): оболочка, общие компоненты, затем правила страниц.
+   Идут ПОСЛЕ всех остальных импортов — на десктопе всё это inert (внутри @media). */
+@import 'layout/_mobile-shell.css';
+@import 'components/_m-ui.css';
+@import 'pages/m/_m-index.css';
+@import 'pages/m/_m-catalog.css';
+@import 'pages/m/_m-map.css';
+@import 'pages/m/_m-favorites.css';
+@import 'pages/m/_m-location.css';
+@import 'pages/m/_m-send-application.css';
+@import 'pages/m/_m-auth.css';
+@import 'pages/m/_m-edit-profile.css';
+@import 'pages/m/_m-operator-dashboard.css';
+@import 'pages/m/_m-operator-applications.css';
+@import 'pages/m/_m-operator-locations.css';
+@import 'pages/m/_m-service-history.css';
+@import 'pages/m/_m-owner-profile.css';
+@import 'pages/m/_m-owner-applications.css';
+@import 'pages/m/_m-owner-operators.css';
+@import 'pages/m/_m-add-location.css';
+@import 'pages/m/_m-edit-location.css';
+@import 'pages/m/_m-application-chat.css';
+@import 'pages/m/_m-service-order-chat.css';
+@import 'pages/m/_m-events-calendar.css';
+@import 'pages/m/_m-notifications.css';
+@import 'pages/m/_m-admin.css';
+@import 'pages/m/_m-how-it-works.css';
+@import 'pages/m/_m-subscription.css';
+@import 'pages/m/_m-legal.css';
+@import 'pages/m/_m-documents.css';
+
 /* ===== ТЁМНАЯ ТЕМА («Глубокая ночь») — единая палитра для всего сайта =====
    Мятно-зелёная — выбранное направление из витрины стилей (сентябрь 2026):
    светлый вариант ниже — основной выбор, этот — его тёмный аналог с тем же

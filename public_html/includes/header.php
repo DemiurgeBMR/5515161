@@ -3,7 +3,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <script>
         // Ставим сохранённую тему ДО загрузки CSS, иначе при light-теме
         // страница на долю секунды мигнёт тёмной (по умолчанию) — это

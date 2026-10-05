@@ -24,7 +24,7 @@ $latest_locations = $stmt->fetchAll();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo SITE_NAME; ?> — площадки для вендинговых автоматов</title>
     <meta name="description" content="Riveg Rent — площадка для аренды мест под вендинговые автоматы. Собственники помещений размещают локации, операторы вендинга находят точки для установки.">
     <meta property="og:type" content="website">
