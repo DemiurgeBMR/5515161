@@ -497,8 +497,11 @@
         return node;
     }
 
-    function isMobile() {
-        return window.matchMedia('(max-width: 600px)').matches;
+    // «Шторка»: карточка прижата к низу экрана, а подсвеченный элемент
+    // прокручивается выше неё. Нужна на узких экранах и на низких (телефон в
+    // горизонтальном положении) — там карточке рядом с элементом просто не хватает места.
+    function useSheet() {
+        return window.innerWidth <= 600 || window.innerHeight <= 480;
     }
 
     function isVisible(node) {
@@ -679,6 +682,11 @@
         closeBtn.type = 'button';
         closeBtn.setAttribute('aria-label', 'Закрыть обучение');
 
+        // Свернуть текст карточки, чтобы увидеть подсвеченное под ней (только в «шторке»).
+        var foldBtn = el('button', 'rr-tour-fold', '▾');
+        foldBtn.type = 'button';
+        foldBtn.hidden = true;
+
         var progress = el('div', 'rr-tour-progress');
         var count = el('span');
         var bar = el('div', 'rr-tour-bar');
@@ -706,6 +714,7 @@
         actions.appendChild(nextBtn);
 
         pop.appendChild(closeBtn);
+        pop.appendChild(foldBtn);
         pop.appendChild(progress);
         pop.appendChild(title);
         pop.appendChild(body);
@@ -717,14 +726,20 @@
         var r = {
             ci: ci, si: 0, layer: layer, spot: spot, pop: pop,
             count: count, barFill: barFill, title: title, body: body,
-            skipBtn: skipBtn, prevBtn: prevBtn, nextBtn: nextBtn,
-            target: null, busy: false, raf: 0, timers: [], opened: null, demo: false
+            skipBtn: skipBtn, prevBtn: prevBtn, nextBtn: nextBtn, foldBtn: foldBtn, spacer: null,
+            // На низком экране (телефон лёжа) карточка сразу свёрнута: развёрнутая она закрыла бы почти всё.
+            folded: window.innerHeight <= 480,
+            target: null, busy: false, raf: 0, resizeRaf: 0, timers: [], opened: null, demo: false
         };
 
         closeBtn.addEventListener('click', skipTour);
         skipBtn.addEventListener('click', skipTour);
         prevBtn.addEventListener('click', prevStep);
         nextBtn.addEventListener('click', nextStep);
+        foldBtn.addEventListener('click', function () {
+            r.folded = !r.folded;
+            layoutStep(true);
+        });
         return r;
     }
 
@@ -734,7 +749,7 @@
         if (!run) {
             run = buildRun(ci);
             document.body.appendChild(run.layer);
-            window.addEventListener('resize', schedulePlace);
+            window.addEventListener('resize', onResize);
             window.addEventListener('scroll', schedulePlace, true);
             window.addEventListener('load', schedulePlace);
             openDialog({
@@ -819,8 +834,7 @@
 
         // Цель и позиция
         run.target = findTarget(step);
-        if (run.target) ensureVisible(run.target, step);
-        placeNow();
+        layoutStep(true);
         // Картинки и шрифты могут сдвинуть вёрстку уже после показа шага.
         clearTimers();
         [120, 400].forEach(function (ms) { run.timers.push(setTimeout(placeNow, ms)); });
@@ -855,13 +869,14 @@
 
     // Прокручиваем страницу так, чтобы цель была на виду целиком и не пряталась
     // под карточкой (на телефоне карточка — «шторка» внизу экрана).
-    function ensureVisible(node, step) {
+    function ensureVisible(node, step, sheet) {
         scrollNestedContainers(node);
         var rect = targetRect(step, node);
         var vh = window.innerHeight;
         var margin = 16;
-        var sheet = isMobile() ? Math.min(run.pop.offsetHeight, vh * 0.55) + 24 : 0;
-        var visibleBottom = vh - sheet - margin;
+        // Под шторкой тоже должно быть место для прокрутки — см. setSpacer().
+        var sheetH = sheet ? run.pop.offsetHeight + 24 : 0;
+        var visibleBottom = vh - sheetH - margin;
         if (rect.top >= margin && rect.bottom <= visibleBottom) return;
 
         var avail = visibleBottom - margin;
@@ -882,20 +897,70 @@
         });
     }
 
+    // Поворот экрана / изменение размера окна меняет режим карточки (шторка ↔ сбоку)
+    // — нужна полная раскладка с прокруткой к цели, а не только пересчёт позиции.
+    function onResize() {
+        if (!run || run.resizeRaf) return;
+        run.resizeRaf = window.requestAnimationFrame(function () {
+            if (!run) return;
+            run.resizeRaf = 0;
+            layoutStep(true);
+        });
+    }
+
+    // Режим карточки для текущего шага: по центру (нет цели), «шторка» или у цели сбоку.
+    // Состояние карточки определяется ДО измерения её высоты — от неё зависят и
+    // запас для прокрутки, и положение подсвеченного элемента.
+    function applyMode() {
+        var node = run.target && isVisible(run.target) ? run.target : null;
+        var sheet = !!node && useSheet();
+        run.layer.classList.toggle('rr-tour-dim', !node);
+        run.spot.style.opacity = node ? '1' : '0';
+        run.pop.classList.toggle('is-center', !node);
+        run.pop.classList.toggle('is-sheet', sheet);
+        run.pop.classList.toggle('is-folded', sheet && run.folded);
+        run.foldBtn.hidden = !sheet;
+        run.foldBtn.textContent = run.folded ? '▴' : '▾';
+        run.foldBtn.setAttribute('aria-expanded', run.folded ? 'false' : 'true');
+        var label = run.folded ? 'Показать текст подсказки' : 'Свернуть текст — посмотреть, что подсвечено';
+        run.foldBtn.title = label;
+        run.foldBtn.setAttribute('aria-label', label);
+        return { node: node, sheet: sheet };
+    }
+
+    // Пустой блок в конце страницы высотой с шторку. Без него на коротких страницах
+    // (и у элементов внизу страницы) прокрутить подсвеченное выше шторки просто
+    // некуда — оно оказывалось под ней целиком.
+    function setSpacer(height) {
+        if (height > 0 && !run.spacer) {
+            run.spacer = el('div', 'rr-tour-spacer');
+            run.spacer.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(run.spacer);
+        }
+        if (run.spacer) {
+            var value = Math.round(height) + 'px';
+            if (run.spacer.style.height !== value) run.spacer.style.height = value;
+        }
+    }
+
+    // Полная раскладка шага: режим → запас для прокрутки → прокрутка к цели → позиция.
+    function layoutStep(scrollToTarget) {
+        var mode = applyMode();
+        setSpacer(mode.sheet ? run.pop.offsetHeight + 24 : 0);
+        if (scrollToTarget && mode.node) ensureVisible(mode.node, currentStep(), mode.sheet);
+        placeNow();
+    }
+
     function placeNow() {
         if (!run) return;
         var step = currentStep();
         var pop = run.pop, spot = run.spot;
-        var node = run.target && isVisible(run.target) ? run.target : null;
+        var mode = applyMode();
+        var node = mode.node;
         var rect = node ? targetRect(step, node) : null;
-        var mobile = isMobile();
+        setSpacer(mode.sheet ? pop.offsetHeight + 24 : 0);
 
-        run.layer.classList.toggle('rr-tour-dim', !rect);
-        spot.style.opacity = rect ? '1' : '0';
-        pop.classList.toggle('is-center', !rect);
-        pop.classList.toggle('is-sheet', !!rect && mobile);
-
-        if (!rect || mobile) {
+        if (!rect || mode.sheet) {
             pop.style.left = '';
             pop.style.top = '';
             if (!rect) return;
@@ -906,48 +971,44 @@
         spot.style.top = (rect.top - pad) + 'px';
         spot.style.width = (rect.width + pad * 2) + 'px';
         spot.style.height = (rect.height + pad * 2) + 'px';
-        if (mobile) return;
+        if (mode.sheet) return;
 
         var vw = window.innerWidth, vh = window.innerHeight;
         var gap = 14, margin = 12;
         var pw = pop.offsetWidth, ph = pop.offsetHeight;
-        var space = {
-            bottom: vh - rect.bottom - pad,
-            top: rect.top - pad,
-            right: vw - rect.right - pad,
-            left: rect.left - pad
-        };
         var order = ['bottom', 'top', 'right', 'left'];
         if (step.placement) order.unshift(step.placement);
 
-        var side = null;
-        for (var i = 0; i < order.length; i++) {
-            var need = (order[i] === 'bottom' || order[i] === 'top') ? ph : pw;
-            if (space[order[i]] >= need + gap + margin) { side = order[i]; break; }
-        }
-        if (!side) {
-            // Нигде не помещается целиком — берём сторону с наибольшим запасом.
-            side = order.reduce(function (best, s) { return space[s] > space[best] ? s : best; }, order[0]);
-        }
-
-        var left, top;
-        if (side === 'bottom') {
-            top = rect.bottom + pad + gap;
-            left = rect.left + rect.width / 2 - pw / 2;
-        } else if (side === 'top') {
-            top = rect.top - pad - gap - ph;
-            left = rect.left + rect.width / 2 - pw / 2;
-        } else if (side === 'right') {
-            left = rect.right + pad + gap;
-            top = rect.top + rect.height / 2 - ph / 2;
-        } else {
-            left = rect.left - pad - gap - pw;
-            top = rect.top + rect.height / 2 - ph / 2;
-        }
-        left = Math.max(margin, Math.min(left, vw - pw - margin));
-        top = Math.max(margin, Math.min(top, vh - ph - margin));
-        pop.style.left = left + 'px';
-        pop.style.top = top + 'px';
+        // Для каждой стороны считаем итоговое положение карточки (с поправкой на края
+        // экрана) и то, насколько она при этом закрывает подсвеченный блок. Берём первую
+        // сторону без перекрытия, а если такой нет (блок огромный) — с наименьшим.
+        var candidates = order.map(function (side) {
+            var left, top;
+            if (side === 'bottom') {
+                top = rect.bottom + pad + gap;
+                left = rect.left + rect.width / 2 - pw / 2;
+            } else if (side === 'top') {
+                top = rect.top - pad - gap - ph;
+                left = rect.left + rect.width / 2 - pw / 2;
+            } else if (side === 'right') {
+                left = rect.right + pad + gap;
+                top = rect.top + rect.height / 2 - ph / 2;
+            } else {
+                left = rect.left - pad - gap - pw;
+                top = rect.top + rect.height / 2 - ph / 2;
+            }
+            left = Math.max(margin, Math.min(left, vw - pw - margin));
+            top = Math.max(margin, Math.min(top, vh - ph - margin));
+            var overlapX = Math.max(0, Math.min(left + pw, rect.right + pad) - Math.max(left, rect.left - pad));
+            var overlapY = Math.max(0, Math.min(top + ph, rect.bottom + pad) - Math.max(top, rect.top - pad));
+            return { left: left, top: top, overlap: overlapX * overlapY };
+        });
+        var best = candidates[0];
+        candidates.forEach(function (c) {
+            if (c.overlap < best.overlap - 1) best = c;
+        });
+        pop.style.left = best.left + 'px';
+        pop.style.top = best.top + 'px';
     }
 
     function nextStep() {
@@ -1049,11 +1110,13 @@
         if (!run) return;
         clearTimers();
         if (run.raf) window.cancelAnimationFrame(run.raf);
-        window.removeEventListener('resize', schedulePlace);
+        if (run.resizeRaf) window.cancelAnimationFrame(run.resizeRaf);
+        window.removeEventListener('resize', onResize);
         window.removeEventListener('scroll', schedulePlace, true);
         window.removeEventListener('load', schedulePlace);
         if (run.opened) OPENERS[run.opened](false);
         if (run.layer.parentNode) run.layer.parentNode.removeChild(run.layer);
+        if (run.spacer && run.spacer.parentNode) run.spacer.parentNode.removeChild(run.spacer);
         run = null;
         closeDialog();
     }
@@ -1125,15 +1188,26 @@
         var node = el('div', 'rr-tour-pill');
         node.setAttribute('role', 'region');
         node.setAttribute('aria-label', 'Обучение');
-        node.appendChild(el('span', 'rr-tour-pill-text', 'Вы не закончили обучение'));
+        var inner = el('div', 'container rr-tour-pill-inner');
+        inner.appendChild(el('span', 'rr-tour-pill-text', 'Вы не закончили обучение'));
         var goBtn = el('button', 'rr-tour-btn rr-tour-btn-primary', 'Продолжить');
         goBtn.type = 'button';
         var stopBtn = el('button', 'rr-tour-btn', 'Пропустить');
         stopBtn.type = 'button';
         stopBtn.title = 'Пропустить обучение — позже его можно пройти заново из меню аккаунта';
-        node.appendChild(goBtn);
-        node.appendChild(stopBtn);
-        document.body.appendChild(node);
+        inner.appendChild(goBtn);
+        inner.appendChild(stopBtn);
+        node.appendChild(inner);
+        // Полоса в потоке страницы — сразу над содержимым, как баннер подтверждения
+        // почты. Плавающая плашка поверх страницы закрывала бы то, что внизу
+        // (например, поле ввода сообщения в чате).
+        var main = document.getElementById('main-content');
+        if (main && main.parentNode) {
+            main.parentNode.insertBefore(node, main);
+        } else {
+            node.classList.add('is-floating');
+            document.body.appendChild(node);
+        }
         pill = node;
 
         goBtn.addEventListener('click', function () {
