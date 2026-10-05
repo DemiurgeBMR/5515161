@@ -501,7 +501,48 @@
     // прокручивается выше неё. Нужна на узких экранах и на низких (телефон в
     // горизонтальном положении) — там карточке рядом с элементом просто не хватает места.
     function useSheet() {
-        return window.innerWidth <= 600 || window.innerHeight <= 480;
+        var box = visibleBox();
+        return box.width <= 600 || box.height <= 480;
+    }
+
+    // Реально видимая область экрана. window.innerWidth/innerHeight — размер
+    // «раскладочной» области: если страница шире экрана (на узком телефоне какой-то
+    // блок выпирает), она расширяется (354 px при экране 320 px), и всё, что
+    // позиционируется по ней, уезжает за видимый край — вплоть до недоступной
+    // кнопки «Далее». visualViewport даёт то, что человек видит на самом деле (и
+    // учитывает увеличение пальцами и экранную клавиатуру).
+    function visibleBox() {
+        var vv = window.visualViewport;
+        if (vv) return { left: vv.offsetLeft, top: vv.offsetTop, width: vv.width, height: vv.height };
+        return { left: 0, top: 0, width: document.documentElement.clientWidth || window.innerWidth, height: window.innerHeight };
+    }
+
+    // Карточка по центру видимой области (шаг без цели, приглашение).
+    function positionCentered(pop) {
+        var box = visibleBox();
+        pop.style.right = '';
+        pop.style.bottom = '';
+        pop.style.width = '';
+        pop.style.left = (box.left + box.width / 2) + 'px';
+        pop.style.top = (box.top + box.height / 2) + 'px';
+        pop.style.maxWidth = Math.max(0, box.width - 24) + 'px';
+        pop.style.maxHeight = Math.max(0, box.height - 24) + 'px';
+    }
+
+    // «Шторка» у нижнего края видимой области.
+    function positionSheet(pop) {
+        var box = visibleBox();
+        pop.style.top = 'auto';
+        pop.style.right = 'auto';
+        pop.style.maxWidth = 'none';
+        pop.style.maxHeight = '';
+        pop.style.left = (box.left + 12) + 'px';
+        pop.style.width = Math.max(0, box.width - 24) + 'px';
+        pop.style.bottom = Math.max(0, window.innerHeight - (box.top + box.height)) + 12 + 'px';
+    }
+
+    function resetPopInline(pop) {
+        ['left', 'top', 'right', 'bottom', 'width', 'maxWidth', 'maxHeight'].forEach(function (prop) { pop.style[prop] = ''; });
     }
 
     function isVisible(node) {
@@ -750,6 +791,10 @@
             run = buildRun(ci);
             document.body.appendChild(run.layer);
             window.addEventListener('resize', onResize);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', onResize);
+                window.visualViewport.addEventListener('scroll', schedulePlace);
+            }
             window.addEventListener('scroll', schedulePlace, true);
             window.addEventListener('load', schedulePlace);
             openDialog({
@@ -872,7 +917,7 @@
     function ensureVisible(node, step, sheet) {
         scrollNestedContainers(node);
         var rect = targetRect(step, node);
-        var vh = window.innerHeight;
+        var vh = visibleBox().height;
         var margin = 16;
         // Под шторкой тоже должно быть место для прокрутки — см. setSpacer().
         var sheetH = sheet ? run.pop.offsetHeight + 24 : 0;
@@ -960,10 +1005,14 @@
         var rect = node ? targetRect(step, node) : null;
         setSpacer(mode.sheet ? pop.offsetHeight + 24 : 0);
 
-        if (!rect || mode.sheet) {
-            pop.style.left = '';
-            pop.style.top = '';
-            if (!rect) return;
+        if (!rect) {
+            positionCentered(pop);
+            return;
+        }
+        if (mode.sheet) {
+            positionSheet(pop);
+        } else {
+            resetPopInline(pop);
         }
 
         var pad = step.pad != null ? step.pad : 8;
@@ -973,7 +1022,8 @@
         spot.style.height = (rect.height + pad * 2) + 'px';
         if (mode.sheet) return;
 
-        var vw = window.innerWidth, vh = window.innerHeight;
+        var box = visibleBox();
+        var vw = box.width, vh = box.height;
         var gap = 14, margin = 12;
         var pw = pop.offsetWidth, ph = pop.offsetHeight;
         var order = ['bottom', 'top', 'right', 'left'];
@@ -997,8 +1047,8 @@
                 left = rect.left - pad - gap - pw;
                 top = rect.top + rect.height / 2 - ph / 2;
             }
-            left = Math.max(margin, Math.min(left, vw - pw - margin));
-            top = Math.max(margin, Math.min(top, vh - ph - margin));
+            left = Math.max(box.left + margin, Math.min(left, box.left + vw - pw - margin));
+            top = Math.max(box.top + margin, Math.min(top, box.top + vh - ph - margin));
             var overlapX = Math.max(0, Math.min(left + pw, rect.right + pad) - Math.max(left, rect.left - pad));
             var overlapY = Math.max(0, Math.min(top + ph, rect.bottom + pad) - Math.max(top, rect.top - pad));
             return { left: left, top: top, overlap: overlapX * overlapY };
@@ -1112,6 +1162,10 @@
         if (run.raf) window.cancelAnimationFrame(run.raf);
         if (run.resizeRaf) window.cancelAnimationFrame(run.resizeRaf);
         window.removeEventListener('resize', onResize);
+        if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', onResize);
+            window.visualViewport.removeEventListener('scroll', schedulePlace);
+        }
         window.removeEventListener('scroll', schedulePlace, true);
         window.removeEventListener('load', schedulePlace);
         if (run.opened) OPENERS[run.opened](false);
@@ -1164,7 +1218,11 @@
         swallowClicks(layer);
         document.body.appendChild(layer);
 
-        welcome = { layer: layer, pop: pop };
+        var fit = function () { positionCentered(pop); };
+        fit();
+        window.addEventListener('resize', fit);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+        welcome = { layer: layer, pop: pop, fit: fit };
         openDialog({ pop: pop, onEscape: skipTour });
 
         closeBtn.addEventListener('click', skipTour);
@@ -1176,6 +1234,8 @@
     function removeWelcome() {
         if (!welcome) return;
         if (welcome.layer.parentNode) welcome.layer.parentNode.removeChild(welcome.layer);
+        window.removeEventListener('resize', welcome.fit);
+        if (window.visualViewport) window.visualViewport.removeEventListener('resize', welcome.fit);
         welcome = null;
         if (!run) closeDialog();
     }
