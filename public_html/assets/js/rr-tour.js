@@ -60,8 +60,15 @@
          closest   — подняться от найденного элемента к ближайшему предку по селектору
          also      — второй селектор: подсвечиваем объединение двух блоков
          placement — предпочтительная сторона карточки: bottom | top | right | left
-         open      — раскрыть на время шага: 'account' (меню аккаунта в шапке) или
-                     'chatSidebar' (панель деталей чата — на телефоне это выезжающая шторка)
+         open      — раскрыть на время шага: 'account' (меню аккаунта в шапке; на телефоне —
+                     шторка «Профиль» нижней панели) или 'chatSidebar' (панель деталей чата —
+                     на телефоне это выезжающая шторка)
+         only      — 'phone' | 'desktop': шаг показывается только на телефоне (≤ 768px) или
+                     только на широком экране (фильтруется при загрузке страницы)
+         phone     — {…}: поля шага, которые на телефоне заменяют основные (target, text, …)
+         dock      — для шторки на телефоне: 'top' | 'bottom' | 'auto' — к какому краю прижать
+                     карточку (по умолчанию низ; 'auto' — к краю, дальнему от цели; нужно для
+                     целей, закреплённых у низа экрана: нижняя панель, шторка меню)
          title, text (абзацы через пустую строку), items (список: строка или
          [жирное начало, продолжение]), ordered (нумерованный список)
        Без target шаг показывается по центру экрана. */
@@ -72,7 +79,12 @@
     var FINAL_STEP = {
         target: '#rrTourRestart', open: 'account', placement: 'left',
         title: 'Это всё!',
-        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».'
+        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».',
+        // На телефоне меню аккаунта — шторка вкладки «Профиль» нижней панели
+        phone: {
+            target: '#rrTourRestartM', dock: 'auto', placement: 'top',
+            text: 'Если что-то забудете — вернуться к обучению можно в любой момент: вкладка «Профиль» внизу экрана → «Обучение по сайту». Подробное описание всех шагов есть и на странице «Как это работает».'
+        }
     };
 
     // Календарь выездов одинаков для обеих ролей — различаются только пара фраз.
@@ -145,7 +157,20 @@
                             ['Документы', 'шаблон договора размещения'],
                             ['Подписка', 'пополнение контактов'],
                             ['Настройки', 'профиль, пароль, уведомления']
-                        ]
+                        ],
+                        // На телефоне бокового меню нет — разделы собраны в нижней панели
+                        phone: {
+                            target: '#mTabbar', dock: 'auto', placement: 'top',
+                            title: 'Нижняя панель',
+                            text: 'Внизу экрана — главные разделы, всегда под рукой:',
+                            items: [
+                                ['Каталог', 'поиск локаций и карта'],
+                                ['Избранное', 'места, которые вы сохранили'],
+                                ['Заявки', 'переписка с собственниками; число на значке — непрочитанные сообщения'],
+                                ['Выезды', 'календарь установки и обслуживания'],
+                                ['Профиль', 'всё остальное: мои точки, документы, подписка, настройки, обучение, выход']
+                            ]
+                        }
                     },
                     {
                         target: '.credits-card', placement: 'bottom',
@@ -327,7 +352,20 @@
                             ['Выезды', 'календарь установки и обслуживания автоматов'],
                             ['Документы', 'шаблон договора размещения'],
                             ['Редактировать профиль', 'имя, пароль, уведомления']
-                        ]
+                        ],
+                        // На телефоне разделы кабинета собраны в нижней панели
+                        phone: {
+                            target: '#mTabbar', dock: 'auto', placement: 'top',
+                            title: 'Нижняя панель',
+                            text: 'Главные разделы — внизу экрана, всегда под рукой:',
+                            items: [
+                                ['Места', 'ваши объявления'],
+                                ['Заявки', 'сообщения от операторов; число на значке — непрочитанные'],
+                                ['Добавить', 'новая локация'],
+                                ['Выезды', 'календарь установки и обслуживания автоматов'],
+                                ['Профиль', 'мои операторы, документы, настройки, обучение, выход']
+                            ]
+                        }
                     },
                     {
                         target: '#attentionToggle', also: '#attentionContent', placement: 'bottom',
@@ -485,6 +523,23 @@
     var chapters = TOURS[state.role];
     if (!chapters) return;
 
+    // Телефон (≤ 768px) — «режим приложения»: нижняя панель вместо бокового меню (assets/css/layout/_mobile-shell.css).
+    function isPhone() {
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    }
+    // Шаги «только для телефона/десктопа» отбираются один раз при загрузке страницы.
+    (function () {
+        var phone = isPhone();
+        chapters = chapters.map(function (ch) {
+            var copy = {};
+            Object.keys(ch).forEach(function (k) { copy[k] = ch[k]; });
+            copy.steps = ch.steps.filter(function (st) {
+                return !st.only || (st.only === 'phone') === phone;
+            });
+            return copy;
+        });
+    })();
+
     var totalSteps = chapters.reduce(function (sum, ch) { return sum + ch.steps.length; }, 0);
     var currentPath = window.location.pathname;
 
@@ -529,16 +584,36 @@
         pop.style.maxHeight = Math.max(0, box.height - 24) + 'px';
     }
 
-    // «Шторка» у нижнего края видимой области.
-    function positionSheet(pop) {
+    // «Шторка» у нижнего (или, для целей у низа экрана, у верхнего) края видимой области.
+    function positionSheet(pop, atTop) {
         var box = visibleBox();
-        pop.style.top = 'auto';
         pop.style.right = 'auto';
         pop.style.maxWidth = 'none';
         pop.style.maxHeight = '';
         pop.style.left = (box.left + 12) + 'px';
         pop.style.width = Math.max(0, box.width - 24) + 'px';
-        pop.style.bottom = Math.max(0, window.innerHeight - (box.top + box.height)) + 12 + 'px';
+        if (atTop) {
+            pop.style.bottom = 'auto';
+            pop.style.top = (box.top + 12) + 'px';
+        } else {
+            pop.style.top = 'auto';
+            pop.style.bottom = Math.max(0, window.innerHeight - (box.top + box.height)) + 12 + 'px';
+        }
+    }
+
+    // Элемент закреплён на экране (нижняя панель, шторка меню): страницей его не прокрутить.
+    function isFixedNode(node) {
+        for (var p = node; p && p !== document.documentElement; p = p.parentElement) {
+            if (window.getComputedStyle(p).position === 'fixed') return true;
+        }
+        return false;
+    }
+
+    // К какому краю прижать карточку-шторку на этом шаге.
+    function dockAtTop(step, rect) {
+        if (step.dock === 'top') return true;
+        if (step.dock === 'auto' && rect) return rect.top + rect.height / 2 > visibleBox().height / 2;
+        return false;
     }
 
     function resetPopInline(pop) {
@@ -583,6 +658,11 @@
     // Меню аккаунта в шапке: открываем на шаге «Это всё!», чтобы показать, где
     // живёт пункт «Обучение». Разметка и классы — includes/header.php.
     function setAccountMenu(open) {
+        // На телефоне меню аккаунта — шторка «Профиль» нижней панели (includes/mobile_nav.php)
+        if (isPhone() && window.RRMobile) {
+            if (open) window.RRMobile.openSheet('mMenuSheet'); else window.RRMobile.closeSheet('mMenuSheet');
+            return;
+        }
         var dropdown = document.getElementById('accountMenuDropdown');
         var btn = document.getElementById('accountMenuBtn');
         if (!dropdown || !btn) return;
@@ -698,8 +778,14 @@
     // после пропуска.
     var epoch = 0;
 
+    // Шаг с учётом телефонных переопределений (step.phone заменяет одноимённые поля).
     function currentStep() {
-        return chapters[run.ci].steps[run.si];
+        var step = chapters[run.ci].steps[run.si];
+        if (!step.phone || !isPhone()) return step;
+        var merged = {};
+        Object.keys(step).forEach(function (k) { merged[k] = step[k]; });
+        Object.keys(step.phone).forEach(function (k) { merged[k] = step.phone[k]; });
+        return merged;
     }
 
     function globalIndex() {
@@ -916,6 +1002,7 @@
     // под карточкой (на телефоне карточка — «шторка» внизу экрана).
     function ensureVisible(node, step, sheet) {
         scrollNestedContainers(node);
+        if (isFixedNode(node)) return;
         var rect = targetRect(step, node);
         var vh = visibleBox().height;
         var margin = 16;
@@ -991,7 +1078,7 @@
     // Полная раскладка шага: режим → запас для прокрутки → прокрутка к цели → позиция.
     function layoutStep(scrollToTarget) {
         var mode = applyMode();
-        setSpacer(mode.sheet ? run.pop.offsetHeight + 24 : 0);
+        setSpacer(mode.sheet && !isFixedNode(mode.node) ? run.pop.offsetHeight + 24 : 0);
         if (scrollToTarget && mode.node) ensureVisible(mode.node, currentStep(), mode.sheet);
         placeNow();
     }
@@ -1003,14 +1090,14 @@
         var mode = applyMode();
         var node = mode.node;
         var rect = node ? targetRect(step, node) : null;
-        setSpacer(mode.sheet ? pop.offsetHeight + 24 : 0);
+        setSpacer(mode.sheet && !isFixedNode(node) ? pop.offsetHeight + 24 : 0);
 
         if (!rect) {
             positionCentered(pop);
             return;
         }
         if (mode.sheet) {
-            positionSheet(pop);
+            positionSheet(pop, dockAtTop(step, rect));
         } else {
             resetPopInline(pop);
         }
@@ -1329,6 +1416,11 @@
         var trigger = e.target.closest('[data-rr-tour-start]');
         if (!trigger) return;
         e.preventDefault();
+        if (isPhone() && window.RRMobile && window.RRMobile.closeAll) {
+            // Шторку «Профиль» закрываем до старта: обучение может перейти на другую страницу
+            window.RRMobile.closeAll(function () { startTour(null); });
+            return;
+        }
         setAccountMenu(false);
         startTour(null);
     });

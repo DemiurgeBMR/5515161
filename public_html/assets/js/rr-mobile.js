@@ -9,7 +9,7 @@
  * кнопка «Назад» (шторка кладёт запись в историю — «Назад» закрывает шторку, а не уходит со страницы).
  * События на самой шторке: 'm-sheet:open', 'm-sheet:close' (всплывают).
  *
- *   RRMobile.openSheet(id) · RRMobile.closeSheet(id) · RRMobile.setBadge(key, n)
+ *   RRMobile.openSheet(id) · RRMobile.closeSheet(id) · RRMobile.closeAll(cb) · RRMobile.setBadge(key, n)
  *   CSS-переменные: --m-vvh (видимая высота с учётом клавиатуры), --m-vvt (смещение видимой области).
  *   html.m-kb — экранная клавиатура открыта (нижняя панель в этот момент скрыта).
  */
@@ -80,6 +80,30 @@
     }
 
     function closeTop() { if (stack.length) closeSheet(stack[stack.length - 1]); }
+
+    // Закрыть все шторки и вызвать cb, когда запись истории убрана (после «Назад»). Нужно перед
+    // переходом на другую страницу, чтобы страница не оказалась в истории дважды.
+    function closeAll(cb) {
+        var open = stack.slice();
+        if (!open.length) { if (cb) cb(); return; }
+        var st = history.state;
+        if (st && st.rrSheet) {
+            var done = false;
+            var once = function () {
+                if (done) return;
+                done = true;
+                window.removeEventListener('popstate', once);
+                open.forEach(finishClose);
+                if (cb) cb();
+            };
+            window.addEventListener('popstate', once);
+            history.back();
+            setTimeout(once, 300);
+        } else {
+            open.forEach(finishClose);
+            if (cb) cb();
+        }
+    }
 
     // «Назад» / «Вперёд»: если верхняя шторка открыта, а запись истории уже не её — закрываем
     window.addEventListener('popstate', function () {
@@ -203,5 +227,5 @@
     document.addEventListener('focusout', function () { setTimeout(onViewport, 50); });
     onViewport();
 
-    window.RRMobile = { openSheet: openSheet, closeSheet: closeSheet, setBadge: setBadge };
+    window.RRMobile = { openSheet: openSheet, closeSheet: closeSheet, closeAll: closeAll, setBadge: setBadge };
 })();
