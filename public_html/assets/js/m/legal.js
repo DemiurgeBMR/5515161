@@ -8,7 +8,7 @@
     'use strict';
 
     var toc = document.getElementById('legalToc');
-    if (!toc || !window.IntersectionObserver || !window.matchMedia) return;
+    if (!toc || !window.matchMedia) return;
     var mq = window.matchMedia('(max-width: 768px)');
 
     var links = toc.querySelectorAll('a[href^="#"]');
@@ -38,15 +38,24 @@
         }
     }
 
-    // Активен последний раздел, чей верх уже прошёл линию под шапкой и лентой.
-    var visible = {};
-    var io = new IntersectionObserver(function (entries) {
-        for (var i = 0; i < entries.length; i++) visible[entries[i].target.id] = entries[i].isIntersecting;
+    // Активен последний раздел, чей верх уже поднялся выше линии под шапкой и лентой чипов.
+    var ticking = false;
+    function update() {
+        ticking = false;
+        if (!mq.matches) return;
+        var line = toc.getBoundingClientRect().bottom + 24;
+        var pick = sections[0].id;
         for (var j = 0; j < sections.length; j++) {
-            if (visible[sections[j].id]) { setActive(sections[j].id); return; }
+            if (sections[j].getBoundingClientRect().top <= line) pick = sections[j].id; else break;
         }
-    }, { rootMargin: '-110px 0px -55% 0px', threshold: 0 });
-    for (var k = 0; k < sections.length; k++) io.observe(sections[k]);
+        setActive(pick);
+    }
+    function onScroll() {
+        if (!ticking) { ticking = true; window.requestAnimationFrame(update); }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    update();
 
     // Тап по чипу — сразу подсветить (не ждать прокрутки)
     toc.addEventListener('click', function (e) {
