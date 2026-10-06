@@ -10,6 +10,11 @@
 
 @media (max-width: 768px) {
 
+    /* Ссылки подвала («Подписка · Политика · Соглашение») — зона нажатия ≥ 32px */
+    body.m-auth .footer p.footer-legal-links a {
+        padding: 8px 2px;
+    }
+
     /* ---------- Каркас страницы ---------- */
     body.m-auth .register-form {
         max-width: 520px;
@@ -354,8 +359,8 @@
     body.m-auth .reg-subtitle {
         max-width: none;
         margin: 0;
-        font-size: 14px;
-        line-height: 1.45;
+        font-size: 13px;
+        line-height: 1.4;
     }
 
     /* Выбор роли — сегментированный переключатель с крупными целями */
@@ -369,10 +374,10 @@
         border-radius: 18px;
     }
     body.m-auth .reg-role-card {
-        justify-content: center;
+        justify-content: flex-start;
         gap: 2px;
-        min-height: 88px;
-        padding: 10px 8px;
+        min-height: 80px;
+        padding: 8px 8px 10px;
         background: transparent;
         border: 2px solid transparent;
         border-radius: 14px;
@@ -393,13 +398,13 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
-        margin: 0 0 4px;
-        border-radius: 12px;
+        width: 32px;
+        height: 32px;
+        margin: 0 0 2px;
+        border-radius: 10px;
         background: var(--bg-elevated);
         color: var(--text-muted);
-        font-size: 20px;
+        font-size: 18px;
     }
     body.m-auth .reg-role-card.active .reg-role-icon {
         background: var(--accent-soft);

@@ -50,6 +50,10 @@
         min-height: var(--m-tap);
         font-size: 15px;
     }
+    body.m-ep .ep-tabs > [aria-selected="true"] {
+        color: var(--accent);
+        box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.55);
+    }
     body.m-ep .ep-page[data-ep-tab="profile"] .ep-pane-notif,
     body.m-ep .ep-page[data-ep-tab="notif"] .ep-pane-main {
         display: none;
@@ -91,14 +95,12 @@
         background: var(--bg-elevated-2);
         border-color: rgba(var(--accent-rgb), 0.35);
     }
-    body.m-ep .ep-card .form-group:last-child {
+    body.m-ep .ep-card > .form-group:last-of-type,
+    body.m-ep .ep-card > .form-row:last-of-type .form-group:last-child {
         margin-bottom: 0;
     }
-    body.m-ep .ep-card .form-row .form-group:last-child {
-        margin-bottom: 14px;
-    }
-    body.m-ep .ep-card .form-row:last-child .form-group:last-child {
-        margin-bottom: 0;
+    body.m-ep .ep-card > .btn-submit {
+        margin-top: 14px;
     }
 
     /* Подтверждение email: плашка под полем */
