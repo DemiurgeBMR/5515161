@@ -52,7 +52,7 @@ $revisions = $stmt->fetchAll();
             </p>
             
             <?php if (count($revisions) > 0): ?>
-                <table class="revisions-table">
+                <table class="revisions-table adm-cards adm-cards-rev">
                     <thead>
                         <tr>
                             <th>ID ревизии</th>
@@ -64,9 +64,9 @@ $revisions = $stmt->fetchAll();
                     <tbody>
                         <?php foreach ($revisions as $rev): ?>
                             <tr>
-                                <td>#<?php echo $rev['id']; ?></td>
-                                <td><?php echo date('d.m.Y H:i', strtotime($rev['created_at'])); ?></td>
-                                <td>
+                                <td class="c-id" data-label="Ревизия"><span class="m-only">Ревизия </span>#<?php echo $rev['id']; ?></td>
+                                <td class="c-date" data-label="Создана"><?php echo date('d.m.Y H:i', strtotime($rev['created_at'])); ?></td>
+                                <td class="c-badge" data-label="Статус">
                                     <?php if ($rev['status'] === 'pending'): ?>
                                         <span class="status-badge status-pending"><?php echo rr_icon('clock'); ?> Ожидает</span>
                                     <?php elseif ($rev['status'] === 'approved'): ?>
@@ -75,11 +75,11 @@ $revisions = $stmt->fetchAll();
                                         <span class="status-badge status-rejected"><?php echo rr_icon('x'); ?> Отклонена</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="actions" data-label="Действия">
                                     <?php if ($rev['status'] === 'pending'): ?>
-                                        <a href="/admin/preview_revision.php?revision_id=<?php echo $rev['id']; ?>" class="btn-view"><?php echo rr_icon('eye'); ?> Просмотр</a>
+                                        <a href="/admin/preview_revision.php?revision_id=<?php echo $rev['id']; ?>" class="btn-view act-main"><?php echo rr_icon('eye'); ?> Просмотр</a>
                                     <?php else: ?>
-                                        <span class="page-intro">Просмотр</span>
+                                        <span class="page-intro m-hide">Просмотр</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

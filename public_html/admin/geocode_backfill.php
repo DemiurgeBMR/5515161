@@ -60,7 +60,7 @@ $remaining = (int) $pdo->query("
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="admin-container">
+    <div class="admin-container adm-tool">
         <h1><?php echo rr_icon('globe'); ?> Геокодирование локаций</h1>
 
         <div class="nav-admin">
@@ -79,7 +79,7 @@ $remaining = (int) $pdo->query("
             <div class="success" role="status"><?php echo htmlspecialchars($batchResult); ?></div>
         <?php endif; ?>
 
-        <p>Локаций без координат: <strong><?php echo $remaining; ?></strong></p>
+        <p class="adm-count">Локаций без координат: <strong><?php echo $remaining; ?></strong></p>
 
         <?php if ($remaining > 0): ?>
             <form method="POST">
@@ -90,7 +90,7 @@ $remaining = (int) $pdo->query("
                 </button>
             </form>
         <?php else: ?>
-            <p><?php echo rr_icon('check'); ?> Все локации с адресом уже имеют координаты.</p>
+            <p class="adm-done"><?php echo rr_icon('check'); ?> Все локации с адресом уже имеют координаты.</p>
         <?php endif; ?>
 
         <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>

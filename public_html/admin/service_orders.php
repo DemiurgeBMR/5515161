@@ -106,7 +106,7 @@ unset($_SESSION['flash']);
             <a href="/admin/service_orders.php"><?php echo rr_icon('file-text'); ?> Заказы услуг</a>
         </div>
 
-        <div class="filters">
+        <div class="filters adm-chips">
             <a href="?filter=all" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">Все</a>
             <?php foreach ($statusLabels as $key => $label): ?>
                 <a href="?filter=<?php echo $key; ?>" class="<?php echo $filter === $key ? 'active' : ''; ?>"><?php echo htmlspecialchars($label); ?></a>
@@ -114,7 +114,7 @@ unset($_SESSION['flash']);
         </div>
 
         <div class="admin-table">
-            <table>
+            <table class="adm-cards adm-cards-order">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -128,32 +128,33 @@ unset($_SESSION['flash']);
                 </thead>
                 <tbody>
                     <?php if (!$orders): ?>
-                        <tr><td colspan="7">Заказов пока нет.</td></tr>
+                        <tr><td colspan="7" class="c-empty"><span class="m-only"><?php echo rr_icon('file-text'); ?></span><b class="m-only">Заказов пока нет</b><span class="m-hide">Заказов пока нет.</span></td></tr>
                     <?php endif; ?>
                     <?php foreach ($orders as $order): ?>
                         <tr>
-                            <td>#<?php echo $order['id']; ?></td>
-                            <td>
+                            <td class="c-id" data-label="Заказ">#<?php echo $order['id']; ?></td>
+                            <td class="c-client" data-label="Клиент">
                                 <?php echo htmlspecialchars($order['full_name']); ?><br>
                                 <a href="mailto:<?php echo htmlspecialchars($order['email']); ?>"><?php echo htmlspecialchars($order['email']); ?></a>
                                 <?php if (!empty($order['phone'])): ?>
-                                    <br><?php echo htmlspecialchars($order['phone']); ?>
+                                    <br><a href="tel:<?php echo htmlspecialchars(preg_replace('/[^0-9+]/', '', $order['phone'])); ?>" class="m-only adm-tel"><?php echo htmlspecialchars($order['phone']); ?></a><span class="m-hide"><?php echo htmlspecialchars($order['phone']); ?></span>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo $order['service'] === 'turnkey_deal' ? 'Сделка под ключ' : htmlspecialchars($order['service']); ?></td>
-                            <td><?php echo number_format($order['price'], 0, ',', ' '); ?> ₽</td>
-                            <td>
+                            <td class="c-service" data-label="Услуга"><?php echo $order['service'] === 'turnkey_deal' ? 'Сделка под ключ' : htmlspecialchars($order['service']); ?></td>
+                            <td class="c-price" data-label="Цена"><?php echo number_format($order['price'], 0, ',', ' '); ?> ₽</td>
+                            <td class="c-badge" data-label="Статус">
                                 <span class="status <?php echo htmlspecialchars(str_replace('_', '-', $order['status'])); ?>">
                                     <?php echo htmlspecialchars($statusLabels[$order['status']] ?? $order['status']); ?>
                                 </span>
                             </td>
-                            <td><?php echo formatDate($order['created_at']); ?></td>
-                            <td>
-                                <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="btn-view"><?php echo rr_icon('message-circle'); ?> Чат</a>
+                            <td class="c-date" data-label="Создан"><?php echo formatDate($order['created_at']); ?></td>
+                            <td class="actions" data-label="Действия">
+                                <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="btn-view act-main"><?php echo rr_icon('message-circle'); ?> Чат</a>
                                 <form method="POST" class="admin-inline-order-form">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                    <select name="status" onchange="this.form.submit()">
+                                    <span class="m-only adm-lbl">Статус заказа</span>
+                                    <select name="status" onchange="this.form.submit()" aria-label="Статус заказа №<?php echo (int) $order['id']; ?>">
                                         <?php foreach ($statusLabels as $key => $label): ?>
                                             <option value="<?php echo $key; ?>" <?php echo $order['status'] === $key ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                         <?php endforeach; ?>
@@ -167,7 +168,7 @@ unset($_SESSION['flash']);
         </div>
 
         <?php if ($total_pages > 1): ?>
-            <div class="pagination">
+            <div class="pagination adm-pager">
                 <?php if ($page > 1): ?>
                     <a href="?page=<?php echo $page - 1; ?>&filter=<?php echo $filter; ?>">←</a>
                 <?php endif; ?>
