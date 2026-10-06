@@ -38,6 +38,42 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 
 // Строка запроса для ссылок экспорта (те же фильтры)
 $exportQuery = http_build_query(array_filter($filters));
+
+// ===== Телефон (≤768px): лента карточек, фильтр по типу — чипами, остальное — в шторке =====
+$mTypeChips = [
+    ''              => 'Все',
+    'maintenance'   => 'Плановое ТО',
+    'restock'       => 'Пополнение',
+    'repair'        => 'Ремонт',
+    'broken'        => 'Поломка',
+    'needs_service' => 'Требует ремонта',
+    'installation'  => 'Установка',
+    'removal'       => 'Демонтаж',
+];
+$mTypeTone = [
+    'installation'  => '',
+    'maintenance'   => '',
+    'restock'       => 'is-info',
+    'repair'        => 'is-info',
+    'needs_service' => 'is-warning',
+    'broken'        => 'is-danger',
+    'removal'       => 'is-muted',
+];
+$mTypeIcon = [
+    'installation'  => 'plus-circle',
+    'maintenance'   => 'check',
+    'restock'       => 'bag',
+    'repair'        => 'tool',
+    'needs_service' => 'wrench',
+    'broken'        => 'warning',
+    'removal'       => 'x',
+];
+$mExtraFilters = count(array_filter([$filters['date_from'], $filters['date_to'], $filters['location_id'], $filters['source']]));
+$mAnyFilter = $mExtraFilters > 0 || $filters['event_type'] !== '';
+$mChipHref = function ($type) use ($filters) {
+    $q = http_build_query(array_filter(array_merge($filters, ['event_type' => $type])));
+    return '/pages/service_history.php' . ($q !== '' ? '?' . $q : '');
+};
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -47,13 +83,32 @@ $exportQuery = http_build_query(array_filter($filters));
     <title>История обслуживания — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-svc-hist">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="history-container">
     <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>
     <h2><?php echo rr_icon('file-text'); ?> История обслуживания</h2>
 
-    <form class="filters-bar" method="GET">
+    <div class="m-only m-appbar sh-appbar">
+        <a class="m-appbar-back" href="<?php echo $backLink; ?>" onclick="if (history.length > 1) { history.back(); return false; }" aria-label="Назад"><?php echo rr_icon('chevron-left'); ?></a>
+        <h1 class="m-appbar-title">История обслуживания</h1>
+        <button type="button" class="sh-export-open" data-m-sheet-open="shExport" aria-haspopup="dialog" aria-controls="shExport" aria-label="Экспорт"><?php echo rr_icon('download'); ?> <span class="sh-export-lb">Экспорт</span></button>
+    </div>
+
+    <div class="m-only m-chips sh-chips" role="toolbar" aria-label="Фильтры истории">
+        <button type="button" class="m-chip sh-chip-filters<?php echo $mExtraFilters ? ' is-on' : ''; ?>" data-m-sheet-open="shFilters" aria-haspopup="dialog" aria-controls="shFilters"><?php echo rr_icon('sliders'); ?> Фильтры<?php if ($mExtraFilters): ?> <span class="sh-chip-n"><?php echo $mExtraFilters; ?></span><?php endif; ?></button>
+        <?php foreach ($mTypeChips as $type => $label): $on = ($filters['event_type'] === $type); ?>
+            <a class="m-chip<?php echo $on ? ' is-on' : ''; ?>" href="<?php echo htmlspecialchars($mChipHref($type)); ?>"<?php echo $on ? ' aria-current="true"' : ''; ?>><?php echo htmlspecialchars($label); ?></a>
+        <?php endforeach; ?>
+    </div>
+
+    <form class="filters-bar m-sheet" method="GET" id="shFilters" aria-label="Фильтры">
+        <div class="m-only m-sheet-handle" aria-hidden="true"></div>
+        <div class="m-only m-sheet-head">
+            <b class="m-sheet-title">Фильтры</b>
+            <a class="m-sheet-link" href="/pages/service_history.php">Сбросить</a>
+            <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+        </div>
         <div class="filter-group">
             <label>С даты</label>
             <input type="date" name="date_from" value="<?php echo htmlspecialchars($filters['date_from']); ?>">
@@ -97,7 +152,13 @@ $exportQuery = http_build_query(array_filter($filters));
         <button type="submit" class="sh-btn-filter">Применить</button>
     </form>
 
-    <div class="export-bar">
+    <div class="export-bar m-sheet" id="shExport" aria-label="Экспорт истории">
+        <div class="m-only m-sheet-handle" aria-hidden="true"></div>
+        <div class="m-only m-sheet-head">
+            <b class="m-sheet-title">Экспорт</b>
+            <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+        </div>
+        <p class="m-only sh-export-hint"><?php echo $mAnyFilter ? 'В файл попадут записи с текущими фильтрами.' : 'В файл попадёт вся история обслуживания.'; ?></p>
         <a class="btn-export" href="/pages/export_history.php?format=csv&<?php echo $exportQuery; ?>"><?php echo rr_icon('download'); ?> Экспорт CSV (Excel)</a>
         <a class="btn-export" href="/pages/export_history.php?format=pdf&<?php echo $exportQuery; ?>"><?php echo rr_icon('download'); ?> Экспорт PDF</a>
     </div>
@@ -105,7 +166,40 @@ $exportQuery = http_build_query(array_filter($filters));
     <p class="summary-line">Найдено записей: <?php echo count($rows); ?></p>
 
     <?php if (count($rows) > 0): ?>
-        <div class="history-table">
+        <ul class="m-only sh-feed">
+            <?php foreach ($rows as $row):
+                $type = $row['event_type'];
+                $ts = strtotime($row['event_date']);
+            ?>
+                <li class="sh-item">
+                    <span class="sh-item-ic <?php echo $mTypeTone[$type] ?? 'is-muted'; ?>"><?php echo rr_icon($mTypeIcon[$type] ?? 'file-text'); ?></span>
+                    <div class="sh-item-main">
+                        <div class="sh-item-top">
+                            <span class="m-pill <?php echo $mTypeTone[$type] ?? 'is-muted'; ?>"><?php echo htmlspecialchars($mTypeChips[$type] ?? serviceEventTypeLabel($type)); ?></span>
+                            <?php if ($row['is_emergency']): ?><span class="m-pill is-danger"><?php echo rr_icon('warning'); ?> срочно</span><?php endif; ?>
+                            <time class="sh-item-date" datetime="<?php echo date('c', $ts); ?>"><?php echo date('d.m.Y', $ts); ?><span>, <?php echo date('H:i', $ts); ?></span></time>
+                        </div>
+                        <b class="sh-item-title"><?php echo htmlspecialchars($row['location_title']); ?></b>
+                        <span class="sh-item-city"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($row['city']); ?></span>
+                        <?php if (trim((string) ($row['comment'] ?? '')) !== ''): ?>
+                            <p class="sh-item-comment"><?php echo nl2br(htmlspecialchars($row['comment'])); ?></p>
+                        <?php endif; ?>
+                        <div class="sh-item-meta">
+                            <span><?php echo rr_icon('user'); ?> <?php echo htmlspecialchars($row['operator_name']); ?></span>
+                            <span><?php echo $row['source_type'] === 'log' ? rr_icon('edit') . ' постфактум' : rr_icon('check') . ' согласовано'; ?></span>
+                        </div>
+                        <?php if (!empty($row['photos'])): ?>
+                            <div class="sh-item-photos">
+                                <?php foreach ($row['photos'] as $photo): ?>
+                                    <a href="/<?php echo htmlspecialchars($photo); ?>" target="_blank" rel="noopener"><img src="/<?php echo htmlspecialchars($photo); ?>" alt="Фото" loading="lazy" width="64" height="64"></a>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+        <div class="history-table m-hide">
             <table>
                 <thead>
                     <tr>
@@ -154,7 +248,11 @@ $exportQuery = http_build_query(array_filter($filters));
         </div>
     <?php else: ?>
         <div class="empty">
+            <span class="m-only sh-empty-ic"><?php echo rr_icon('file-text'); ?></span>
             <p>По этим фильтрам записей не найдено.</p>
+            <?php if ($mAnyFilter): ?>
+                <a class="m-only m-btn m-btn--ghost" href="/pages/service_history.php">Сбросить фильтры</a>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
