@@ -10,6 +10,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['op
 
 $role = $_SESSION['user_role'];
 $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/profile.php';
+
+// Размер файла для телефонной карточки (тип · размер); нет файла — просто без размера.
+$dogovorFile = __DIR__ . '/../assets/documents/dogovor_razmeschenie_vendinga.docx';
+$dogovorSize = is_file($dogovorFile) ? rr_format_bytes(filesize($dogovorFile)) : '';
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -22,7 +26,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 <body class="m-pg-info">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="docs-container">
-    <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>
+    <a href="<?php echo $backLink; ?>" class="back-link m-hide">← Назад</a>
     <h2><?php echo rr_icon('file-text'); ?> Документы</h2>
     <p class="page-intro spaced">Шаблоны документов, которые могут понадобиться при работе с точками.</p>
 
@@ -36,6 +40,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         <div class="doc-info">
             <div class="icon"><?php echo rr_icon('edit'); ?></div>
             <div class="title">Договор о размещении и обслуживании вендингового автомата</div>
+            <div class="meta m-only"><span class="m-pill is-muted">DOCX</span><?php if ($dogovorSize !== ''): ?><span><?php echo htmlspecialchars($dogovorSize); ?></span><?php endif; ?></div>
             <div class="desc">
                 Типовой договор между собственником локации и оператором: предмет, порядок оплаты
                 (фиксированная / % от выручки / бесплатно), права и обязанности сторон, срок действия,
