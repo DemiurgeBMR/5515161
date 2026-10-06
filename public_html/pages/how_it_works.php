@@ -14,13 +14,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <title>Как это работает — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-info">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="hiw-page">
         <div class="hiw-container">
-            <a href="/" class="back-link">← На главную</a>
+            <a href="/" class="back-link m-hide">← На главную</a>
 
+            <div class="hiw-hero">
             <h1>Как работает RR</h1>
             <p class="hiw-intro">
                 RR — площадка, которая соединяет собственников помещений, готовых сдать место под вендинговый
@@ -28,6 +29,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 собеседником и вся договорённость проходят прямо на платформе — звонить вслепую или искать
                 контакты самостоятельно не нужно.
             </p>
+            </div>
 
             <?php if (rr_onboarding_applies($role)): ?>
                 <!-- Запуск интерактивного обучения (assets/js/rr-tour.js) -->
@@ -41,8 +43,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 </div>
             <?php endif; ?>
 
-            <div class="hiw-columns">
-                <div class="hiw-column<?php echo $role === 'owner' ? ' hiw-column-active' : ''; ?>">
+            <!-- Телефон: переключатель «Собственникам / Операторам» вместо двух колонок рядом (assets/js/m/how_it_works.js) -->
+            <div class="m-seg hiw-seg m-only" role="tablist" aria-label="Для кого" hidden>
+                <button type="button" role="tab" data-hiw-role="owner" aria-selected="false">Собственникам</button>
+                <button type="button" role="tab" data-hiw-role="operator" aria-selected="false">Операторам</button>
+            </div>
+
+            <div class="hiw-columns" data-m-default="<?php echo $role === 'operator' ? 'operator' : 'owner'; ?>">
+                <div class="hiw-column<?php echo $role === 'owner' ? ' hiw-column-active' : ''; ?>" data-hiw-col="owner">
                     <div class="hiw-column-header">
                         <span class="hiw-column-icon"><?php echo rr_icon('building'); ?></span>
                         <div>
@@ -93,7 +101,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
                     <?php endif; ?>
                 </div>
 
-                <div class="hiw-column<?php echo $role === 'operator' ? ' hiw-column-active' : ''; ?>">
+                <div class="hiw-column<?php echo $role === 'operator' ? ' hiw-column-active' : ''; ?>" data-hiw-col="operator">
                     <div class="hiw-column-header">
                         <span class="hiw-column-icon"><?php echo rr_icon('square'); ?></span>
                         <div>
@@ -144,7 +152,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
                 </div>
             </div>
 
-            <div class="hiw-faq">
+            <div class="hiw-faq" data-m-acc>
                 <h2>Частые вопросы</h2>
                 <div class="hiw-faq-item">
                     <div class="hiw-faq-q">Нужно ли платить, чтобы разместить локацию?</div>
@@ -184,5 +192,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/how_it_works.js" defer></script>
 </body>
 </html>
