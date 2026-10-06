@@ -30,7 +30,7 @@
             return 'Заполните это поле';
         }
         if (v.typeMismatch) return el.type === 'email' ? 'Введите корректный email, например ivan@example.com' : 'Проверьте значение';
-        if (v.patternMismatch) return el.getAttribute('title') || 'Неверный формат';
+        if (v.patternMismatch) return el.getAttribute('data-m-error') || el.getAttribute('title') || 'Неверный формат';
         if (v.tooShort) return 'Минимум ' + el.minLength + ' символов';
         if (v.customError && el.validationMessage) return el.validationMessage;
         return el.validationMessage || 'Проверьте значение';

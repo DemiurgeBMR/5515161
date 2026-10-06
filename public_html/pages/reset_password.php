@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
     <title>Новый пароль — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
@@ -71,13 +71,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                 <div class="form-group">
-                    <label>Новый пароль</label>
-                    <input type="password" name="password" required autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                    <label for="resetPassword">Новый пароль</label>
+                    <input type="password" name="password" id="resetPassword" required enterkeyhint="next" autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                     <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                 </div>
                 <div class="form-group">
-                    <label>Подтверждение пароля</label>
-                    <input type="password" name="password_confirm" required autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
+                    <label for="resetPasswordConfirm">Подтверждение пароля</label>
+                    <input type="password" name="password_confirm" id="resetPasswordConfirm" required enterkeyhint="go" autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
                 </div>
                 <button type="submit" class="btn-submit">Сохранить новый пароль</button>
             </form>
@@ -85,5 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
 </body>
 </html>

@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Подтверждение входа — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
@@ -126,8 +126,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST">
             <?php echo csrf_field(); ?>
             <div class="form-group">
-                <label>Код из письма</label>
-                <input type="text" name="code" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" autofocus>
+                <label for="tfaCode">Код из письма</label>
+                <input type="text" name="code" id="tfaCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" autocomplete="one-time-code" enterkeyhint="go" autofocus data-m-error="Введите шесть цифр из письма">
             </div>
             <button type="submit" class="btn-submit">Подтвердить</button>
         </form>
@@ -139,5 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
 </body>
 </html>
