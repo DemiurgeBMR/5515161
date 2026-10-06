@@ -98,10 +98,14 @@
         // видимой должна быть вся «строка формы» (подпись + поле + ошибка), если она помещается
         var row = el.closest('.form-group, .reg-consent, .ep-toggle') || el;
         var r = row.getBoundingClientRect();
-        if (r.height > bottomLimit - topLimit) r = el.getBoundingClientRect();
+        var top = r.top, bottom = r.bottom;
+        // сообщение об ошибке у флажка стоит после строки, а не внутри неё — тоже должно быть видно
+        var err = errorNodeFor(el, false);
+        if (err) bottom = Math.max(bottom, err.getBoundingClientRect().bottom);
+        if (bottom - top > bottomLimit - topLimit) { r = el.getBoundingClientRect(); top = r.top; bottom = r.bottom; }
         var delta = 0;
-        if (r.top < topLimit) delta = r.top - topLimit;
-        else if (r.bottom > bottomLimit) delta = r.bottom - bottomLimit;
+        if (top < topLimit) delta = top - topLimit;
+        else if (bottom > bottomLimit) delta = bottom - bottomLimit;
         if (Math.abs(delta) > 1) window.scrollBy(0, delta);
     }
     function isTextField(el) {
@@ -144,7 +148,8 @@
         e.preventDefault();               // без «пузыря» браузера — сообщение рисуем сами
         showError(el);
         pending.push(el);
-        if (!flushScheduled) { flushScheduled = true; Promise.resolve().then(flush); }
+        // события invalid идут подряд для всех полей — собираем их и обрабатываем после последнего
+        if (!flushScheduled) { flushScheduled = true; setTimeout(flush, 0); }
     }, true);
 
     // Поправили значение — убираем сообщение (при следующей проверке появится снова, если надо)

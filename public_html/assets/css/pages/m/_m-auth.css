@@ -552,7 +552,7 @@
         bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
         z-index: 950;
         justify-content: center;
-        gap: 10px;
+        gap: 8px;
         margin: 0;
         padding: 10px var(--m-gutter);
         background: var(--bg-elevated);
@@ -566,12 +566,12 @@
         flex: 1 1 auto;
         width: auto;
         max-width: 520px;
-        padding: 0 20px;
+        padding: 0 12px;
     }
     body.m-auth .reg-btn-back {
         flex: none;
         min-height: 48px;
-        padding: 0 18px;
+        padding: 0 14px;
         background: transparent;
         border: 1px solid var(--border-strong);
         border-radius: 14px;
@@ -679,9 +679,27 @@
     body.m-auth .form-group {
         margin-bottom: 10px;
     }
+    /* кнопка шага не липнет — иначе она съедает пол-экрана; встаёт в поток под полями */
     body.m-auth .reg-panel-actions {
-        padding-top: 6px;
-        padding-bottom: 6px;
+        position: static;
+        justify-content: flex-start;
+        margin-top: 16px;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+    }
+    body.m-auth .reg-panel-actions .btn-submit {
+        max-width: none;
+    }
+    body.m-auth.m-has-cta {
+        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
+    }
+    body.m-auth .reg-hero {
+        margin-bottom: 10px;
+    }
+    body.m-auth .reg-role-picker {
+        margin-bottom: 10px;
     }
     body.m-auth .reg-role-card {
         min-height: 64px;

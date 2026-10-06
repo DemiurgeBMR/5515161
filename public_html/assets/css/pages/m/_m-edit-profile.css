@@ -219,6 +219,10 @@
     /* ---------- Липкая кнопка «Сохранить» (одна на вкладку) ---------- */
     body.m-ep .ep-cta {
         display: none;
+        justify-content: center;
+    }
+    body.m-ep .ep-cta .m-btn {
+        max-width: 560px;
     }
     body.m-ep .ep-page[data-ep-tab="profile"] .ep-cta-main,
     body.m-ep .ep-page[data-ep-tab="notif"] .ep-cta-notif {
@@ -245,11 +249,15 @@
     body.m-ep .ep-title {
         margin-bottom: 8px;
     }
+    /* кнопка не липнет — иначе она съедает пол-экрана; встаёт в конец формы */
     body.m-ep .ep-cta {
-        padding-top: 6px;
-        padding-bottom: 6px;
+        position: static;
+        padding: 12px 0 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
     }
-    body.m-ep.m-has-cta {
-        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b) + 64px);
+    body.m-ep.m-auth.m-has-cta {
+        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
     }
 }
