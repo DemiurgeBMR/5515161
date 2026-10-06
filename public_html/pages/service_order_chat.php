@@ -114,15 +114,16 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     <title>Чат по заявке — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-no-tabbar m-chat-screen m-so-chat">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="chat-container">
-    <a href="<?php echo $backUrl; ?>" class="chat-back-link">← Назад</a>
+    <a href="<?php echo $backUrl; ?>" class="chat-back-link m-hide">← Назад</a>
 
     <div class="chat-card">
         <div class="chat-main">
             <div class="chat-main-topbar service-order-topbar">
+                <a href="<?php echo $backUrl; ?>" class="chat-m-back m-only" data-chat-back aria-label="Назад"><?php echo rr_icon('chevron-left'); ?></a>
                 <div class="who">
                     <div class="party-avatar"><?php echo htmlspecialchars(getInitials($otherPartyLabel)); ?></div>
                     <div class="name">
@@ -170,10 +171,10 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                             $prevDate = $msgDate;
                         ?>
                         <?php if ($showDateSeparator): ?>
-                            <div class="date-separator"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
+                            <div class="date-separator" data-date="<?php echo $msgDate; ?>"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
                         <?php endif; ?>
                         <?php if ($msg['is_system']): ?>
-                            <div class="date-separator"><span><?php echo htmlspecialchars($msg['message']); ?></span></div>
+                            <div class="date-separator is-system"><span><?php echo htmlspecialchars($msg['message']); ?></span></div>
                         <?php else: ?>
                             <div class="message <?php echo $isOwn ? 'own' : ''; ?> <?php echo $isGrouped ? 'grouped' : ''; ?>">
                                 <?php if (!$isOwn): ?>
@@ -182,13 +183,17 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                                 <div class="message-body">
                                     <?php if (!$isGrouped): ?>
                                         <div class="sender">
-                                            <?php echo htmlspecialchars($msg['sender_name']); ?>
+                                            <span class="sender-name"><?php echo htmlspecialchars($msg['sender_name']); ?></span>
                                             <span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
                                         </div>
                                     <?php endif; ?>
                                     <?php echo renderChatAttachment($msg); ?>
                                     <?php if ($msg['message'] !== ''): ?>
                                         <div class="text"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
+                                    <?php endif; ?>
+                                    <?php if ($isGrouped): ?>
+                                        <!-- телефон: время у каждого пузыря (на десктопе у сгруппированных его нет) -->
+                                        <div class="msg-meta m-only"><span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
