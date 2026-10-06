@@ -807,6 +807,12 @@
         margin-top: 1px;
     }
 
+    /* Всплывающие уведомления — над липкой панелью, а не поверх её кнопки */
+    body.m-loc.m-has-cta.m-no-tabbar .toast-container,
+    body.m-loc.m-has-cta.m-no-tabbar .rr-toast-container {
+        bottom: calc(var(--m-safe-b) + 84px);
+    }
+
     /* Шторка подтверждения разблокировки */
     .m-loc-sheet-tx {
         margin: 0 0 4px;

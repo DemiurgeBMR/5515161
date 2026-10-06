@@ -221,10 +221,32 @@
     body.m-sendapp .m-sa-cta .m-btn {
         white-space: nowrap;
     }
+
+    /* Всплывающие уведомления — над липкой панелью, а не поверх её кнопки */
+    body.m-sendapp.m-has-cta.m-no-tabbar .toast-container,
+    body.m-sendapp.m-has-cta.m-no-tabbar .rr-toast-container {
+        bottom: calc(var(--m-safe-b) + 84px);
+    }
 }
 
 /* Альбомная ориентация: низкий экран — поле ниже, липкая панель компактнее */
 @media (max-width: 768px) and (orientation: landscape) {
+    body.m-sendapp .m-sa-loc {
+        padding: 8px;
+    }
+    .m-sa-photo {
+        width: 52px;
+        height: 52px;
+    }
+    .m-sa-title {
+        -webkit-line-clamp: 1;
+    }
+    .m-sa-owner {
+        margin-top: 8px;
+    }
+    body.m-sendapp #sendAppForm {
+        margin-top: 12px;
+    }
     body.m-sendapp #sendAppForm .m-field textarea {
         height: 120px;
         min-height: 96px;

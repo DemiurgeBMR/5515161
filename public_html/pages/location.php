@@ -687,7 +687,7 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                                         <a href="/pages/register.php" class="m-btn m-btn--ghost">Регистрация</a>
                                     </div>
                                 <?php elseif ($creditsSummary['total_available'] > 0): ?>
-                                    <button type="button" class="m-btn m-btn--block" data-m-sheet-open="mUnlockSheet" aria-haspopup="dialog"><?php echo rr_icon('unlock'); ?> Открыть контакт за 1 кредит</button>
+                                    <button type="button" class="m-btn m-btn--block" data-m-sheet-open="mUnlockSheet" aria-haspopup="dialog"><?php echo rr_icon('unlock'); ?> Открыть контакт</button>
                                     <a href="/pages/subscription.php" class="m-loc-owner-link">Тарифы и баланс</a>
                                 <?php else: ?>
                                     <a href="/pages/subscription.php" class="m-btn m-btn--block"><?php echo rr_icon('card'); ?> Пополнить баланс</a>
