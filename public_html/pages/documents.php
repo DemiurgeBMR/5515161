@@ -19,7 +19,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <title>Документы — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-info">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="docs-container">
     <a href="<?php echo $backLink; ?>" class="back-link">← Назад</a>

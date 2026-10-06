@@ -101,6 +101,73 @@ $turnkeyStatusLabels = [
     'done'        => 'Выполнена',
     'cancelled'   => 'Отменена',
 ];
+
+// ----- Телефонная версия (блоки .m-only): выгодный пакет и история операций -----
+// Пакет с минимальной ценой за контакт — «Лучшая цена». Цифры считаются из тех же
+// rr_credit_packs(), что и сами карточки, так что подпись не может разойтись с прайсом.
+$bestPackKey = null;
+$bestPerContact = null;
+foreach ($creditPacks as $k => $pk) {
+    $pc = $pk['price'] / max(1, $pk['credits']);
+    if ($bestPerContact === null || $pc < $bestPerContact) {
+        $bestPerContact = $pc;
+        $bestPackKey = $k;
+    }
+}
+
+// История оператора: покупки пакетов, оформленные тарифы и траты контактов на разблокировку
+// адресов — одним списком, новые сверху. Только чтение; любая ошибка = пустая история.
+$mHistory = [];
+if ($isOperator) {
+    try {
+        $stmt = $pdo->prepare("SELECT source, credits_granted, price_paid, created_at FROM credit_purchases WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 20");
+        $stmt->execute([$user_id]);
+        foreach ($stmt->fetchAll() as $r) {
+            $isFree = $r['source'] === 'free_grant';
+            $mHistory[] = [
+                'ts'    => strtotime($r['created_at']),
+                'icon'  => $isFree ? 'plus-circle' : 'card',
+                'title' => $isFree ? 'Бесплатный контакт' : 'Пакет «' . ($creditPacks[$r['source']]['label'] ?? $r['credits_granted'] . ' контактов') . '»',
+                'sub'   => formatDateRu($r['created_at']) . ' · +' . (int) $r['credits_granted'] . ' ' . rr_plural_ru($r['credits_granted'], 'контакт', 'контакта', 'контактов'),
+                'end'   => $isFree || (float) $r['price_paid'] <= 0 ? 'Бесплатно' : number_format($r['price_paid'], 0, ',', ' ') . ' ₽',
+            ];
+        }
+
+        $stmt = $pdo->prepare("SELECT plan, price_paid, start_date, end_date FROM subscriptions WHERE user_id = ? ORDER BY start_date DESC, id DESC LIMIT 20");
+        $stmt->execute([$user_id]);
+        foreach ($stmt->fetchAll() as $r) {
+            $mHistory[] = [
+                'ts'    => strtotime($r['start_date']),
+                'icon'  => 'calendar',
+                'title' => 'Тариф «' . ($recurringPlans[$r['plan']]['label'] ?? $r['plan']) . '»',
+                'sub'   => formatDateRu($r['start_date']) . ' · до ' . formatDateRu($r['end_date']),
+                'end'   => number_format($r['price_paid'], 0, ',', ' ') . ' ₽',
+            ];
+        }
+
+        $stmt = $pdo->prepare("
+            SELECT lu.source, lu.unlocked_at, l.title
+            FROM location_unlocks lu
+            JOIN locations l ON l.id = lu.location_id
+            WHERE lu.operator_id = ?
+            ORDER BY lu.unlocked_at DESC LIMIT 20
+        ");
+        $stmt->execute([$user_id]);
+        foreach ($stmt->fetchAll() as $r) {
+            $mHistory[] = [
+                'ts'    => strtotime($r['unlocked_at']),
+                'icon'  => 'unlock',
+                'title' => $r['title'],
+                'sub'   => formatDateRu($r['unlocked_at']) . ' · адрес открыт',
+                'end'   => $r['source'] === 'subscription_allowance' ? 'из квоты' : '−1 контакт',
+            ];
+        }
+    } catch (Throwable $e) {
+        $mHistory = [];
+    }
+    usort($mHistory, function ($a, $b) { return $b['ts'] <=> $a['ts']; });
+    $mHistory = array_slice($mHistory, 0, 20);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -111,11 +178,11 @@ $turnkeyStatusLabels = [
     <meta name="description" content="Тарифы RR для операторов вендинга: бесплатный контакт при регистрации, пакеты контактов, тариф с помесячной квотой, разблокировка адреса локации.">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-info">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="subscription-container">
-        <a href="<?php echo htmlspecialchars($backLink); ?>" class="back-link">← Назад</a>
+        <a href="<?php echo htmlspecialchars($backLink); ?>" class="back-link m-hide">← Назад</a>
         <h2><?php echo rr_icon('card'); ?> Тарифы</h2>
 
         <?php if ($flash): ?>
@@ -123,7 +190,25 @@ $turnkeyStatusLabels = [
         <?php endif; ?>
 
         <?php if ($isOperator): ?>
-            <div class="subscription-status-banner <?php echo $creditsSummary['total_available'] > 0 ? 'active' : 'inactive'; ?>">
+            <!-- Телефон: акцентная карточка баланса контактов (на десктопе скрыта — там плашка ниже) -->
+            <div class="m-only m-balance <?php echo $creditsSummary['total_available'] > 0 ? '' : 'is-empty'; ?>">
+                <div class="m-balance-label">Доступно контактов</div>
+                <div class="m-balance-num"><?php echo (int) $creditsSummary['total_available']; ?></div>
+                <div class="m-balance-meta">
+                    <span class="m-pill">Бессрочных: <?php echo (int) $creditsSummary['permanent_balance']; ?></span>
+                    <?php if ($creditsSummary['subscription']): ?>
+                        <span class="m-pill is-info">По тарифу «<?php echo htmlspecialchars($creditsSummary['plan_label']); ?>»: <?php echo (int) $creditsSummary['monthly_remaining']; ?> из <?php echo (int) $creditsSummary['monthly_allowance']; ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="m-balance-hint">
+                    <?php if ($creditsSummary['subscription']): ?>
+                        Тариф действует до <?php echo formatDateRu($creditsSummary['subscription']['end_date']); ?>. Один контакт открывает точный адрес и контакт собственника одной локации — навсегда.
+                    <?php else: ?>
+                        Один контакт открывает точный адрес и контакт собственника одной локации — навсегда.
+                    <?php endif; ?>
+                </div>
+            </div>
+            <div class="m-hide subscription-status-banner <?php echo $creditsSummary['total_available'] > 0 ? 'active' : 'inactive'; ?>">
                 <?php echo rr_icon('card'); ?>
                 Доступно контактов: <strong><?php echo $creditsSummary['total_available']; ?></strong>
                 <?php if ($creditsSummary['subscription']): ?>
@@ -141,6 +226,18 @@ $turnkeyStatusLabels = [
             </div>
         <?php endif; ?>
 
+        <?php if (!$user_id): ?>
+            <!-- Телефон: состояние гостя — войти или зарегистрироваться (на десктопе скрыто) -->
+            <div class="m-only m-guest-cta">
+                <div class="m-guest-cta-title">Тарифы для операторов</div>
+                <div class="m-guest-cta-text">Войдите или зарегистрируйтесь, чтобы купить контакты и открывать адреса локаций. Первый контакт — бесплатно при регистрации.</div>
+                <div class="m-btn-row">
+                    <a href="/pages/login.php" class="m-btn m-btn--ghost">Войти</a>
+                    <a href="/pages/register.php?role=operator" class="m-btn">Регистрация</a>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <p class="subscription-description">
             Оплата — за контакт, а не за время: 1 разблокировка открывает точный адрес и контакт собственника
             ОДНОЙ конкретной локации навсегда, даже если потом кредиты закончатся. При регистрации оператор сразу
@@ -152,10 +249,17 @@ $turnkeyStatusLabels = [
         <div class="plan-cards">
             <?php foreach ($creditPacks as $packKey => $pack): ?>
                 <?php $perContact = round($pack['price'] / $pack['credits']); ?>
-                <div class="plan-card">
+                <div class="plan-card<?php echo $packKey === $bestPackKey ? ' m-best' : ''; ?>">
+                    <?php if ($packKey === $bestPackKey): ?>
+                        <div class="plan-card-badge m-only">Лучшая цена за контакт</div>
+                    <?php endif; ?>
                     <div class="plan-card-label"><?php echo htmlspecialchars($pack['label']); ?></div>
                     <div class="plan-card-price"><?php echo number_format($pack['price'], 0, ',', ' '); ?> ₽</div>
                     <div class="plan-card-per-month">≈ <?php echo number_format($perContact, 0, ',', ' '); ?> ₽/контакт</div>
+                    <ul class="m-plan-list m-only">
+                        <li><?php echo rr_icon('check'); ?> <?php echo (int) $pack['credits']; ?> <?php echo rr_plural_ru($pack['credits'], 'разблокировка', 'разблокировки', 'разблокировок'); ?> точного адреса и контакта</li>
+                        <li><?php echo rr_icon('check'); ?> Не сгорают — копятся на балансе</li>
+                    </ul>
 
                     <?php if ($isOperator): ?>
                         <form method="POST">
@@ -184,6 +288,17 @@ $turnkeyStatusLabels = [
                     <div class="plan-card-label"><?php echo htmlspecialchars($plan['label']); ?></div>
                     <div class="plan-card-price"><?php echo number_format($plan['price'], 0, ',', ' '); ?> ₽<?php echo $plan['months'] > 1 ? '/год' : '/мес'; ?></div>
                     <div class="plan-card-per-month"><?php echo $plan['monthly_allowance']; ?> разблокировок в месяц</div>
+                    <ul class="m-plan-list m-only">
+                        <li><?php echo rr_icon('check'); ?> <?php echo (int) $plan['monthly_allowance']; ?> <?php echo rr_plural_ru($plan['monthly_allowance'], 'разблокировка', 'разблокировки', 'разблокировок'); ?> адреса в месяц</li>
+                        <li><?php echo rr_icon('check'); ?> Квота обновляется каждый месяц, остаток не переносится</li>
+                        <?php if ($plan['months'] > 1): ?>
+                            <li><?php echo rr_icon('check'); ?> Доступ на <?php echo (int) $plan['months']; ?> мес. · ≈ <?php echo number_format(round($plan['price'] / $plan['months']), 0, ',', ' '); ?> ₽/мес</li>
+                            <?php $monthlyPlan = $recurringPlans['operator_monthly'] ?? null; ?>
+                            <?php if ($monthlyPlan && $monthlyPlan['monthly_allowance'] == $plan['monthly_allowance'] && $monthlyPlan['price'] * $plan['months'] > $plan['price']): ?>
+                                <li><?php echo rr_icon('check'); ?> Экономия <?php echo number_format($monthlyPlan['price'] * $plan['months'] - $plan['price'], 0, ',', ' '); ?> ₽ против помесячной оплаты</li>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </ul>
 
                     <?php if ($isOperator): ?>
                         <form method="POST">
@@ -209,6 +324,10 @@ $turnkeyStatusLabels = [
                 <div class="plan-card-label">Сделка под ключ</div>
                 <div class="plan-card-price"><?php echo number_format($turnkeyPrice, 0, ',', ' '); ?> ₽</div>
                 <div class="plan-card-per-month">разово</div>
+                <ul class="m-plan-list m-only">
+                    <li><?php echo rr_icon('check'); ?> Договор, акт и проверка условий сделки</li>
+                    <li><?php echo rr_icon('check'); ?> Заявку ведёт менеджер, чат с командой — сразу после заказа</li>
+                </ul>
 
                 <?php if ($canOrderTurnkey): ?>
                     <form method="POST">
@@ -225,6 +344,7 @@ $turnkeyStatusLabels = [
         </div>
 
         <?php if ($myTurnkeyOrders): ?>
+            <h3 class="m-only subscription-section-title m-orders-title"><?php echo rr_icon('list'); ?> Мои заявки</h3>
             <div class="turnkey-orders-list">
                 <?php foreach ($myTurnkeyOrders as $order): ?>
                     <div class="turnkey-order-row">
@@ -242,6 +362,23 @@ $turnkeyStatusLabels = [
                     </div>
                 <?php endforeach; ?>
             </div>
+        <?php endif; ?>
+
+        <?php if ($isOperator && $mHistory): ?>
+            <!-- Телефон: история покупок и трат контактов (на десктопе скрыта) -->
+            <h3 class="m-only subscription-section-title m-history-title"><?php echo rr_icon('clock'); ?> История</h3>
+            <ul class="m-only m-list m-history">
+                <?php foreach ($mHistory as $h): ?>
+                    <li class="m-row">
+                        <span class="m-row-ic"><?php echo rr_icon($h['icon']); ?></span>
+                        <span class="m-row-main">
+                            <span class="m-row-title"><?php echo htmlspecialchars($h['title']); ?></span>
+                            <span class="m-row-sub"><?php echo htmlspecialchars($h['sub']); ?></span>
+                        </span>
+                        <span class="m-row-end m-history-end"><?php echo htmlspecialchars($h['end']); ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
 
         <ul class="subscription-benefits subscription-benefits-footer">
