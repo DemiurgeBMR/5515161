@@ -1,5 +1,273 @@
 /* ===== ТЕЛЕФОНЫ: Редактирование локации (pages/edit_location.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Основа формы (карточки-секции, поля, звёзды, коммуникации, сетка фото, липкая кнопка) общая
+   с добавлением — см. _m-add-location.css (классы lf-*). Здесь только особенности редактирования:
+   заголовок с названием, статус и карточка «правки на модерации», текущие фото с пометками
+   «на проверке / будет удалено», кнопка «Отмена» в липкой панели. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Верхняя панель: «Редактирование» + название места ---------- */
+    .lf-appbar-t {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+    .lf-appbar-t span,
+    .lf-appbar-t small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .lf-appbar-t small {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Статус объявления и карточка правок на модерации ---------- */
+    .lf-status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 2px 0 10px;
+    }
+    .lf-status .m-pill {
+        padding: 4px 10px;
+        font-size: 12px;
+    }
+    .lf-status .m-pill .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    .lf-pending {
+        margin: 0 0 10px;
+    }
+    .lf-pending-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .lf-pending-title .rr-icon {
+        width: 18px;
+        height: 18px;
+        color: var(--warning);
+        vertical-align: 0;
+    }
+    .lf-pending-text {
+        margin: 6px 0 12px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text);
+    }
+    .lf-pending .lf-pending-btn {
+        background: var(--bg-elevated);
+    }
+    .lf-pending .lf-pending-btn .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* ---------- Текущие фото ---------- */
+    .lf-form > .lf-o-curphotos {
+        padding-bottom: 18px;
+    }
+    .lf-form .current-photos {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+        gap: 10px 8px;
+        margin: 0;
+    }
+    /* «Удалить» — галочка, превращённая в кнопку-корзину в углу фото; отмечено — «вернуть» */
+    .lf-form .current-photos .lf-ph-del-lb input[type="checkbox"] {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .lf-form .current-photos .lf-ph-txt {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+    .lf-form .current-photos .lf-ph-del-lb:has(input:focus-visible) .lf-ph-x {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+    .lf-ph-x .lf-ic-undo,
+    .lf-form .current-photos .photo-item.is-del .lf-ph-x .lf-ic-del {
+        display: none;
+    }
+    .lf-form .current-photos .photo-item.is-del .lf-ph-x .lf-ic-undo {
+        display: block;
+    }
+    .lf-form .current-photos .photo-item.is-del .lf-ph-x {
+        background: var(--m-danger-solid);
+    }
+    .lf-form .current-photos .photo-item.is-del img {
+        opacity: 0.4;
+        outline: 3px solid var(--danger);
+        outline-offset: -3px;
+    }
+    .lf-form .current-photos .photo-item.is-del::after {
+        content: "Будет удалено";
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 4px 6px;
+        border-radius: 8px;
+        background: var(--bg-elevated);
+        color: var(--danger);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: center;
+        pointer-events: none;
+    }
+    /* Пометки модерации на фото: «добавится после проверки», «будет удалено» */
+    .lf-form .current-photos .photo-item.pending-add,
+    .lf-form .current-photos .photo-item.pending-delete {
+        opacity: 1;
+        border: 0;
+    }
+    .lf-form .current-photos .photo-item.pending-add img {
+        opacity: 0.7;
+        outline: 2px dashed var(--info);
+        outline-offset: -2px;
+    }
+    .lf-form .current-photos .photo-item.pending-delete img {
+        opacity: 0.35;
+        outline: 2px solid var(--danger);
+        outline-offset: -2px;
+    }
+    .lf-form .current-photos .lf-ph-badge {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        right: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 6px;
+        border-radius: 8px;
+        background: var(--info);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.15;
+        text-align: left;
+    }
+    .lf-form .current-photos .lf-ph-badge .rr-icon {
+        flex: none;
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    .lf-form .current-photos .lf-ph-wait {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 4px;
+        border: 1px dashed var(--border-strong);
+        border-radius: 12px;
+        font-size: 12px;
+        line-height: 1.2;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .lf-form .current-photos .photo-delete-overlay {
+        left: 6px;
+        right: 6px;
+        top: calc(50% - 25px);
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 4px 6px;
+        border-radius: 8px;
+        background: var(--bg-elevated);
+        color: var(--danger);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .lf-form .current-photos .photo-delete-overlay .rr-icon {
+        flex: none;
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    /* Плитка «будет удалено» без кнопки под фото — переносим подпись в центр самого фото */
+    .lf-form .current-photos .photo-item.pending-delete .photo-delete-overlay {
+        top: 50%;
+    }
+    .lf-form .photo-notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 10px 0 0;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--info);
+        border-radius: 12px;
+        background: var(--info-soft);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .lf-form .photo-notice.danger {
+        border-left-color: var(--danger);
+        background: var(--danger-soft);
+    }
+    .lf-form .photo-notice .rr-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin-top: 1px;
+        vertical-align: 0;
+    }
+    .lf-form .photo-notice.danger .rr-icon {
+        color: var(--danger);
+    }
+    .lf-form .photo-notice.info .rr-icon {
+        color: var(--info);
+    }
+
+    /* ---------- Липкая панель: «Отмена» — второстепенная, «Сохранить» — главная ---------- */
+    .lf-cta .btn-submit.secondary,
+    .lf-cta .btn-submit.secondary:hover {
+        flex: 0 0 auto;
+        order: -1;
+        padding: 0 18px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        font-weight: 700;
+    }
+    .lf-cta .btn-submit.secondary:active {
+        background: var(--bg-elevated-2);
+    }
+    .lf-cta > .lf-cta-err {
+        order: -2;
+    }
+}

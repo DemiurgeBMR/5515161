@@ -291,6 +291,16 @@ if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainP
     }
 }
 }
+
+// Телефон (≤768px): карточка «правки на модерации» и плашка статуса над формой.
+// Только чтение — на десктопе эти блоки скрыты (.m-only), логика страницы не меняется.
+$stmt_rev = $pdo->prepare("SELECT COUNT(*) AS cnt, MAX(created_at) AS last_at FROM location_revisions WHERE location_id = ? AND status = 'pending'");
+$stmt_rev->execute([$id]);
+$pendingRev = $stmt_rev->fetch();
+$pendingRevCount = (int)($pendingRev['cnt'] ?? 0);
+$pendingRevAt = !empty($pendingRev['last_at']) ? date('d.m.Y в H:i', strtotime($pendingRev['last_at'])) : '';
+$isModerated = (int)($location['is_moderated'] ?? 0) === 1;
+$isActive = (int)($location['is_active'] ?? 0) === 1;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -300,51 +310,91 @@ if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainP
     <title>Редактировать локацию — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-no-tabbar m-has-cta lf-body">
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
-    <div class="add-form">
-        <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
-        <h2><?php echo rr_icon('edit'); ?> Редактировать локацию</h2>
+    <div class="add-form lf-page lf-page--edit">
+        <!-- Телефон (≤768px): верхняя панель «назад + заголовок + открыть объявление» -->
+        <div class="m-appbar lf-appbar m-only">
+            <a href="/pages/profile.php" class="m-appbar-back" aria-label="Назад" onclick="if (history.length > 1) { history.back(); return false; }"><?php echo rr_icon('chevron-left'); ?></a>
+            <h1 class="m-appbar-title lf-appbar-t"><span>Редактирование</span><small><?php echo htmlspecialchars($location['title']); ?></small></h1>
+            <a href="/pages/location.php?id=<?php echo (int)$id; ?>" class="m-appbar-act" aria-label="Открыть объявление"><?php echo rr_icon('eye'); ?></a>
+        </div>
+        <div class="lf-status m-only">
+            <?php if (!$isModerated): ?>
+                <span class="m-pill is-warning"><?php echo rr_icon('clock'); ?> На проверке</span>
+            <?php elseif ($pendingRevCount > 0): ?>
+                <span class="m-pill"><?php echo rr_icon('check'); ?> Опубликовано</span>
+                <span class="m-pill is-warning"><?php echo rr_icon('clock'); ?> Правки на проверке</span>
+            <?php else: ?>
+                <span class="m-pill"><?php echo rr_icon('check'); ?> Опубликовано</span>
+            <?php endif; ?>
+            <?php if (!$isActive): ?>
+                <span class="m-pill is-muted"><?php echo rr_icon('eye-off'); ?> Скрыто из каталога</span>
+            <?php endif; ?>
+        </div>
+        <?php if ($pendingRevCount > 0): ?>
+            <div class="m-card is-warning lf-pending m-only">
+                <b class="lf-pending-title"><?php echo rr_icon('clock'); ?> <?php echo $isModerated ? 'Правки на модерации' : 'Локация на модерации'; ?></b>
+                <p class="lf-pending-text">
+                    <?php if ($isModerated): ?>
+                        Изменения<?php echo $pendingRevAt !== '' ? ' от ' . htmlspecialchars($pendingRevAt) : ''; ?> ждут проверки<?php echo $pendingRevCount > 1 ? ' (правок: ' . $pendingRevCount . ')' : ''; ?>. До одобрения в каталоге видна прежняя версия объявления. Если сохраните форму ещё раз — на проверку уйдёт ещё одна правка.
+                    <?php else: ?>
+                        Объявление ждёт одобрения модератора<?php echo $pendingRevAt !== '' ? ' (отправлено ' . htmlspecialchars($pendingRevAt) . ')' : ''; ?> — в каталоге его пока нет. Новые изменения тоже уйдут на проверку.
+                    <?php endif; ?>
+                </p>
+                <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo (int)$id; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="m-btn m-btn--ghost m-btn--sm lf-pending-btn" data-rr-confirm="<?php echo $isModerated ? 'Отозвать отправленные правки? В объявлении останется прежняя версия.' : 'Отозвать локацию с проверки? Данные сохранятся — отправить снова можно кнопкой «Сохранить».'; ?>" data-rr-confirm-ok="Отозвать"><?php echo rr_icon('refresh'); ?> Отозвать правки</a>
+            </div>
+        <?php endif; ?>
+        <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link m-hide">← Назад</a>
+        <h2 class="m-hide"><?php echo rr_icon('edit'); ?> Редактировать локацию</h2>
         
         <?php if ($error): ?>
-            <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error lf-alert" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success lf-alert" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
         
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" class="lf-form lf-form--edit">
             <?php echo csrf_field(); ?>
+            <!-- Телефон: форма разбита на карточки-секции. Заголовки секций (.lf-sec-h) видны только
+                 на телефоне, порядок полей там задаёт CSS (assets/css/pages/m/_m-add-location.css). -->
+            <h2 class="lf-sec-h m-only" data-n="1"><b>Основное</b><small>Что за место</small></h2>
             <!-- Основная информация -->
-            <div class="form-group">
-                <label>Название места *</label>
-                <input type="text" name="title" required value="<?php echo htmlspecialchars($location['title']); ?>">
+            <div class="form-group lf-o-title">
+                <label for="lfTitle">Название места *</label>
+                <input type="text" name="title" id="lfTitle" required value="<?php echo htmlspecialchars($location['title']); ?>" enterkeyhint="next">
             </div>
             
-            <div class="form-group">
-                <label>Город *</label>
-                <input type="text" name="city" required value="<?php echo htmlspecialchars($location['city']); ?>">
+            <h2 class="lf-sec-h m-only" data-n="2"><b>Адрес</b><small>Где находится место</small></h2>
+            <div class="form-group lf-o-city">
+                <label for="lfCity">Город *</label>
+                <input type="text" name="city" id="lfCity" required value="<?php echo htmlspecialchars($location['city']); ?>" enterkeyhint="next">
             </div>
             
-            <div class="form-group">
-                <label>Адрес *</label>
-                <input type="text" name="address" required value="<?php echo htmlspecialchars($location['address']); ?>">
+            <div class="form-group lf-o-addr">
+                <label for="lfAddress">Адрес *</label>
+                <input type="text" name="address" id="lfAddress" required value="<?php echo htmlspecialchars($location['address']); ?>" enterkeyhint="next">
+                <p class="m-hint m-only">Если поменяете город или адрес, точку на карте определим заново.</p>
             </div>
             
-            <div class="form-group">
-                <label>Описание</label>
-                <textarea name="description"><?php echo htmlspecialchars($location['description'] ?? ''); ?></textarea>
+            <h2 class="lf-sec-h m-only" data-n="5"><b>Описание</b><small>Необязательно, но помогает с выбором</small></h2>
+            <div class="form-group lf-o-desc">
+                <label for="lfDesc" class="lf-lb-dup">Описание</label>
+                <textarea name="description" id="lfDesc"><?php echo htmlspecialchars($location['description'] ?? ''); ?></textarea>
             </div>
             
-            <div class="form-row">
+            <h2 class="lf-sec-h m-only" data-n="3"><b>Цена и доступ</b><small>Условия аренды</small></h2>
+            <div class="form-row lf-o-price">
                 <div class="form-group">
-                    <label>Цена в месяц (руб) *</label>
-                    <input type="number" name="price_month" required step="1" min="0" value="<?php echo $location['price_month']; ?>">
+                    <label for="lfPrice">Цена в месяц (руб) *</label>
+                    <input type="number" name="price_month" id="lfPrice" required step="1" min="0" value="<?php echo $location['price_month']; ?>" inputmode="numeric">
+                    <span class="lf-suffix m-only" aria-hidden="true">₽/мес</span>
                 </div>
                 <div class="form-group">
-                    <label>Часы доступа</label>
-                    <select name="access_hours">
+                    <label for="lfHours">Часы доступа</label>
+                    <select name="access_hours" id="lfHours">
                         <option value="24/7" <?php echo $location['access_hours'] == '24/7' ? 'selected' : ''; ?>>24/7</option>
                         <option value="08:00-22:00" <?php echo $location['access_hours'] == '08:00-22:00' ? 'selected' : ''; ?>>08:00 – 22:00</option>
                         <option value="09:00-21:00" <?php echo $location['access_hours'] == '09:00-21:00' ? 'selected' : ''; ?>>09:00 – 21:00</option>
@@ -355,9 +405,9 @@ if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainP
             </div>
 
             <!-- ★★★ НОВЫЙ БЛОК: ТИП ПОМЕЩЕНИЯ ★★★ -->
-            <div class="form-group">
-                <label>Тип помещения</label>
-                <select name="space_type" class="form-control">
+            <div class="form-group lf-o-type">
+                <label for="lfType">Тип помещения</label>
+                <select name="space_type" id="lfType" class="form-control">
                     <option value="">Не выбран</option>
                     <option value="retail" <?php echo ($location['space_type'] == 'retail') ? 'selected' : ''; ?>>Торговый центр / Магазин</option>
                     <option value="office" <?php echo ($location['space_type'] == 'office') ? 'selected' : ''; ?>>Бизнес-центр / Офис</option>
@@ -383,10 +433,10 @@ if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainP
             </div>
 
             <!-- ★★★ БЛОК ЗВЁЗД ПРОХОДИМОСТИ (с уже закрашенными) ★★★ -->
-            <div class="form-group">
+            <div class="form-group lf-o-traffic">
                 <label class="traffic-rating-label">
                     Проходимость места
-                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?></span>
+                    <span class="traffic-help-icon" onclick="openTrafficHelp()" title="Что означает каждая звезда?"><?php echo rr_icon('help-circle'); ?><span class="m-only">Как оценить?</span></span>
                 </label>
                 <div class="star-rating">
                     <?php for ($i = 1; $i <= 5; $i++): ?>
@@ -394,27 +444,29 @@ if ($contentUnchanged && $mainPhotoId !== null && $mainPhotoId !== $currentMainP
                     <?php endfor; ?>
                 </div>
                 <input type="hidden" name="traffic_rating" id="traffic_rating" value="<?php echo $traffic_rating; ?>">
+                <div class="lf-star-val m-only" id="lfStarVal" aria-live="polite"></div>
                 <div class="traffic-rating-hint">Оцените примерную проходимость (1 — низкая, 5 — очень высокая)</div>
             </div>
             
+            <h2 class="lf-sec-h m-only" data-n="4"><b>Параметры</b><small>Место под автомат и коммуникации</small></h2>
             <!-- Габариты -->
-            <div class="form-row">
+            <div class="form-row lf-o-dims">
                 <div class="form-group">
-                    <label>Ширина (м)</label>
-                    <input type="number" name="width" step="0.1" value="<?php echo htmlspecialchars($location['width'] ?? ''); ?>">
+                    <label for="lfWidth">Ширина (м)</label>
+                    <input type="number" name="width" id="lfWidth" step="0.1" value="<?php echo htmlspecialchars($location['width'] ?? ''); ?>" inputmode="decimal">
                 </div>
                 <div class="form-group">
-                    <label>Высота (м)</label>
-                    <input type="number" name="height" step="0.1" value="<?php echo htmlspecialchars($location['height'] ?? ''); ?>">
+                    <label for="lfHeight">Высота (м)</label>
+                    <input type="number" name="height" id="lfHeight" step="0.1" value="<?php echo htmlspecialchars($location['height'] ?? ''); ?>" inputmode="decimal">
                 </div>
                 <div class="form-group">
-                    <label>Глубина (м)</label>
-                    <input type="number" name="depth" step="0.1" value="<?php echo htmlspecialchars($location['depth'] ?? ''); ?>">
+                    <label for="lfDepth">Глубина (м)</label>
+                    <input type="number" name="depth" id="lfDepth" step="0.1" value="<?php echo htmlspecialchars($location['depth'] ?? ''); ?>" inputmode="decimal">
                 </div>
             </div>
             
             <!-- Коммуникации -->
-            <div class="form-group">
+            <div class="form-group lf-o-amen">
                 <label>Что есть на месте</label>
                 <div class="checkbox-group">
                     <label>
@@ -460,8 +512,9 @@ $pending_delete_photos = $stmt_pending_delete->fetchAll();
 
 $all_photos = array_merge($active_photos, $pending_add_photos);
 ?>
+<h2 class="lf-sec-h m-only" data-n="6"><b>Фотографии</b><small class="lf-ph-count">Новые фото — до 5 за раз</small></h2>
 <?php if (count($all_photos) > 0 || count($pending_delete_photos) > 0): ?>
-    <div class="form-group">
+    <div class="form-group lf-o-curphotos">
         <label>Текущие фото</label>
         <div class="current-photos">
             <?php foreach ($all_photos as $photo): 
@@ -469,8 +522,8 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
                 $isMain = ($photo['is_main'] == 1);
             ?>
 <div class="photo-item<?php echo $isPendingAdd ? ' pending-add' : ''; ?>">
-    <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
-    <div class="photo-pending-note">
+    <img src="/<?php echo htmlspecialchars($photo['photo_path']); ?>" alt="Фото">
+    <div class="photo-pending-note<?php echo $isPendingAdd ? ' lf-ph-badge' : ' m-hide'; ?>">
         <?php if ($isPendingAdd): ?>
             <?php echo rr_icon('clock'); ?> Добавится после модерации
         <?php elseif ($isMain): ?>
@@ -480,20 +533,20 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <?php if (!$isPendingAdd): ?>
         <label class="radio-label-block">
             <input type="radio" name="main_photo" value="existing_<?php echo $photo['id']; ?>" <?php echo $isMain ? 'checked' : ''; ?>>
-            Главное
+            <?php echo rr_icon('star', 'm-only'); ?>Главное
         </label>
-        <label>
-            <input type="checkbox" name="delete_photos[]" value="<?php echo $photo['id']; ?>"> Удалить
+        <label class="lf-ph-del-lb">
+            <input type="checkbox" name="delete_photos[]" value="<?php echo $photo['id']; ?>"> <span class="lf-ph-txt">Удалить</span><span class="lf-ph-x m-only" aria-hidden="true"><?php echo rr_icon('trash', 'lf-ic-del'); ?><?php echo rr_icon('refresh', 'lf-ic-undo'); ?></span>
         </label>
     <?php else: ?>
-        <span class="photo-pending-note">Ожидает добавления</span>
+        <span class="photo-pending-note lf-ph-wait">Ожидает добавления</span>
     <?php endif; ?>
 </div>
             <?php endforeach; ?>
             
             <?php foreach ($pending_delete_photos as $photo): ?>
                 <div class="photo-item pending-delete">
-                    <img src="/<?php echo $photo['photo_path']; ?>" alt="Фото">
+                    <img src="/<?php echo htmlspecialchars($photo['photo_path']); ?>" alt="Фото">
                     <div class="photo-delete-overlay">
                         <?php echo rr_icon('trash'); ?> Будет удалено
                     </div>
@@ -514,21 +567,32 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
 <?php endif; ?>
           
             <!-- Загрузка новых фото -->
-            <div class="form-group">
+            <div class="form-group lf-o-photos">
                 <label>Добавить новые фотографии (до 5 шт)</label>
                 <div class="file-upload" onclick="document.getElementById('photoInput').click();">
-                    <span class="icon"><?php echo rr_icon('camera'); ?></span>
-                    <div class="text">
+                    <span class="icon m-hide"><?php echo rr_icon('camera'); ?></span>
+                    <div class="text m-hide">
                         Кликните или перетащите фото<br>
                         <span>Поддерживаются JPG, PNG, WEBP (до 5 МБ)</span>
                     </div>
+                    <span class="lf-tile-ic m-only" aria-hidden="true"><svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span>
+                    <span class="lf-tile-lb m-only">Галерея</span>
                     <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
                 </div>
+                <label class="lf-cam m-only">
+                    <span class="lf-tile-ic" aria-hidden="true"><?php echo rr_icon('camera'); ?></span>
+                    <span class="lf-tile-lb">Камера</span>
+                    <input type="file" class="lf-cam-input" accept="image/*" capture="environment">
+                </label>
                 <div id="fileNames" class="file-names-hint"></div>
                 <div id="photoPreview" class="photo-preview-grid"></div>
+                <p class="lf-ph-msg m-only" role="status" hidden></p>
+                <p class="m-hint m-only lf-ph-hint">JPG, PNG или WEBP до 5 МБ. Новые фото и удаление появятся в объявлении после проверки, а смена главного среди опубликованных — сразу.</p>
             </div>
             
-            <div class="form-actions-row">
+            <!-- Телефон: липкая панель внизу экрана (сводка ошибок + «Отмена» и «Сохранить») -->
+            <div class="form-actions-row lf-cta m-sticky-cta">
+                <div class="lf-cta-err m-only" role="alert" hidden></div>
                 <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
                 <a href="/pages/profile.php" class="btn-submit secondary">Отмена</a>
             </div>
@@ -537,44 +601,45 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     
     <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
     <div class="modal-overlay" id="trafficHelpModal">
-        <div class="modal-box">
+        <div class="modal-box lf-help-box">
+            <div class="m-sheet-handle m-only" aria-hidden="true"></div>
             <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
             <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
             <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
-            <table>
+            <table class="m-table-cards">
                 <thead>
                     <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><span class="stars-demo">★</span> Низкая</td>
-                        <td>Малые офисы (&lt;50 чел), жилые дома, тихие коридоры</td>
-                        <td>50–200</td>
-                        <td>Мало людей, риск низкой окупаемости</td>
+                        <td class="m-cell-title"><span class="stars-demo">★</span> Низкая</td>
+                        <td data-label="Где встречается">Малые офисы (&lt;50 чел), жилые дома, тихие коридоры</td>
+                        <td data-label="Трафик (чел/день)">50–200</td>
+                        <td data-label="Нюансы">Мало людей, риск низкой окупаемости</td>
                     </tr>
                     <tr>
-                        <td><span class="stars-demo">★★</span> Ниже среднего</td>
-                        <td>Офисы (50–100 чел), гостиницы, точки "по пути"</td>
-                        <td>200–500</td>
-                        <td>Трафик есть, но люди часто спешат</td>
+                        <td class="m-cell-title"><span class="stars-demo">★★</span> Ниже среднего</td>
+                        <td data-label="Где встречается">Офисы (50–100 чел), гостиницы, точки "по пути"</td>
+                        <td data-label="Трафик (чел/день)">200–500</td>
+                        <td data-label="Нюансы">Трафик есть, но люди часто спешат</td>
                     </tr>
                     <tr>
-                        <td><span class="stars-demo">★★★</span> Средняя</td>
-                        <td>Крупные офисы (>100 чел), склады, заводы, фитнес-клубы, университеты</td>
-                        <td>500–3 000</td>
-                        <td><strong>Хороший выбор:</strong> стабильная аудитория</td>
+                        <td class="m-cell-title"><span class="stars-demo">★★★</span> Средняя</td>
+                        <td data-label="Где встречается">Крупные офисы (>100 чел), склады, заводы, фитнес-клубы, университеты</td>
+                        <td data-label="Трафик (чел/день)">500–3 000</td>
+                        <td data-label="Нюансы"><strong>Хороший выбор:</strong> стабильная аудитория</td>
                     </tr>
                     <tr>
-                        <td><span class="stars-demo">★★★★</span> Высокая</td>
-                        <td>ТРЦ, парки развлечений, больницы, крупные офисные центры</td>
-                        <td>3 000–10 000</td>
-                        <td>Люди проводят время, высокий потенциал</td>
+                        <td class="m-cell-title"><span class="stars-demo">★★★★</span> Высокая</td>
+                        <td data-label="Где встречается">ТРЦ, парки развлечений, больницы, крупные офисные центры</td>
+                        <td data-label="Трафик (чел/день)">3 000–10 000</td>
+                        <td data-label="Нюансы">Люди проводят время, высокий потенциал</td>
                     </tr>
                     <tr>
-                        <td><span class="stars-demo">★★★★★</span> Максимальная</td>
-                        <td>Аэропорты, ж/д вокзалы, туристические центры</td>
-                        <td>10 000+</td>
-                        <td><strong>Золотая жила,</strong> но аренда очень дорогая</td>
+                        <td class="m-cell-title"><span class="stars-demo">★★★★★</span> Максимальная</td>
+                        <td data-label="Где встречается">Аэропорты, ж/д вокзалы, туристические центры</td>
+                        <td data-label="Трафик (чел/день)">10 000+</td>
+                        <td data-label="Нюансы"><strong>Золотая жила,</strong> но аренда очень дорогая</td>
                     </tr>
                 </tbody>
             </table>
@@ -613,8 +678,9 @@ fileInput.addEventListener('change', function(e) {
                     <img src="${ev.target.result}" class="photo-preview-thumb" alt="Предпросмотр фото">
                     <label class="photo-preview-radio-label">
                         <input type="radio" name="main_photo" value="new_${index}" ${index === 0 ? 'checked' : ''}>
-                        Главное
+                        <?php echo rr_icon('star', 'm-only'); ?>Главное
                     </label>
+                    <button type="button" class="lf-ph-del m-only" data-i="${index}" aria-label="Убрать фото"><span><?php echo rr_icon('x'); ?></span></button>
                 `;
                 previewContainer.appendChild(div);
             };
@@ -669,5 +735,6 @@ fileInput.addEventListener('change', function(e) {
     </script>
     
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/location-form.js"></script>
 </body>
 </html>
