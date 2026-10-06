@@ -209,7 +209,11 @@
         vertical-align: 0;
         color: var(--accent);
     }
-    .profile-actions .btn-action:active {
+    .profile-actions .btn-action.secondary:hover {
+        background: var(--bg-elevated);   /* :hover «залипает» после касания */
+    }
+    .profile-actions .btn-action:active,
+    .profile-actions .btn-action.secondary:active {
         background: var(--bg-elevated-2);
     }
     .profile-actions .btn-action.primary {
@@ -769,6 +773,26 @@
         min-height: 48px;
         border-radius: 14px;
         font-size: 16px;
+    }
+}
+
+/* Узкий телефон: заголовок группы и ссылка «… →» в одну строку не помещаются —
+   ссылка уходит в конец группы (под пункты), справа. */
+@media (max-width: 374px) {
+    .profile-main .attention-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .profile-main .attention-group-head {
+        display: contents;
+    }
+    .profile-main .attention-group-head a {
+        order: 2;
+        align-self: flex-end;
+        min-height: 36px;
+    }
+    .profile-main .attention-list {
+        order: 1;
     }
 }
 
