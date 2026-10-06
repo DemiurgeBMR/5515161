@@ -324,6 +324,9 @@
     .m-history-title + .m-history {
         margin-top: 10px;
     }
+    .m-history .m-row-sub {
+        white-space: normal;
+    }
     .m-history .m-row-end {
         align-items: flex-end;
         font-size: 13px;
