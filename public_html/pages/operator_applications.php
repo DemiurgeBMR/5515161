@@ -190,7 +190,7 @@ foreach ($mApps as $app) {
             </div>
         <?php endif; ?>
 
-        <h3 class="subscription-section-title"><?php echo rr_icon('list'); ?> Заявки на аренду</h3>
+        <h3 class="subscription-section-title<?php echo $serviceOrders ? '' : ' m-hide'; ?>"><?php echo rr_icon('list'); ?> Заявки на аренду</h3>
         <?php if (count($applications) > 0): ?>
             <?php if (count($mStatusCounts) > 1 || $mUnreadApps > 0): ?>
                 <div class="m-only m-chips oa-chips" role="toolbar" aria-label="Фильтр по статусу">
