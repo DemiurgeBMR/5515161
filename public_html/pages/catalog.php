@@ -279,7 +279,7 @@ $mTypeSelectedHidden = $space_type !== '' && array_search($space_type, $mTypeKey
     <meta property="og:url" content="<?php echo htmlspecialchars(SITE_URL); ?>/pages/catalog.php">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-catalog">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="catalog-page">
