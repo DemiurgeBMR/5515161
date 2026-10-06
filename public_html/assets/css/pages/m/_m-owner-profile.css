@@ -1,5 +1,783 @@
 /* ===== ТЕЛЕФОНЫ: Кабинет собственника: мои локации (pages/profile.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Внимание: правила самого style.css (.location-card, .location-card img, .badge …) стоят ПОСЛЕ
+   всех импортов — поэтому здесь для них специфичность выше (.profile-main .location-card …).
+
+   Экран: компактная шапка профиля (аватар, имя, роль, почта) → показатели 2×2 → ряд плиток-действий
+   (горизонтальная прокрутка) → «Требует внимания» одной карточкой → чипы-фильтры → карточки локаций
+   (миниатюра слева, статус-плашка, просмотры/заявки, «Изменить» + «⋯» → шторка действий).
+   Шторка действий — это тот же блок .card-actions (класс m-sheet): на десктопе — прежний ряд кнопок. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Общее для страниц кабинета собственника (body.m-owner-cab) ---------- */
+    /* Ссылки подвала: зона нажатия ≥ 32px (в оболочке — 30px). См. «Запросы координатору». */
+    body.m-owner-cab .footer p.footer-legal-links a {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    body.m-owner-cab .flash-message {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: var(--success-soft);
+        border: 1px solid rgba(76, 194, 106, 0.35);
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    body.m-owner-cab .flash-message.flash-error {
+        background: var(--danger-soft);
+        border-color: rgba(255, 107, 107, 0.4);
+        color: var(--danger);
+    }
+
+    /* ---------- Каркас ---------- */
+    .profile-wrapper {
+        display: block;
+        max-width: none;
+        margin: 0;
+        padding: 14px var(--m-gutter) 24px;
+    }
+
+    /* ---------- Шапка профиля ---------- */
+    .profile-sidebar {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        column-gap: 12px;
+        align-items: center;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        text-align: left;
+    }
+    .profile-sidebar > .stats-grid,
+    .profile-sidebar > .profile-actions {
+        grid-column: 1 / -1;
+    }
+    .profile-sidebar .avatar {
+        width: 56px;
+        height: 56px;
+        margin: 0;
+        border: 0;
+        font-size: 24px;
+        font-weight: 800;
+        transition: none;
+    }
+    .profile-sidebar .avatar:hover {
+        transform: none;
+    }
+    .profile-sidebar .avatar:active {
+        transform: scale(0.96);
+    }
+    .profile-sidebar .avatar .hint {
+        display: none;             /* подсказка по наведению; на телефоне — значок «карандаш» */
+    }
+    .pf-avatar-edit {
+        position: absolute;
+        right: -3px;
+        bottom: -3px;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+    .pf-avatar-edit .rr-icon {
+        width: 13px;
+        height: 13px;
+    }
+    .profile-sidebar .user-info {
+        min-width: 0;
+    }
+    .profile-sidebar .user-name {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        overflow-wrap: anywhere;
+    }
+    .profile-sidebar .user-role {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1;
+    }
+    body .profile-sidebar .user-role .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        margin: 0;
+        padding: 4px 10px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .profile-sidebar .user-email {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+    }
+
+    /* ---------- Показатели: плитки 2×2 (на широком телефоне/планшете — 4 в ряд) ---------- */
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin: 14px 0 0;
+    }
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 62px;
+        padding: 10px 8px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .stat-item .number {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+    .stat-item .number.warning {
+        color: var(--warning);
+    }
+    .stat-item .label {
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 1.25;
+    }
+
+    /* ---------- Действия: ряд компактных плиток с горизонтальной прокруткой ----------
+       Почти все разделы продублированы в нижней панели и шторке «Профиль», поэтому здесь
+       они ужаты до плиток. «Добавить» — акцентная, «Выйти» — в конце, красным. */
+    .profile-actions {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        gap: 8px;
+        margin: 12px calc(var(--m-gutter) * -1) 0;
+        padding: 2px var(--m-gutter) 4px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .profile-actions::-webkit-scrollbar {
+        display: none;
+    }
+    .profile-actions .btn-action {
+        flex: 1 0 auto;
+        min-width: 80px;
+        height: 72px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 10px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.15;
+        white-space: nowrap;
+        transition: none;
+    }
+    .profile-actions .btn-action .rr-icon {
+        width: 22px;
+        height: 22px;
+        vertical-align: 0;
+        color: var(--accent);
+    }
+    .profile-actions .btn-action:active {
+        background: var(--bg-elevated-2);
+    }
+    .profile-actions .btn-action.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+    }
+    .profile-actions .btn-action.primary .rr-icon {
+        color: #fff;
+    }
+    .profile-actions .btn-action.primary:active {
+        background: var(--accent-hover);
+    }
+    .profile-actions .btn-action.danger {
+        background: var(--danger-soft);
+        border-color: transparent;
+        color: var(--danger);
+    }
+    .profile-actions .btn-action.danger .rr-icon {
+        color: var(--danger);
+    }
+    /* Порядок плиток на телефоне: самое частое — первым */
+    .profile-actions .pa-apps      { order: 1; }
+    .profile-actions .pa-operators { order: 2; }
+    .profile-actions .pa-calendar  { order: 3; }
+    .profile-actions .pa-docs      { order: 4; }
+    .profile-actions .pa-profile   { order: 5; }
+    .profile-actions .danger       { order: 6; }
+
+    /* ---------- Основная область ---------- */
+    .profile-main {
+        margin-top: 18px;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .profile-main h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 22px 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .profile-main h2 .rr-icon {
+        display: none;
+    }
+
+    /* ---------- «Требует внимания» ---------- */
+    .profile-main .attention-toggle {
+        gap: 8px;
+        justify-content: flex-start;
+        min-height: 48px;
+        margin: 0 0 6px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .profile-main .attention-toggle > .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+        color: var(--warning);
+    }
+    .attention-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 24px;
+        height: 24px;
+        padding: 0 7px;
+        border-radius: 12px;
+        background: var(--warning-soft);
+        color: var(--warning);
+        font-size: 13px;
+        font-weight: 800;
+    }
+    .profile-main .attention-toggle-chevron {
+        margin-left: auto;
+        width: 36px;
+        height: 36px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--bg-elevated-2);
+        color: var(--text-muted);
+    }
+    .profile-main .attention-empty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 6px;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--success-soft);
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .profile-main .attention-empty .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        color: var(--success);
+    }
+    /* Группы — одной карточкой с разделителями */
+    .profile-main .attention-groups {
+        gap: 0;
+        margin: 0 0 6px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .profile-main .attention-group {
+        padding: 10px 14px 4px;
+        background: none;
+        border: 0;
+        border-radius: 0;
+    }
+    .profile-main .attention-group + .attention-group {
+        border-top: 1px solid var(--border);
+    }
+    .profile-main .attention-group-head {
+        flex-wrap: wrap;
+        gap: 0 10px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.25;
+    }
+    .profile-main .attention-group-head > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        min-height: 36px;
+    }
+    .profile-main .attention-group-head > span .rr-icon {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        vertical-align: 0;
+        color: var(--warning);
+    }
+    .profile-main .attention-group-head a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        margin-left: auto;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .profile-main .attention-list {
+        gap: 0;
+    }
+    .profile-main .attention-list a {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 44px;
+        padding: 6px 0;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+    .profile-main .attention-list li + li a {
+        border-top: 1px solid var(--border);
+    }
+    .profile-main .attention-list a:active {
+        color: var(--text);
+    }
+    .profile-main .attention-list a .rr-icon {
+        flex: none;
+        color: var(--danger);
+    }
+
+    /* ---------- Фильтр: чипы с горизонтальной прокруткой ---------- */
+    .profile-main .tabs {
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin: 0 calc(var(--m-gutter) * -1) 12px;
+        padding: 2px var(--m-gutter);
+        border-bottom: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .profile-main .tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .profile-main .tabs a {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: none;
+    }
+    .profile-main .tabs a:hover {
+        background: var(--bg-input);
+        color: var(--text);
+    }
+    .profile-main .tabs a.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    .profile-main .tabs a .count {
+        min-width: 22px;
+        height: 22px;
+        margin: 0;
+        padding: 0 7px;
+        border-radius: 11px;
+        background: var(--bg-elevated-2);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 22px;
+        text-align: center;
+    }
+    .profile-main .tabs a.active .count {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    /* ---------- Карточки локаций: миниатюра слева, действия снизу ---------- */
+    .profile-main .location-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .profile-main .location-card {
+        position: relative;
+        height: auto;
+        border-radius: var(--m-radius);
+        box-shadow: none;
+        transition: none;
+    }
+    .profile-main .location-card:hover {
+        transform: none;               /* :hover «залипает» после касания; к тому же transform сломал бы шторку */
+        box-shadow: none;
+        border-color: var(--border);
+    }
+    .profile-main .location-link {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 12px;
+        height: auto;
+        padding: 12px;
+    }
+    .profile-main .location-link:active {
+        background: var(--bg-elevated-2);
+    }
+    .profile-main .location-card .card-image {
+        flex: none;
+        width: 92px;
+        height: 92px;
+        border-radius: 12px;
+        background: var(--bg-elevated-2);
+    }
+    .profile-main .location-card .card-image img {
+        width: 100%;
+        height: 100%;
+        background: var(--bg-elevated-2);
+        transition: none;
+    }
+    .profile-main .location-card:hover .card-image img {
+        transform: none;
+    }
+    .profile-main .location-card .card-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 0;
+    }
+    .profile-main .location-card .card-title {
+        order: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .profile-main .location-card .card-price {
+        order: 2;
+        margin: 0 0 3px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .profile-main .location-card .card-address {
+        order: 3;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    .profile-main .location-card .card-status {
+        order: 4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+        font-size: 12px;
+    }
+    .profile-main .location-card .status-badge .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    .profile-main .location-card .status-hint {
+        flex-basis: 100%;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    /* Нижняя строка карточки: просмотры и заявки, «Изменить», «⋯» */
+    .loc-m-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px 10px;
+        border-top: 1px solid var(--border);
+    }
+    .loc-m-stats {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        color: var(--text-muted);
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .loc-m-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .loc-m-stat .rr-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: 0;
+    }
+    .loc-m-stat.has-apps {
+        color: var(--accent);
+    }
+    .loc-m-main {
+        flex: none;
+        padding: 0 14px;
+        background: var(--bg-elevated-2);
+        border-color: var(--border);
+        color: var(--text);
+    }
+    .loc-m-main:active {
+        background: var(--border);
+    }
+    .loc-m-main .rr-icon {
+        width: 18px;
+        height: 18px;
+        color: var(--accent);
+    }
+    .loc-m-more {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text);
+        cursor: pointer;
+    }
+    .loc-m-more .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .loc-m-more:active {
+        background: var(--border);
+    }
+
+    /* Шторка действий (.card-actions.m-sheet): пункты-строки во всю ширину */
+    .profile-main .card-actions.m-sheet {
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 2px;
+        padding: 0 0 calc(12px + var(--m-safe-b));
+        border-top: 1px solid var(--border-strong);
+        overflow-y: auto;
+    }
+    .profile-main .card-actions.m-sheet .m-sheet-head {
+        padding-bottom: 6px;
+    }
+    .loc-sheet-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-sheet-head > b.loc-sheet-title {
+        font-size: 17px;
+    }
+    .profile-main .card-actions.m-sheet > .btn-action {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-height: 52px;
+        margin: 0 8px;
+        padding: 0 12px;
+        background: none;
+        border: 0;
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 600;
+        text-align: left;
+        transition: none;
+    }
+    .profile-main .card-actions.m-sheet > .btn-action .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        vertical-align: 0;
+        color: var(--text-muted);
+    }
+    .profile-main .card-actions.m-sheet > .btn-action:active {
+        background: var(--bg-elevated-2);
+    }
+    .profile-main .card-actions.m-sheet > .btn-delete,
+    .profile-main .card-actions.m-sheet > .btn-delete .rr-icon {
+        color: var(--danger);
+    }
+
+    /* ---------- Пустое состояние ---------- */
+    .profile-main .empty-locations {
+        padding: 28px 16px 12px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .empty-loc-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 12px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .empty-loc-ic .rr-icon {
+        width: 30px;
+        height: 30px;
+    }
+    .profile-main .empty-loc-title {
+        margin: 0 0 6px;
+        color: var(--text);
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+    .profile-main .empty-loc-title .rr-icon {
+        display: none;
+    }
+    .empty-loc-hint {
+        max-width: 320px;
+        margin: 0 auto 16px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .profile-main .empty-locations a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 0 22px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+    }
+    .profile-main .empty-locations a[href^="?filter"] {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .profile-main .empty-locations a .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+
+    /* ---------- Выбор цвета аватара — шторка снизу ---------- */
+    #avatarModal.modal-overlay {
+        align-items: flex-end;
+    }
+    #avatarModal .modal {
+        width: 100%;
+        max-width: none;
+        max-height: 88vh;
+        max-height: 88dvh;
+        overflow-y: auto;
+        padding: 10px 18px calc(16px + var(--m-safe-b));
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+    }
+    #avatarModal .modal::before {
+        content: '';
+        display: block;
+        width: 42px;
+        height: 5px;
+        margin: 0 auto 14px;
+        border-radius: 3px;
+        background: var(--border-strong);
+    }
+    #avatarModal .modal h3 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        font-weight: 800;
+        text-align: left;
+    }
+    #avatarModal .modal .color-grid {
+        gap: 12px;
+        margin: 14px 0 18px;
+    }
+    #avatarModal .modal .color-grid .color-item:hover {
+        transform: none;
+    }
+    #avatarModal .modal .modal-actions {
+        gap: 10px;
+        margin-top: 0;
+    }
+    #avatarModal .modal .modal-actions button {
+        flex: 1 1 0;
+        min-height: 48px;
+        border-radius: 14px;
+        font-size: 16px;
+    }
+}
+
+/* Широкий телефон лёжа и планшет: показатели — в один ряд, карточки — в две колонки */
+@media (min-width: 560px) and (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .profile-main .location-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
