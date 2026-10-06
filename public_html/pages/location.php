@@ -663,7 +663,7 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                                 <?php if ($isOperator): ?>
                                     <p class="m-loc-owner-tx">Связь — через чат RR: заявка и все ответы собственника приходят в «Заявки» и в уведомления.</p>
                                     <?php if ($mChatAppId): ?>
-                                        <a href="/pages/application_chat.php?application_id=<?php echo (int) $mChatAppId; ?>" class="m-btn m-btn--block"><?php echo rr_icon('message-circle'); ?> Открыть чат с собственником</a>
+                                        <a href="/pages/application_chat.php?application_id=<?php echo (int) $mChatAppId; ?>" class="m-btn m-btn--block"><?php echo rr_icon('message-circle'); ?> Открыть чат</a>
                                     <?php else: ?>
                                         <a href="/pages/send_application.php?location_id=<?php echo (int) $location['id']; ?>" class="m-btn m-btn--block"><?php echo rr_icon('send'); ?> Написать собственнику</a>
                                     <?php endif; ?>
@@ -699,8 +699,8 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
 
                 <?php if (!$isOwnListing): ?>
                 <p class="m-only m-loc-meta">
-                    <?php echo rr_icon('calendar'); ?> Размещено <?php echo formatDateRu($location['created_at']); ?>
-                    · <?php echo rr_icon('eye'); ?> <?php echo (int) $location['views']; ?> <?php echo rr_plural_ru((int) $location['views'], 'просмотр', 'просмотра', 'просмотров'); ?>
+                    <span><?php echo rr_icon('calendar'); ?> Размещено <?php echo formatDateRu($location['created_at']); ?></span>
+                    <span><?php echo rr_icon('eye'); ?> <?php echo (int) $location['views']; ?> <?php echo rr_plural_ru((int) $location['views'], 'просмотр', 'просмотра', 'просмотров'); ?></span>
                 </p>
                 <?php endif; ?>
             </div>

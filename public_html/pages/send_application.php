@@ -202,12 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($error)) {
         </p>
 
         <?php if (isset($error)): ?>
-            <div class="error<?php echo $mFieldError ? ' m-hide' : ''; ?>" role="alert"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error<?php echo ($mFieldError || $mExistingAppId) ? ' m-hide' : ''; ?>" role="alert"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
         <?php if ($mExistingAppId): ?>
             <div class="m-only m-card m-sa-sent">
                 <?php echo rr_icon('message-circle'); ?>
-                <span><b>Переписка уже идёт</b>Продолжайте общение с собственником в чате этой заявки.</span>
+                <span><b>Заявка уже отправлена</b>Переписка с собственником по этой точке идёт в чате заявки — продолжайте там.</span>
             </div>
         <?php endif; ?>
 

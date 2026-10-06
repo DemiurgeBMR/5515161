@@ -659,6 +659,11 @@
         margin-top: 1px;
         color: var(--accent);
     }
+    body.m-loc .m-loc-owner .m-btn-row .m-btn {
+        padding: 0 12px;
+        font-size: 15px;
+        white-space: nowrap;
+    }
     .m-loc-owner-link {
         display: flex;
         align-items: center;
@@ -674,10 +679,16 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 4px 6px;
+        gap: 4px 16px;
         margin: 18px 0 0;
         font-size: 13px;
         color: var(--text-muted);
+    }
+    .m-loc-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
     }
     .m-loc-meta .rr-icon {
         width: 14px;
@@ -777,6 +788,11 @@
     }
     body.m-loc .rec-card .rec-traffic .star.filled {
         color: var(--warning);
+    }
+
+    /* Ссылки подвала: зона нажатия ≥ 32px (общее правило оболочки даёт 30px — см. отчёт исполнителя B) */
+    body.m-loc .footer p.footer-legal-links a {
+        padding: 8px 2px;
     }
 
     /* ---------- Липкая панель ---------- */
@@ -909,6 +925,10 @@
 /* Альбомная ориентация телефона: низкий экран — фото лентой (видно соседние), галерея ≤ 56% высоты,
    липкая панель компактнее */
 @media (max-width: 768px) and (orientation: landscape) {
+    .m-loc-gallery {
+        height: min(75vw, 46vh, 460px);
+        height: min(75vw, 46dvh, 460px);
+    }
     .m-loc-slide {
         flex: 0 0 auto;
         width: auto;
@@ -930,6 +950,9 @@
 }
 
 @media (max-width: 360px) {
+    body.m-loc .m-loc-owner .m-btn-row .rr-icon {
+        display: none;
+    }
     body.m-loc .m-loc-cta {
         gap: 8px;
     }
