@@ -49,6 +49,9 @@
         color: var(--accent);
         vertical-align: baseline;
     }
+    body.m-auth .register-form h2 + form {
+        margin-top: 14px;
+    }
     body.m-auth .m-auth-sub,
     body.m-auth .auth-note {
         margin: 0 0 18px;
