@@ -219,6 +219,9 @@
     .m-tab.is-active {
         color: var(--accent);
     }
+    .m-sheet:focus {
+        outline: none;
+    }
     .m-tab:active .m-tab-ic {
         transform: scale(0.92);
     }
@@ -620,6 +623,16 @@
     .rr-tour-pill-inner {
         padding-top: 8px;
         padding-bottom: 8px;
+    }
+}
+
+@media (max-width: 340px) {
+    .m-tab {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    .m-tab-lb {
+        letter-spacing: -0.3px;
     }
 }
 
