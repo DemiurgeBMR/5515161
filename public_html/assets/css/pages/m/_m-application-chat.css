@@ -1094,12 +1094,13 @@
         gap: 10px;
     }
     .m-chat-screen .chat-main-topbar .who .name {
-        flex: 0 1 auto;
-        min-width: 0;
+        flex: 0 0 auto;
+        max-width: 45%;
         font-size: 15px;
     }
     .m-chat-screen .who-sub {
         flex: 1 1 auto;
+        min-width: 0;
     }
     .m-chat-screen .chat-messages {
         padding-top: 6px;
