@@ -761,6 +761,9 @@
         width: 100%;
         margin: 0;
     }
+    .adm-cards-order tr:has(> td.c-empty) {
+        display: block;
+    }
     .adm-cards-order td.c-empty {
         grid-column: 1 / -1;
         grid-row: 1;
