@@ -174,7 +174,7 @@
         display: grid;
         grid-auto-flow: column;
         grid-template-rows: repeat(2, 66px);
-        grid-auto-columns: 108px;
+        grid-auto-columns: minmax(108px, 1fr);   /* на планшете плитки растягиваются на всю ширину */
         gap: 8px;
         margin: 12px calc(var(--m-gutter) * -1) 0;
         padding: 0 var(--m-gutter);
