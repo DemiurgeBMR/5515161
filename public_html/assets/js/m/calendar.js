@@ -230,7 +230,7 @@
                 (anyFilterActive() ? 'По фильтрам на этот день ничего нет.' : 'На этот день ничего не запланировано.') +
               '</div>';
         var add = '<button type="button" class="m-btn m-btn--ghost m-btn--block cal-m-day-add" data-cal-create="' + picked + '">' + icon('plus') +
-            'Запланировать на ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] + '</button>';
+            'Выезд на ' + d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] + '</button>';
         box.innerHTML = head + body + add;
         box.hidden = false;
     }

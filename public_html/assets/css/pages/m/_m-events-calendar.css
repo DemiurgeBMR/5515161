@@ -257,8 +257,8 @@
         display: none;
     }
     .stat-card {
-        flex: 0 0 auto;
-        min-width: 142px;
+        flex: 1 0 auto;
+        min-width: 124px;
         min-height: 60px;
         padding: 10px 12px;
         gap: 10px;
@@ -298,8 +298,8 @@
         font-size: 20px;
     }
     .stat-label {
-        max-width: 98px;
         margin-top: 1px;
+        white-space: nowrap;
         font-size: 12px;
         line-height: 1.25;
         color: var(--text-muted);
@@ -751,6 +751,9 @@
     .calendar-card .fc .fc-col-header-cell {
         background: none;
     }
+    .calendar-card .fc .fc-scrollgrid-section-sticky > * {
+        position: static;               /* дни недели не прилипают под шапкой сайта */
+    }
     .calendar-card .fc .fc-col-header-cell-cushion {
         padding: 6px 0 4px;
         font-size: 12px;
@@ -1199,6 +1202,9 @@
         width: 18px;
         height: 18px;
     }
+    .detail-actions .full.cal-act-open {
+        grid-column: auto;              /* на десктопе «Открыть заявку» — во всю ширину; здесь — в паре с «Другая дата» */
+    }
     .detail-actions .cal-act-confirm,
     .detail-actions .cal-act-complete {
         grid-column: 1 / -1;
@@ -1256,8 +1262,14 @@
     }
 }
 
-/* Узкие телефоны: у кнопки фильтров только иконка */
+/* Узкие телефоны: у кнопки фильтров только иконка, у «Новый выезд» — без значка (заголовок не обрезается) */
 @media (max-width: 374px) {
+    .calendar-actions #newEventBtn {
+        padding: 0 12px;
+    }
+    .calendar-actions #newEventBtn .rr-icon {
+        display: none;
+    }
     .cal-m-filter-btn {
         width: 48px;
         padding: 0;

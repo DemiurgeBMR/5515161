@@ -70,28 +70,28 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <div class="stat-icon today"><?php echo rr_icon('calendar'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="todayCount">0</div>
-                <div class="stat-label">Событий сегодня</div>
+                <div class="stat-label"><span class="m-hide">Событий сегодня</span><span class="m-only">Сегодня</span></div>
             </div>
         </div>
         <div class="stat-card" data-filter="pending" id="statPending">
             <div class="stat-icon pending"><?php echo rr_icon('clock'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="pendingCount">0</div>
-                <div class="stat-label">Ожидают подтверждения</div>
+                <div class="stat-label"><span class="m-hide">Ожидают подтверждения</span><span class="m-only">Ожидают</span></div>
             </div>
         </div>
         <div class="stat-card" data-filter="emergency" id="statEmergency">
             <div class="stat-icon emergency"><?php echo rr_icon('warning'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="emergencyCount">0</div>
-                <div class="stat-label">Срочных выездов</div>
+                <div class="stat-label"><span class="m-hide">Срочных выездов</span><span class="m-only">Срочные</span></div>
             </div>
         </div>
         <div class="stat-card" id="statCompleted">
             <div class="stat-icon completed"><?php echo rr_icon('check'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="completedCount">0</div>
-                <div class="stat-label">Выполнено за месяц</div>
+                <div class="stat-label"><span class="m-hide">Выполнено за месяц</span><span class="m-only">Выполнено</span></div>
             </div>
         </div>
     </div>
@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<button class="cal-btn-primary cal-act-complete" onclick="completeActiveEvent()"><?php echo rr_icon('check'); ?> Завершить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-danger cal-act-cancel" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить<span class="m-only">&nbsp;выезд</span></button>`;
+            html += `<button class="cal-btn-danger cal-act-cancel" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить<span class="m-only">выезд</span></button>`;
         }
         html += `</div>`;
 
