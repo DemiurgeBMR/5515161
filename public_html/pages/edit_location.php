@@ -525,7 +525,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
     <img src="/<?php echo htmlspecialchars($photo['photo_path']); ?>" alt="Фото">
     <div class="photo-pending-note<?php echo $isPendingAdd ? ' lf-ph-badge' : ' m-hide'; ?>">
         <?php if ($isPendingAdd): ?>
-            <?php echo rr_icon('clock'); ?> Добавится после модерации
+            <?php echo rr_icon('clock'); ?> <span class="m-hide">Добавится после модерации</span><span class="m-only">На проверке</span>
         <?php elseif ($isMain): ?>
             Главное
         <?php endif; ?>
@@ -593,7 +593,7 @@ $all_photos = array_merge($active_photos, $pending_add_photos);
             <!-- Телефон: липкая панель внизу экрана (сводка ошибок + «Отмена» и «Сохранить») -->
             <div class="form-actions-row lf-cta m-sticky-cta">
                 <div class="lf-cta-err m-only" role="alert" hidden></div>
-                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
+                <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить<span class="m-hide"> изменения</span></button>
                 <a href="/pages/profile.php" class="btn-submit secondary">Отмена</a>
             </div>
         </form>

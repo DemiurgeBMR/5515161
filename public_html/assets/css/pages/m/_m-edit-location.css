@@ -197,7 +197,7 @@
     .lf-form .current-photos .photo-delete-overlay {
         left: 6px;
         right: 6px;
-        top: calc(50% - 25px);
+        top: 50%;
         transform: translateY(-50%);
         display: flex;
         align-items: center;
@@ -216,10 +216,6 @@
         width: 13px;
         height: 13px;
         vertical-align: 0;
-    }
-    /* Плитка «будет удалено» без кнопки под фото — переносим подпись в центр самого фото */
-    .lf-form .current-photos .photo-item.pending-delete .photo-delete-overlay {
-        top: 50%;
     }
     .lf-form .photo-notice {
         display: flex;
