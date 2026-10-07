@@ -218,6 +218,99 @@ if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
 $stmt_photos->execute([$id]);
 $photos = $stmt_photos->fetchAll();
 
+// ===== Телефоны (≤ 768px): данные «экрана объявления» =====
+// Разметка с классом m-only ниже на десктопе скрыта (components/_m-ui.css), десктоп не меняется.
+// Стили — assets/css/pages/m/_m-location.css, поведение — assets/js/m/location.js.
+$mPhotos = [];
+if (!empty($location['main_photo'])) {
+    $mPhotos[] = $location['main_photo'];
+}
+foreach ($photos as $ph) {
+    $mPhotos[] = $ph['photo_path'];
+}
+$mPrice = number_format($location['price_month'], 0, ',', ' ');
+$mNum = function ($v) { return str_replace('.', ',', rtrim(rtrim(number_format((float) $v, 2, '.', ''), '0'), '.')); };
+$mYesNo = function ($v) { return $v ? 'Есть' : 'Нет'; };
+$mTraffic = (int) $location['traffic_rating'];
+$mTrafficLabels = [1 => 'Низкая', 2 => 'Ниже среднего', 3 => 'Средняя', 4 => 'Высокая', 5 => 'Максимальная'];
+
+$mSpecs = [];
+if (!empty($location['space_type']) && isset($space_types[$location['space_type']])) {
+    $mSpecs[] = ['icon' => 'building', 'label' => 'Тип помещения', 'value' => $space_types[$location['space_type']], 'wide' => true];
+}
+if ($area) {
+    $mSpecs[] = ['icon' => 'square', 'label' => 'Площадь', 'value' => $mNum($area) . ' м²'];
+}
+if (!empty($location['width']) || !empty($location['depth']) || !empty($location['height'])) {
+    $dims = [];
+    foreach (['width', 'depth', 'height'] as $k) {
+        $dims[] = !empty($location[$k]) ? $mNum($location[$k]) : '—';
+    }
+    $mSpecs[] = ['icon' => 'grid', 'label' => 'Ш × Г × В', 'value' => implode(' × ', $dims) . ' м'];
+}
+$mSpecs[] = ['icon' => 'bolt',    'label' => 'Электричество', 'value' => $mYesNo($location['has_electricity']), 'off' => !$location['has_electricity']];
+$mSpecs[] = ['icon' => 'wifi',    'label' => 'Wi-Fi',         'value' => $mYesNo($location['has_wifi']),        'off' => !$location['has_wifi']];
+$mSpecs[] = ['icon' => 'droplet', 'label' => 'Вода',          'value' => $mYesNo($location['has_water']),       'off' => !$location['has_water']];
+$mSpecs[] = ['icon' => 'shield',  'label' => 'Охрана',        'value' => $mYesNo($location['has_security']),    'off' => !$location['has_security']];
+$mSpecs[] = ['icon' => 'clock', 'label' => 'Доступ', 'wide' => true,
+             'value' => $location['access_hours'] === '24/7' ? 'Круглосуточно' : ($location['access_hours'] !== '' && $location['access_hours'] !== null ? $location['access_hours'] : 'Не указан')];
+
+// Заявка по этой точке уже есть — главное действие ведёт сразу в её чат, а не на повторную подачу
+$mChatAppId = null;
+if ($isOperator && $hasFullAccess) {
+    $stmt = $pdo->prepare("SELECT id FROM applications WHERE location_id = ? AND operator_id = ? AND status NOT IN ('cancelled', 'rejected', 'unassigned') ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$id, $user_id]);
+    $mChatAppId = $stmt->fetchColumn() ?: null;
+}
+
+// Главное действие экрана — липкая панель внизу (цена слева, кнопка справа)
+$mCta = null;
+if ($isOwnListing) {
+    $mCta = ['href' => '/pages/edit_location.php?id=' . $id, 'label' => 'Редактировать', 'icon' => 'edit'];
+} elseif ($showOccupiedBadge) {
+    $mCta = ['href' => '/pages/catalog.php', 'label' => 'Другие локации', 'icon' => 'search', 'ghost' => true];
+} elseif ($showInquiryBlock) {
+    if (!isset($_SESSION['user_id'])) {
+        $mCta = ['href' => '/pages/login.php', 'label' => 'Войти и связаться', 'icon' => 'user'];
+    } elseif ($mChatAppId) {
+        $mCta = ['href' => '/pages/application_chat.php?application_id=' . (int) $mChatAppId, 'label' => 'Открыть чат', 'icon' => 'message-circle'];
+    } elseif ($hasFullAccess) {
+        $mCta = ['href' => '/pages/send_application.php?location_id=' . $id, 'label' => 'Подать заявку', 'icon' => 'send'];
+    } elseif ($creditsSummary['total_available'] > 0) {
+        $mCta = ['sheet' => 'mUnlockSheet', 'label' => 'Открыть контакт', 'icon' => 'unlock'];
+    } else {
+        $mCta = ['href' => '/pages/subscription.php', 'label' => 'Пополнить баланс', 'icon' => 'card'];
+    }
+}
+$mBackHref = $isOwnListing ? '/pages/profile.php' : '/pages/catalog.php';
+
+// Мини-карта: статичные плитки OpenStreetMap вокруг точки (без JS-библиотек). Координаты —
+// только тем, кому открыт точный адрес (как на pages/map.php: карта не раздаёт адреса бесплатно).
+$mMapTiles = [];
+$mMapsUrl = null;
+if ($hasFullAccess) {
+    if ($location['latitude'] !== null && $location['longitude'] !== null) {
+        $mLat = (float) $location['latitude'];
+        $mLng = (float) $location['longitude'];
+        $mZoom = 16;
+        $mWorld = 256 * (2 ** $mZoom);
+        $mPx = ($mLng + 180) / 360 * $mWorld;
+        $mPy = (1 - log(tan(deg2rad($mLat)) + 1 / cos(deg2rad($mLat))) / M_PI) / 2 * $mWorld;
+        // Плитки, покрывающие окно до 768 × 180 px с точкой в центре
+        for ($tx = (int) floor(($mPx - 384) / 256); $tx <= (int) floor(($mPx + 384) / 256); $tx++) {
+            for ($ty = (int) floor(($mPy - 90) / 256); $ty <= (int) floor(($mPy + 90) / 256); $ty++) {
+                // Поддомены a/b/c — их разрешает CSP (img-src https://*.tile.openstreetmap.org, includes/session_bootstrap.php)
+                $mMapTiles[] = ['src' => 'https://' . 'abc'[($tx + $ty) % 3] . '.tile.openstreetmap.org/' . $mZoom . '/' . $tx . '/' . $ty . '.png',
+                                'left' => (int) round($tx * 256 - $mPx), 'top' => (int) round($ty * 256 - $mPy)];
+            }
+        }
+        $mMapsUrl = 'https://yandex.ru/maps/?pt=' . $mLng . ',' . $mLat . '&z=17&l=map';
+    } else {
+        $mMapsUrl = 'https://yandex.ru/maps/?text=' . rawurlencode($location['city'] . ', ' . $location['address']);
+    }
+}
+$mOwnerInitial = mb_strtoupper(mb_substr(trim((string) $location['owner_name']) !== '' ? trim($location['owner_name']) : 'С', 0, 1));
+
 // Увеличиваем счётчик просмотров — но не в режиме предпросмотра, иначе
 // собственник/админ, листающий свой ещё не опубликованный черновик, накручивал
 // бы публичную статистику просмотров до того, как объявление вообще стало видно.
@@ -255,9 +348,9 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
     <?php endif; ?>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-loc m-no-tabbar<?php echo $mCta ? ' m-has-cta' : ''; ?>">
     <?php include __DIR__ . '/../includes/header.php'; ?>
-    
+
     <div class="location-detail">
         <a href="/pages/catalog.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <?php if (!empty($_SESSION['flash'])): ?>
@@ -275,6 +368,31 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
 <?php endif; ?>
         <div class="location-layout<?php echo $showInquirySidebar ? ' has-sidebar' : ''; ?>">
         <div class="detail-card">
+            <!-- Телефоны: листаемая галерея на всю ширину + панель «назад / поделиться / в избранное» поверх -->
+            <div class="m-only m-loc-gallery">
+                <div class="m-appbar m-loc-appbar">
+                    <a href="<?php echo $mBackHref; ?>" class="m-appbar-back" data-m-back aria-label="Назад"><?php echo rr_icon('chevron-left'); ?></a>
+                    <span class="m-loc-appbar-sp"></span>
+                    <button type="button" class="m-appbar-act" data-m-share aria-label="Поделиться"><svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/></svg></button>
+                    <?php if ($isOperator && !$isOwnListing): ?>
+                        <button type="button" class="m-appbar-act favorite-btn m-loc-fav<?php echo $isFavorited ? ' active' : ''; ?>" data-location-id="<?php echo (int) $location['id']; ?>" aria-pressed="<?php echo $isFavorited ? 'true' : 'false'; ?>" aria-label="В избранное" title="<?php echo $isFavorited ? 'Убрать из избранного' : 'В избранное'; ?>"><?php echo rr_icon('heart'); ?></button>
+                    <?php endif; ?>
+                </div>
+                <?php if ($mPhotos): ?>
+                    <div class="m-loc-strip" data-m-strip aria-label="Фотографии">
+                        <?php foreach ($mPhotos as $i => $src): ?>
+                            <button type="button" class="m-loc-slide" data-m-photo="<?php echo $i; ?>" aria-label="Фото <?php echo $i + 1; ?> из <?php echo count($mPhotos); ?> — открыть на весь экран">
+                                <img src="/<?php echo htmlspecialchars($src); ?>" alt="<?php echo htmlspecialchars($location['title']); ?>"<?php echo $i ? ' loading="lazy"' : ''; ?> decoding="async">
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php if (count($mPhotos) > 1): ?>
+                        <span class="m-loc-count" aria-hidden="true"><b data-m-photo-idx>1</b> / <?php echo count($mPhotos); ?></span>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <div class="m-loc-nophoto"><?php echo rr_icon('camera'); ?><span>Фото пока нет</span></div>
+                <?php endif; ?>
+            </div>
             <!-- Главное фото -->
             <?php if ($isVerified): ?>
                 <span class="verified-badge-photo"><?php echo rr_icon('check'); ?> Верифицировано</span>
@@ -298,6 +416,35 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
 <?php endif; ?>
             
             <div class="info">
+                <!-- Телефоны: цена, название, адрес, статусы -->
+                <div class="m-only m-loc-head">
+                    <div class="m-loc-price"><?php echo $mPrice; ?> ₽ <small>/ мес</small></div>
+                    <h1 class="m-loc-title"><?php echo htmlspecialchars($location['title']); ?></h1>
+                    <div class="m-loc-addr">
+                        <?php echo rr_icon('map-pin'); ?>
+                        <?php if ($hasFullAccess): ?>
+                            <span><?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></span>
+                        <?php else: ?>
+                            <span><?php echo htmlspecialchars($location['city']); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!$hasFullAccess && $showInquiryBlock): ?>
+                        <a href="#mContact" class="m-loc-lockhint"><?php echo rr_icon('lock'); ?> Точный адрес — за 1 контакт</a>
+                    <?php endif; ?>
+                    <div class="m-loc-pills">
+                        <?php if ($isVerified): ?>
+                            <span class="m-pill is-info"><?php echo rr_icon('check'); ?> Проверено</span>
+                        <?php endif; ?>
+                        <?php if ($isOccupied): ?>
+                            <span class="m-pill is-warning"><?php echo rr_icon('lock'); ?> Занято</span>
+                        <?php endif; ?>
+                        <?php if ($is_preview): ?>
+                            <span class="m-pill is-warning"><?php echo $location['is_moderated'] == 0 ? 'На модерации' : 'Черновик'; ?></span>
+                        <?php endif; ?>
+                        <span class="m-pill is-muted">ID RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?></span>
+                    </div>
+                </div>
+
                 <!-- ★★★ ID локации ★★★ -->
                 <div class="location-id-line">
                     <?php echo rr_icon('map-pin'); ?> ID: RR-<?php echo str_pad($location['id'], 5, '0', STR_PAD_LEFT); ?>
@@ -376,8 +523,40 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                     <?php endif; ?>
                 </div>
                 
+                <!-- Телефоны: характеристики плитками -->
+                <section class="m-only m-loc-sec" aria-labelledby="mSpecsTitle">
+                    <h2 class="m-section-title" id="mSpecsTitle">Характеристики</h2>
+                    <div class="m-loc-specs">
+                        <?php foreach ($mSpecs as $s): ?>
+                            <div class="m-loc-spec<?php echo !empty($s['off']) ? ' is-off' : ''; ?><?php echo !empty($s['wide']) ? ' is-wide' : ''; ?>">
+                                <small><?php echo rr_icon($s['icon']); ?> <?php echo htmlspecialchars($s['label']); ?></small>
+                                <b><?php echo htmlspecialchars($s['value']); ?></b>
+                            </div>
+                        <?php endforeach; ?>
+                        <div class="m-loc-spec is-wide m-loc-traffic">
+                            <span class="m-loc-spec-tx">
+                                <small><?php echo rr_icon('walk'); ?> Проходимость</small>
+                                <?php if ($mTraffic > 0): ?>
+                                    <b><span class="m-loc-stars" aria-label="<?php echo $mTraffic; ?> из 5"><?php for ($i = 1; $i <= 5; $i++): ?><span class="<?php echo $i <= $mTraffic ? 'is-on' : ''; ?>" aria-hidden="true">★</span><?php endfor; ?></span> <?php echo $mTrafficLabels[$mTraffic] ?? ''; ?></b>
+                                <?php else: ?>
+                                    <b>Не указана</b>
+                                <?php endif; ?>
+                            </span>
+                            <button type="button" class="m-loc-help" onclick="openTrafficHelp()" aria-label="Как оценить проходимость"><?php echo rr_icon('help-circle'); ?></button>
+                        </div>
+                    </div>
+                </section>
+
+                <?php if (!empty($location['description'])): ?>
+                    <h2 class="m-only m-section-title m-loc-sec-title">Описание</h2>
+                <?php elseif ($isOwnListing): ?>
+                    <a href="/pages/edit_location.php?id=<?php echo (int) $location['id']; ?>" class="m-only m-card m-loc-nodesc">
+                        <?php echo rr_icon('edit'); ?>
+                        <span><b>Добавьте описание</b>Расскажите о трафике, розетке и доступе — с описанием заявок больше.</span>
+                    </a>
+                <?php endif; ?>
                 <!-- ★★★ Структурированное описание ★★★ -->
-                <div class="description">
+                <div class="description<?php echo empty($location['description']) ? ' m-hide' : ''; ?>">
                     <?php if (!empty($location['description'])): ?>
                         <h4 class="description-heading">Описание места</h4>
                         <?php 
@@ -398,7 +577,10 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                         <p class="description-empty">Описание отсутствует.</p>
                     <?php endif; ?>
                 </div>
-                
+                <?php if (!empty($location['description'])): ?>
+                    <button type="button" class="m-only m-loc-more" data-m-desc-more aria-expanded="false" hidden>Показать полностью</button>
+                <?php endif; ?>
+
                 <!-- Характеристики -->
                 <div class="specs">
                     <?php if (!empty($location['width'])): ?>
@@ -412,6 +594,115 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                     <?php endif; ?>
                     <div class="spec-item"><span class="label">Просмотров:</span> <span class="value"><?php echo $location['views']; ?></span></div>
                 </div>
+
+                <!-- Телефоны: мини-карта -->
+                <section class="m-only m-loc-sec" aria-labelledby="mMapTitle">
+                    <h2 class="m-section-title" id="mMapTitle">Расположение</h2>
+                    <?php if ($hasFullAccess): ?>
+                        <a href="<?php echo htmlspecialchars($mMapsUrl); ?>" class="m-loc-map" target="_blank" rel="noopener" aria-label="Открыть точку на карте">
+                            <?php if ($mMapTiles): ?>
+                                <span class="m-loc-map-tiles" aria-hidden="true">
+                                    <?php foreach ($mMapTiles as $t): ?>
+                                        <img src="<?php echo htmlspecialchars($t['src']); ?>" alt="" width="256" height="256" loading="lazy" decoding="async" style="left:<?php echo $t['left']; ?>px;top:<?php echo $t['top']; ?>px">
+                                    <?php endforeach; ?>
+                                </span>
+                                <span class="m-loc-map-attr" aria-hidden="true">© OpenStreetMap</span>
+                            <?php endif; ?>
+                            <span class="m-loc-map-pin" aria-hidden="true"><?php echo rr_icon('map-pin'); ?></span>
+                        </a>
+                        <div class="m-loc-map-row">
+                            <span class="m-loc-map-addr"><?php echo htmlspecialchars($location['city'] . ', ' . $location['address']); ?></span>
+                            <a href="<?php echo htmlspecialchars($mMapsUrl); ?>" class="m-btn m-btn--ghost m-btn--sm" target="_blank" rel="noopener"><?php echo rr_icon('map'); ?> В Картах</a>
+                        </div>
+                    <?php else: ?>
+                        <a href="#mContact" class="m-loc-map is-locked">
+                            <span class="m-loc-map-lock"><?php echo rr_icon('lock'); ?></span>
+                            <span class="m-loc-map-locktx"><b><?php echo htmlspecialchars($location['city']); ?></b>Точный адрес и точка на карте откроются вместе с контактом</span>
+                        </a>
+                    <?php endif; ?>
+                </section>
+
+                <!-- Телефоны: собственник и связь с ним -->
+                <?php if ($showInquirySidebar || $isOwnListing || $is_admin): ?>
+                    <section class="m-only m-loc-sec" id="mContact" aria-labelledby="mContactTitle">
+                        <h2 class="m-section-title" id="mContactTitle"><?php echo $isOwnListing ? 'Ваше объявление' : 'Собственник'; ?></h2>
+                        <div class="m-card m-loc-owner">
+                            <?php if ($isOwnListing): ?>
+                                <div class="m-loc-owner-row">
+                                    <span class="m-loc-ava" aria-hidden="true"><?php echo htmlspecialchars($mOwnerInitial); ?></span>
+                                    <span class="m-loc-owner-who">
+                                        <b><?php echo htmlspecialchars($location['owner_name']); ?></b>
+                                        <small><?php echo $is_preview ? ($location['is_moderated'] == 0 ? 'Ждёт модерации — видно только вам' : 'Черновик — видно только вам') : 'Опубликовано · видят арендаторы'; ?></small>
+                                    </span>
+                                </div>
+                                <div class="m-loc-owner-stats">
+                                    <span><b><?php echo (int) $location['views']; ?></b> <?php echo rr_plural_ru((int) $location['views'], 'просмотр', 'просмотра', 'просмотров'); ?></span>
+                                    <span>Размещено <?php echo formatDateRu($location['created_at']); ?></span>
+                                </div>
+                                <div class="m-btn-row">
+                                    <a href="/pages/owner_applications.php" class="m-btn m-btn--ghost"><?php echo rr_icon('message-circle'); ?> Заявки</a>
+                                    <a href="/pages/profile.php" class="m-btn m-btn--ghost"><?php echo rr_icon('building'); ?> Мои места</a>
+                                </div>
+                            <?php elseif ($showOccupiedBadge): ?>
+                                <div class="m-loc-owner-row">
+                                    <span class="m-loc-ava is-locked" aria-hidden="true"><?php echo rr_icon('lock'); ?></span>
+                                    <span class="m-loc-owner-who">
+                                        <b>Точка уже занята</b>
+                                        <small>За локацией закреплён другой оператор</small>
+                                    </span>
+                                </div>
+                                <p class="m-loc-owner-tx">Новые заявки на размещение по ней не принимаются — посмотрите похожие места ниже или в каталоге.</p>
+                            <?php elseif ($hasFullAccess): ?>
+                                <div class="m-loc-owner-row">
+                                    <span class="m-loc-ava" aria-hidden="true"><?php echo htmlspecialchars($mOwnerInitial); ?></span>
+                                    <span class="m-loc-owner-who">
+                                        <b><?php echo htmlspecialchars($location['owner_name']); ?></b>
+                                        <small>Собственник<?php if ($isOperator): ?> · <span class="m-loc-open"><?php echo rr_icon('unlock'); ?> контакт открыт</span><?php endif; ?></small>
+                                    </span>
+                                </div>
+                                <?php if ($isOperator): ?>
+                                    <p class="m-loc-owner-tx">Связь — через чат RR: заявка и все ответы собственника приходят в «Заявки» и в уведомления.</p>
+                                    <?php if ($mChatAppId): ?>
+                                        <a href="/pages/application_chat.php?application_id=<?php echo (int) $mChatAppId; ?>" class="m-btn m-btn--block"><?php echo rr_icon('message-circle'); ?> Открыть чат</a>
+                                    <?php else: ?>
+                                        <a href="/pages/send_application.php?location_id=<?php echo (int) $location['id']; ?>" class="m-btn m-btn--block"><?php echo rr_icon('send'); ?> Написать собственнику</a>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <div class="m-loc-owner-row">
+                                    <span class="m-loc-ava is-locked" aria-hidden="true"><?php echo rr_icon('lock'); ?></span>
+                                    <span class="m-loc-owner-who">
+                                        <b>Контакт скрыт</b>
+                                        <small><?php if (!isset($_SESSION['user_id'])): ?>Доступен арендаторам после входа<?php elseif ($creditsSummary['total_available'] > 0): ?>У вас <?php echo (int) $creditsSummary['total_available']; ?> <?php echo rr_plural_ru($creditsSummary['total_available'], 'контакт', 'контакта', 'контактов'); ?><?php else: ?>Контакты закончились<?php endif; ?></small>
+                                    </span>
+                                </div>
+                                <ul class="m-loc-points">
+                                    <li><?php echo rr_icon('user'); ?> Имя собственника и точный адрес</li>
+                                    <li><?php echo rr_icon('message-circle'); ?> Заявка и чат напрямую — звонить не нужно</li>
+                                    <li><?php echo rr_icon('unlock'); ?> Открывается навсегда, даже если контакты закончатся</li>
+                                </ul>
+                                <?php if (!isset($_SESSION['user_id'])): ?>
+                                    <div class="m-btn-row">
+                                        <a href="/pages/login.php" class="m-btn">Войти</a>
+                                        <a href="/pages/register.php" class="m-btn m-btn--ghost">Регистрация</a>
+                                    </div>
+                                <?php elseif ($creditsSummary['total_available'] > 0): ?>
+                                    <button type="button" class="m-btn m-btn--block" data-m-sheet-open="mUnlockSheet" aria-haspopup="dialog"><?php echo rr_icon('unlock'); ?> Открыть контакт</button>
+                                    <a href="/pages/subscription.php" class="m-loc-owner-link">Тарифы и баланс</a>
+                                <?php else: ?>
+                                    <a href="/pages/subscription.php" class="m-btn m-btn--block"><?php echo rr_icon('card'); ?> Пополнить баланс</a>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if (!$isOwnListing): ?>
+                <p class="m-only m-loc-meta">
+                    <span><?php echo rr_icon('calendar'); ?> Размещено <?php echo formatDateRu($location['created_at']); ?></span>
+                    <span><?php echo rr_icon('eye'); ?> <?php echo (int) $location['views']; ?> <?php echo rr_plural_ru((int) $location['views'], 'просмотр', 'просмотра', 'просмотров'); ?></span>
+                </p>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -435,7 +726,7 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
                     </div>
                     <a href="/pages/send_application.php?location_id=<?php echo $location['id']; ?>" class="btn-contact btn-block"><?php echo rr_icon('arrow-right'); ?> Отправить заявку на аренду</a>
                 <?php elseif ($creditsSummary['total_available'] > 0): ?>
-                    <form method="POST">
+                    <form method="POST" id="unlockForm">
                         <?php echo csrf_field(); ?>
                         <input type="hidden" name="unlock_location" value="1">
                         <button type="submit" class="btn-contact btn-block">
@@ -502,46 +793,79 @@ $ogUrl = SITE_URL . '/pages/location.php?id=' . (int) $location['id'];
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+<?php if ($mCta): ?>
+<!-- Телефоны: липкая панель — цена и главное действие -->
+<div class="m-only m-sticky-cta m-loc-cta">
+    <div class="m-sticky-cta-price"><?php echo $mPrice; ?> ₽<small>в месяц</small></div>
+    <?php if (!empty($mCta['sheet'])): ?>
+        <button type="button" class="m-btn" data-m-sheet-open="<?php echo $mCta['sheet']; ?>" aria-haspopup="dialog"><?php echo rr_icon($mCta['icon']); ?> <?php echo htmlspecialchars($mCta['label']); ?></button>
+    <?php else: ?>
+        <a href="<?php echo htmlspecialchars($mCta['href']); ?>" class="m-btn<?php echo !empty($mCta['ghost']) ? ' m-btn--ghost' : ''; ?>"><?php echo rr_icon($mCta['icon']); ?> <?php echo htmlspecialchars($mCta['label']); ?></a>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+<?php if ($isOperator && !$hasFullAccess && $showInquiryBlock && $creditsSummary['total_available'] > 0): ?>
+<!-- Телефоны: подтверждение траты кредита (кнопка отправляет десктопную форму #unlockForm) -->
+<div class="m-sheet m-only" id="mUnlockSheet" role="dialog" aria-modal="true" aria-labelledby="mUnlockTitle" aria-hidden="true">
+    <div class="m-sheet-handle" aria-hidden="true"></div>
+    <div class="m-sheet-head">
+        <b id="mUnlockTitle">Открыть контакт?</b>
+        <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+    </div>
+    <div class="m-sheet-body">
+        <p class="m-loc-sheet-tx">Спишется <b>1 контакт</b> — доступно <?php echo (int) $creditsSummary['total_available']; ?>. Для этой точки откроются:</p>
+        <ul class="m-loc-points">
+            <li><?php echo rr_icon('map-pin'); ?> Точный адрес и точка на карте</li>
+            <li><?php echo rr_icon('user'); ?> Имя собственника</li>
+            <li><?php echo rr_icon('message-circle'); ?> Заявка и чат с собственником</li>
+            <li><?php echo rr_icon('unlock'); ?> Навсегда — даже если контакты закончатся</li>
+        </ul>
+    </div>
+    <div class="m-sheet-foot">
+        <button type="submit" form="unlockForm" class="m-btn m-btn--block"><?php echo rr_icon('unlock'); ?> Открыть за 1 контакт</button>
+    </div>
+</div>
+<?php endif; ?>
 <!-- ★★★ МОДАЛЬНОЕ ОКНО С ПАМЯТКОЙ ★★★ -->
 <div class="modal-overlay" id="trafficHelpModal">
     <div class="modal-box">
         <button class="close-btn" onclick="closeTrafficHelp()" aria-label="Закрыть">&times;</button>
         <h3><?php echo rr_icon('walk'); ?> Как оценить проходимость места?</h3>
         <p class="traffic-modal-subtitle">Выберите уровень, который лучше всего описывает вашу локацию.</p>
-        <table>
+        <table class="m-table-cards m-loc-traffic-table">
             <thead>
                 <tr><th>Рейтинг</th><th>Где встречается</th><th>Трафик (чел/день)</th><th>Нюансы</th></tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><span class="stars-demo">★</span> Низкая</td>
-                    <td>Малые офисы (&lt;50 чел), жилые дома, тихие коридоры</td>
-                    <td>50–200</td>
-                    <td>Мало людей, риск низкой окупаемости</td>
+                    <td class="m-cell-title" data-label=""><span class="stars-demo">★</span> Низкая</td>
+                    <td data-label="Где встречается">Малые офисы (&lt;50 чел), жилые дома, тихие коридоры</td>
+                    <td data-label="Трафик, чел/день">50–200</td>
+                    <td data-label="Нюансы">Мало людей, риск низкой окупаемости</td>
                 </tr>
                 <tr>
-                    <td><span class="stars-demo">★★</span> Ниже среднего</td>
-                    <td>Офисы (50–100 чел), гостиницы, точки "по пути"</td>
-                    <td>200–500</td>
-                    <td>Трафик есть, но люди часто спешат</td>
+                    <td class="m-cell-title" data-label=""><span class="stars-demo">★★</span> Ниже среднего</td>
+                    <td data-label="Где встречается">Офисы (50–100 чел), гостиницы, точки "по пути"</td>
+                    <td data-label="Трафик, чел/день">200–500</td>
+                    <td data-label="Нюансы">Трафик есть, но люди часто спешат</td>
                 </tr>
                 <tr>
-                    <td><span class="stars-demo">★★★</span> Средняя</td>
-                    <td>Крупные офисы (>100 чел), склады, заводы, фитнес-клубы, университеты</td>
-                    <td>500–3 000</td>
-                    <td><strong>Хороший выбор:</strong> стабильная аудитория</td>
+                    <td class="m-cell-title" data-label=""><span class="stars-demo">★★★</span> Средняя</td>
+                    <td data-label="Где встречается">Крупные офисы (>100 чел), склады, заводы, фитнес-клубы, университеты</td>
+                    <td data-label="Трафик, чел/день">500–3 000</td>
+                    <td data-label="Нюансы"><strong>Хороший выбор:</strong> стабильная аудитория</td>
                 </tr>
                 <tr>
-                    <td><span class="stars-demo">★★★★</span> Высокая</td>
-                    <td>ТРЦ, парки развлечений, больницы, крупные офисные центры</td>
-                    <td>3 000–10 000</td>
-                    <td>Люди проводят время, высокий потенциал</td>
+                    <td class="m-cell-title" data-label=""><span class="stars-demo">★★★★</span> Высокая</td>
+                    <td data-label="Где встречается">ТРЦ, парки развлечений, больницы, крупные офисные центры</td>
+                    <td data-label="Трафик, чел/день">3 000–10 000</td>
+                    <td data-label="Нюансы">Люди проводят время, высокий потенциал</td>
                 </tr>
                 <tr>
-                    <td><span class="stars-demo">★★★★★</span> Максимальная</td>
-                    <td>Аэропорты, ж/д вокзалы, туристические центры</td>
-                    <td>10 000+</td>
-                    <td><strong>Золотая жила,</strong> но аренда очень дорогая</td>
+                    <td class="m-cell-title" data-label=""><span class="stars-demo">★★★★★</span> Максимальная</td>
+                    <td data-label="Где встречается">Аэропорты, ж/д вокзалы, туристические центры</td>
+                    <td data-label="Трафик, чел/день">10 000+</td>
+                    <td data-label="Нюансы"><strong>Золотая жила,</strong> но аренда очень дорогая</td>
                 </tr>
             </tbody>
         </table>
@@ -644,5 +968,6 @@ document.querySelectorAll('.gallery img').forEach(function(img, idx) {
     });
 });
 </script>
+<script src="/assets/js/m/location.js" defer></script>
 </body>
 </html>
