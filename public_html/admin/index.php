@@ -113,13 +113,13 @@ unset($_SESSION['flash']);
                                 <td class="c-price" data-label="Цена"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
                                 <td class="c-owner" data-label="Собственник"><?php echo htmlspecialchars($loc['owner_name']); ?></td>
                                 <td class="c-badge" data-label="Правок"><?php echo $loc['pending_revisions']; ?></td>
-                                <td class="actions" data-label="Действия">
+                                <td class="actions c-act" data-label="Действия">
                                     <!-- Просмотр всех ревизий -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view act-main"><?php echo rr_icon('list'); ?> Правки</a>
                                     <!-- Одобрить все правки (применяет последнюю) -->
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить<span class="m-only">&nbsp;все</span></a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> <span>Одобрить<span class="m-only">&nbsp;все</span></span></a>
                                     <!-- Отклонить все правки -->
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить<span class="m-only">&nbsp;все</span></a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> <span>Отклонить<span class="m-only">&nbsp;все</span></span></a>
                                     <!-- Просмотр на сайте -->
                                     <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view act-eye" aria-label="Открыть на сайте"><?php echo rr_icon('eye'); ?></a>
                                 </td>

@@ -148,7 +148,7 @@ unset($_SESSION['flash']);
                                 </span>
                             </td>
                             <td class="c-date" data-label="Создан"><?php echo formatDate($order['created_at']); ?></td>
-                            <td class="actions" data-label="Действия">
+                            <td class="c-act" data-label="Действия">
                                 <a href="/pages/service_order_chat.php?order_id=<?php echo $order['id']; ?>" class="btn-view act-main"><?php echo rr_icon('message-circle'); ?> Чат</a>
                                 <form method="POST" class="admin-inline-order-form">
                                     <?php echo csrf_field(); ?>

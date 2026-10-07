@@ -213,7 +213,7 @@ unset($_SESSION['flash']);
                                         <button type="button" class="m-btn m-btn--ghost cta-more" data-m-sheet-open="<?php echo $uSheet; ?>" aria-haspopup="dialog" aria-label="Все действия"><?php echo rr_icon('more'); ?> Ещё</button>
                                     <?php endif; ?>
                                 </td>
-                                <td class="actions<?php echo $isSelf ? ' actions-self' : ' m-sheet'; ?>" data-label="Действия"<?php echo $isSelf ? '' : ' id="' . $uSheet . '"'; ?>>
+                                <td class="actions c-act<?php echo $isSelf ? ' actions-self' : ' m-sheet'; ?>" data-label="Действия"<?php echo $isSelf ? '' : ' id="' . $uSheet . '"'; ?>>
                                     <?php if (!$isSelf): ?>
                                         <div class="m-only m-sheet-handle" aria-hidden="true"></div>
                                         <div class="m-only m-sheet-head">

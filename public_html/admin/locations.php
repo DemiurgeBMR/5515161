@@ -135,12 +135,12 @@ unset($_SESSION['flash']);
                                     <span class="status hidden"><?php echo rr_icon('ban'); ?> Скрыта</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="actions" data-label="Действия">
+                            <td class="actions c-act" data-label="Действия">
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
                                     <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view act-main"><?php echo rr_icon('list'); ?> Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить<span class="m-only">&nbsp;все</span></a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить<span class="m-only">&nbsp;все</span></a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> <span>Одобрить<span class="m-only">&nbsp;все</span></span></a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> <span>Отклонить<span class="m-only">&nbsp;все</span></span></a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
                                     <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>

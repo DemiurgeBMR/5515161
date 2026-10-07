@@ -326,12 +326,7 @@
         background: none;
     }
     table.adm-cards thead {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
+        display: none;            /* подписи колонок заменены подписями ячеек (data-label) */
     }
     table.adm-cards tr {
         position: relative;
@@ -399,17 +394,17 @@
     }
 
     /* ---------- Кнопки действий внутри карточки (локации, заказы, ревизии) ---------- */
-    table.adm-cards td.actions {
+    table.adm-cards td.c-act {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
         margin-top: 4px;
     }
-    table.adm-cards td.actions > a,
-    table.adm-cards td.actions > .admin-inline-order-form {
+    table.adm-cards td.c-act > a,
+    table.adm-cards td.c-act > .admin-inline-order-form {
         order: 2;
     }
-    table.adm-cards td.actions > a {
+    table.adm-cards td.c-act > a {
         flex: 1 1 calc(50% - 4px);
         display: inline-flex;
         align-items: center;
@@ -427,22 +422,22 @@
         text-decoration: none;
         color: var(--text);
     }
-    table.adm-cards td.actions > a .rr-icon {
+    table.adm-cards td.c-act > a .rr-icon {
         flex: none;
         width: 18px;
         height: 18px;
     }
     /* Главное действие: на всю ширину ряда (рядом — «глаз») */
-    table.adm-cards td.actions > a.act-main,
-    table.adm-cards td.actions > a:first-child:nth-last-child(2) {
+    table.adm-cards td.c-act > a.act-main,
+    table.adm-cards td.c-act > a:first-child:nth-last-child(2) {
         order: 0;
         flex: 1 1 calc(100% - 56px);
     }
-    table.adm-cards td.actions > a.act-main.btn-view {
+    table.adm-cards td.c-act > a.act-main.btn-view {
         background: var(--accent);
         color: #fff;
     }
-    table.adm-cards td.actions > a.act-eye {
+    table.adm-cards td.c-act > a.act-eye {
         order: 1;
         flex: 0 0 48px;
         width: 48px;
@@ -451,26 +446,26 @@
         border-color: var(--border-strong);
         color: var(--text);
     }
-    table.adm-cards td.actions > a.act-eye .rr-icon {
+    table.adm-cards td.c-act > a.act-eye .rr-icon {
         width: 22px;
         height: 22px;
     }
-    table.adm-cards td.actions > a.btn-approve {
+    table.adm-cards td.c-act > a.btn-approve {
         background: var(--accent-soft);
         border-color: rgba(var(--accent-rgb), 0.45);
         color: var(--adm-acc);
     }
-    table.adm-cards td.actions > a.btn-reject {
+    table.adm-cards td.c-act > a.btn-reject {
         background: var(--danger-soft);
         border-color: var(--adm-bad-line);
         color: var(--adm-bad);
     }
-    table.adm-cards td.actions > a.btn-hide {
+    table.adm-cards td.c-act > a.btn-hide {
         background: var(--warning-soft);
         border-color: rgba(224, 169, 63, 0.45);
         color: var(--adm-warn);
     }
-    table.adm-cards td.actions > a:active {
+    table.adm-cards td.c-act > a:active {
         opacity: 0.8;
     }
 
@@ -512,8 +507,9 @@
     .adm-cards-loc td.c-price { grid-area: price; }
     .adm-cards-loc td.c-owner { grid-area: owner; }
     .adm-cards-loc td.c-id    { grid-area: id; text-align: right; }
+    .adm-cards-loc td.c-id::before { content: "ID "; }
     .adm-cards-loc td.c-badge { grid-area: badge; }
-    .adm-cards-loc td.actions { grid-area: act; }
+    .adm-cards-loc td.c-act { grid-area: act; }
     /* «Правок: 2» — плашкой */
     .adm-cards-loc td.c-badge[data-label="Правок"] {
         display: inline-flex;
@@ -530,27 +526,29 @@
         white-space: pre;
     }
 
-    /* ---------- Карточка пользователя ---------- */
+    /* ---------- Карточка пользователя ----------
+       Flex-«ряды» (а не сетка): пустые блоки (нет подписки у собственника) не оставляют дыр. */
     .adm-cards-user tr {
-        grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-areas:
-            "name   id"
-            "email  email"
-            "role   date"
-            "status status"
-            "sub    sub"
-            "cta    cta";
-        align-items: start;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px 12px;
     }
-    .adm-cards-user td.c-name   { grid-area: name; }
-    .adm-cards-user td.c-id     { grid-area: id; text-align: right; }
-    .adm-cards-user td.c-email  { grid-area: email; }
+    .adm-cards-user td {
+        flex: 0 0 100%;
+    }
+    .adm-cards-user td.c-name  { order: 1; flex: 1 1 0; }
+    .adm-cards-user td.c-id    { order: 2; flex: 0 0 auto; text-align: right; }
+    .adm-cards-user td.c-email { order: 3; }
     .adm-cards-user td.c-role {
-        grid-area: role;
+        order: 4;
         font-weight: 600;
         color: var(--text-muted);
     }
-    .adm-cards-user td.c-date   { grid-area: date; text-align: right; }
+    .adm-cards-user td.c-status { order: 5; }
+    .adm-cards-user td.c-sub    { order: 6; }
+    .adm-cards-user td.c-date   { order: 7; }
+    .adm-cards-user td.c-cta    { order: 8; }
     .adm-cards-user td.c-status,
     .adm-cards-user td.c-sub {
         display: flex;
@@ -558,8 +556,6 @@
         align-items: center;
         gap: 6px;
     }
-    .adm-cards-user td.c-status { grid-area: status; }
-    .adm-cards-user td.c-sub    { grid-area: sub; }
     .adm-cards-user td.c-sub .you-note {
         display: none;            /* «—» у не-операторов: подписки нет, строка не нужна */
     }
@@ -573,7 +569,6 @@
         color: var(--text-muted);
     }
     .adm-cards-user td.c-cta {
-        grid-area: cta;
         display: flex;
         gap: 8px;
         margin-top: 2px;
@@ -605,7 +600,7 @@
     }
 
     /* Шторка «Действия пользователя» (та же <td class="actions">, на десктопе — обычная ячейка) */
-    table.adm-cards td.actions.m-sheet {
+    table.adm-cards td.c-act.m-sheet {
         display: flex;
         flex-direction: column;
         flex-wrap: nowrap;
@@ -617,6 +612,9 @@
         text-align: left;
         border: 1px solid var(--border-strong);
         border-bottom: 0;
+    }
+    .adm-cards .m-sheet:focus {
+        outline: 0;
     }
     .adm-cards .m-sheet .m-sheet-title {
         min-width: 0;
@@ -746,21 +744,16 @@
         font-weight: 600;
     }
     .adm-cards-order td.c-date { grid-area: date; }
-    .adm-cards-order td.actions {
+    .adm-cards-order td.c-act {
         grid-area: act;
         flex-direction: column;
         flex-wrap: nowrap;
     }
-    .adm-cards-order td.actions > a,
-    .adm-cards-order td.actions > a.act-main,
-    .adm-cards-order td.actions > a:first-child:nth-last-child(2) {
+    .adm-cards-order td.c-act > a,
+    .adm-cards-order td.c-act > a.act-main,
+    .adm-cards-order td.c-act > a:first-child:nth-last-child(2) {
         flex: 0 0 auto;
         width: 100%;
-    }
-    .adm-cards-order td.actions > a.act-main.btn-view {
-        background: var(--accent-soft);
-        border-color: rgba(var(--accent-rgb), 0.45);
-        color: var(--adm-acc);
     }
     .adm-cards-order .admin-inline-order-form {
         display: grid;
@@ -837,12 +830,12 @@
     }
     .adm-cards-rev td.c-badge { grid-area: badge; }
     .adm-cards-rev td.c-date  { grid-area: date; }
-    .adm-cards-rev td.actions { grid-area: act; }
-    .adm-cards-rev td.actions:empty,
-    .adm-cards-rev td.actions:not(:has(a)) {
+    .adm-cards-rev td.c-act { grid-area: act; }
+    .adm-cards-rev td.c-act:empty,
+    .adm-cards-rev td.c-act:not(:has(a)) {
         display: none;
     }
-    .adm-cards-rev td.actions > a.act-main {
+    .adm-cards-rev td.c-act > a.act-main {
         flex: 1 1 100%;
     }
 
@@ -939,8 +932,18 @@
         font-weight: 700;
         color: var(--text-muted);
     }
+    .changes-card .change-row:not(.is-changed) {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+    }
     .changes-card .change-row:not(.is-changed) .change-label {
-        margin-bottom: 2px;
+        flex: 0 0 40%;
+        margin: 0;
+    }
+    .changes-card .change-row:not(.is-changed) .change-values {
+        flex: 1 1 0;
+        min-width: 0;
     }
     .changes-card .change-values {
         display: flex;

@@ -75,7 +75,7 @@ $revisions = $stmt->fetchAll();
                                         <span class="status-badge status-rejected"><?php echo rr_icon('x'); ?> Отклонена</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="actions" data-label="Действия">
+                                <td class="c-act" data-label="Действия">
                                     <?php if ($rev['status'] === 'pending'): ?>
                                         <a href="/admin/preview_revision.php?revision_id=<?php echo $rev['id']; ?>" class="btn-view act-main"><?php echo rr_icon('eye'); ?> Просмотр</a>
                                     <?php else: ?>
