@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Восстановление пароля — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
@@ -110,8 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="POST">
                 <?php echo csrf_field(); ?>
                 <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" required placeholder="ivan@example.com">
+                    <label for="forgotEmail">Email</label>
+                    <input type="email" name="email" id="forgotEmail" required placeholder="ivan@example.com" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
                 </div>
                 <button type="submit" class="btn-submit">Получить ссылку для сброса</button>
             </form>
@@ -119,5 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
 </body>
 </html>

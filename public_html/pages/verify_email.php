@@ -29,7 +29,7 @@ if ($user) {
     <title>Подтверждение email — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="register-form">
