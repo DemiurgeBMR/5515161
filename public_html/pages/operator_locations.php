@@ -49,7 +49,7 @@ function daysSince($dateString) {
     <title>Мои точки — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-op-locs">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="locations-container">
     <a href="/pages/operator_dashboard.php" class="back-link">← Назад</a>
@@ -77,7 +77,7 @@ function daysSince($dateString) {
                     <div class="location-info">
                         <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
                         <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
-                        <div class="owner"><?php echo rr_icon('users'); ?> Собственник: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
+                        <div class="owner ol-detail"><?php echo rr_icon('users'); ?> Собственник: <?php echo htmlspecialchars($loc['owner_name']); ?></div>
                         <div class="badge-assigned"><?php echo rr_icon('check'); ?> Закреплён</div>
                     </div>
                     <div class="location-actions">
@@ -91,10 +91,10 @@ function daysSince($dateString) {
                         <div class="machine-info">
                             <span><b>Тип:</b> <?php echo htmlspecialchars($machineTypeLabels[$loc['machine_type']] ?? $loc['machine_type']); ?></span>
                             <?php if ($loc['model']): ?><span><b>Модель:</b> <?php echo htmlspecialchars($loc['model']); ?></span><?php endif; ?>
-                            <?php if ($loc['serial_number']): ?><span><b>Серийный №:</b> <?php echo htmlspecialchars($loc['serial_number']); ?></span><?php endif; ?>
-                            <?php if ($loc['installed_at']): ?><span><b>Установлен:</b> <?php echo date('d.m.Y', strtotime($loc['installed_at'])); ?></span><?php endif; ?>
+                            <?php if ($loc['serial_number']): ?><span class="ol-detail"><b>Серийный №:</b> <?php echo htmlspecialchars($loc['serial_number']); ?></span><?php endif; ?>
+                            <?php if ($loc['installed_at']): ?><span class="ol-detail"><b>Установлен:</b> <?php echo date('d.m.Y', strtotime($loc['installed_at'])); ?></span><?php endif; ?>
                         </div>
-                        <div>
+                        <div class="ol-badges">
                             <?php if ($loc['machine_status'] === 'broken'): ?>
                                 <span class="service-badge service-broken"><?php echo rr_icon('warning'); ?> Сломан</span>
                             <?php elseif ($loc['machine_status'] === 'needs_service'): ?>
@@ -104,7 +104,7 @@ function daysSince($dateString) {
                         </div>
                         <div class="machine-actions">
                             <button class="ol-btn-action btn-service" data-lo-id="<?php echo $loc['id']; ?>" onclick="openServiceModal(this)"><?php echo rr_icon('wrench'); ?> Отметить обслуживание</button>
-                            <button class="ol-btn-action btn-edit-machine"
+                            <button class="ol-btn-action btn-edit-machine ol-detail"
                                     data-lo-id="<?php echo $loc['id']; ?>"
                                     data-machine-type="<?php echo htmlspecialchars($loc['machine_type']); ?>"
                                     data-model="<?php echo htmlspecialchars($loc['model'] ?? ''); ?>"
@@ -119,12 +119,18 @@ function daysSince($dateString) {
                         <button class="ol-btn-action btn-add-machine" data-lo-id="<?php echo $loc['id']; ?>" onclick="openMachineModal(this)"><?php echo rr_icon('plus-circle'); ?> Указать вендинг</button>
                     </div>
                 <?php endif; ?>
+                <button type="button" class="m-only ol-more" aria-expanded="false" aria-controls="ol-loc-<?php echo $loc['id']; ?>">
+                    <span class="ol-more-on">Подробнее</span><span class="ol-more-off">Свернуть</span><?php echo rr_icon('chevron-down'); ?>
+                </button>
             </div>
         <?php endforeach; ?>
     <?php else: ?>
         <div class="empty">
-            <p>Вы пока не закреплены ни за одной локацией.</p>
-            <p><a href="/pages/catalog.php" class="accent-link">Найдите локацию и запросите закрепление</a></p>
+            <span class="m-only ol-empty-ic"><?php echo rr_icon('map-pin'); ?></span>
+            <p class="ol-empty-title">Вы пока не закреплены ни за одной локацией.</p>
+            <p class="m-hide"><a href="/pages/catalog.php" class="accent-link">Найдите локацию и запросите закрепление</a></p>
+            <p class="m-only ol-empty-hint">Найдите локацию в каталоге, договоритесь с собственником и запросите закрепление — точка и ваш автомат появятся здесь.</p>
+            <a href="/pages/catalog.php" class="m-only m-btn"><?php echo rr_icon('search'); ?> Найти локации</a>
         </div>
     <?php endif; ?>
 </div>
@@ -174,13 +180,20 @@ function daysSince($dateString) {
             <input type="hidden" id="serviceLoId">
             <div class="form-group">
                 <label for="serviceType">Что было сделано *</label>
-                <select id="serviceType" required>
+                <select id="serviceType" class="m-hide" required>
                     <option value="maintenance">Плановое обслуживание</option>
                     <option value="restock">Пополнение товара</option>
                     <option value="needs_service">Требует ремонта (не критично)</option>
                     <option value="repair">Ремонт</option>
                     <option value="broken">Сообщить о поломке</option>
                 </select>
+                <div class="m-only ol-svc-opts" role="radiogroup" aria-label="Что было сделано">
+                    <label class="ol-svc-opt is-ok"><input type="radio" name="m_service_type" value="maintenance" checked><span class="ol-svc-ic"><?php echo rr_icon('check'); ?></span><span class="ol-svc-txt"><b>Обслужено</b><small>Плановое обслуживание</small></span></label>
+                    <label class="ol-svc-opt is-ok"><input type="radio" name="m_service_type" value="restock"><span class="ol-svc-ic"><?php echo rr_icon('bag'); ?></span><span class="ol-svc-txt"><b>Пополнение</b><small>Загрузили товар</small></span></label>
+                    <label class="ol-svc-opt is-warn"><input type="radio" name="m_service_type" value="needs_service"><span class="ol-svc-ic"><?php echo rr_icon('wrench'); ?></span><span class="ol-svc-txt"><b>Нужен сервис</b><small>Требует ремонта, но работает</small></span></label>
+                    <label class="ol-svc-opt is-info"><input type="radio" name="m_service_type" value="repair"><span class="ol-svc-ic"><?php echo rr_icon('tool'); ?></span><span class="ol-svc-txt"><b>Отремонтировано</b><small>Провели ремонт</small></span></label>
+                    <label class="ol-svc-opt is-bad"><input type="radio" name="m_service_type" value="broken"><span class="ol-svc-ic"><?php echo rr_icon('warning'); ?></span><span class="ol-svc-txt"><b>Неисправен</b><small>Сообщить о поломке</small></span></label>
+                </div>
             </div>
             <div class="form-group">
                 <label for="serviceComment">Комментарий</label>
@@ -349,6 +362,7 @@ document.getElementById('serviceForm').addEventListener('submit', function(e) {
     xhr.send(formData);
 });
 </script>
+<script src="/assets/js/m/operator-locations.js"></script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

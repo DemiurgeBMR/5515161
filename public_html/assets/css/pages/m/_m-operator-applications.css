@@ -1,5 +1,263 @@
-/* ===== ТЕЛЕФОНЫ: Заявки оператора (pages/operator_applications.php) =====
+/* ===== ТЕЛЕФОНЫ: Мои заявки оператора (pages/operator_applications.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Экран — список чатов «как в мессенджере»: карточка заявки (фото локации, название, город и
+   собственник, статус цветной плашкой, последнее сообщение, счётчик непрочитанных, время),
+   нажатие — в чат. Сверху — чипы-фильтры по статусу (assets/js/m/operator-applications.js).
+   Таблицы (десктоп) скрыты классом .m-hide, карточки — телефонная разметка .m-only. */
+
+@media (max-width: 768px) {
+
+    .oa-page {
+        max-width: none;
+        margin: 0;
+        padding: 12px var(--m-gutter) 24px;
+    }
+    .oa-page > .back-link {
+        display: none;          /* «Заявки» — вкладка нижней панели, «назад» не нужен */
+    }
+    .oa-page > h2 {
+        margin: 4px 0 12px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .oa-page > h2 .rr-icon {
+        display: none;
+    }
+    .oa-page > .subscription-section-title {
+        margin: 18px 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .oa-page > h2 + .subscription-section-title,
+    .oa-page > .flash-message + .subscription-section-title {
+        margin-top: 4px;
+    }
+    .oa-page > .subscription-section-title .rr-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+    }
+    .oa-page > .flash-message {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        font-size: 15px;
+        line-height: 1.4;
+    }
+
+    /* ---------- Чипы-фильтры ---------- */
+    .oa-chips {
+        margin-bottom: 12px;
+    }
+    .oa-chip-n {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .oa-chips .m-chip.is-on .oa-chip-n {
+        color: inherit;
+    }
+
+    /* ---------- Карточки заявок ---------- */
+    .oa-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .oa-list > li[hidden] {
+        display: none;
+    }
+    .oa-orders {
+        margin-bottom: 4px;
+    }
+    .oa-card {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        color: var(--text);
+        text-decoration: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .oa-card:active {
+        background: var(--bg-elevated-2);
+    }
+    .oa-card.is-unread {
+        border-color: rgba(var(--accent-rgb), 0.45);
+    }
+    .oa-thumb {
+        flex: none;
+        display: block;
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: var(--bg-elevated-2);
+    }
+    .oa-thumb-ic {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .oa-thumb-ic .rr-icon {
+        width: 26px;
+        height: 26px;
+        vertical-align: 0;
+    }
+    .oa-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .oa-top {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+    .oa-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .oa-time {
+        flex: none;
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .oa-card.is-unread .oa-time {
+        color: var(--accent);
+        font-weight: 700;
+    }
+    .oa-sub {
+        font-size: 13px;
+        line-height: 1.35;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .oa-status {
+        display: flex;
+        margin-top: 2px;
+    }
+    .oa-status .m-pill {
+        max-width: 100%;
+        white-space: normal;
+    }
+    .oa-last {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+    }
+    .oa-last-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 14px;
+        line-height: 1.35;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .oa-last-text .rr-icon {
+        width: 15px;
+        height: 15px;
+        margin-right: 2px;
+    }
+    .oa-card.is-unread .oa-last-text {
+        color: var(--text);
+        font-weight: 600;
+    }
+    .oa-you,
+    .oa-muted {
+        color: var(--text-faint);
+        font-weight: 600;
+    }
+    .oa-muted {
+        font-weight: 400;
+    }
+    .oa-unread {
+        flex: none;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border-radius: 11px;
+        background: var(--m-danger-solid);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 22px;
+        text-align: center;
+    }
+
+    @media (max-width: 360px) {
+        .oa-card {
+            gap: 10px;
+        }
+        .oa-thumb {
+            width: 52px;
+            height: 52px;
+        }
+    }
+
+    /* ---------- Пустые состояния ---------- */
+    .oa-empty,
+    .oa-filter-empty {
+        margin-top: 8px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        font-size: 15px;
+        line-height: 1.45;
+    }
+    .oa-filter-empty[hidden] {
+        display: none;
+    }
+    .oa-empty .rr-icon {
+        display: block;
+        margin: 0 auto 10px;
+        color: var(--accent);
+    }
+    .oa-empty p {
+        margin: 0 auto 18px;
+        max-width: 320px;
+    }
+    .oa-empty .m-btn .rr-icon {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        color: inherit;
+    }
+
+    /* Ссылки подвала — не ниже 32px (общий подвал; см. запрос координатору в отчёте) */
+    body.m-pg-op-apps .footer p.footer-legal-links a {
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+}

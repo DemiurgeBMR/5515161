@@ -1,5 +1,517 @@
-/* ===== ТЕЛЕФОНЫ: Точки и вендинги оператора (pages/operator_locations.php) =====
+/* ===== ТЕЛЕФОНЫ: Мои точки оператора (pages/operator_locations.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Карточка точки: название + плашка «Закреплён», адрес; вложенная карточка вендинга (.machine-box)
+   с типом/моделью, плашками статуса (.service-badge) и крупной кнопкой «Отметить обслуживание»
+   (.btn-service); ряд «Локация · Календарь»; «Подробнее» раскрывает собственника, серийный номер,
+   дату установки и «Изменить данные» (аккордеон — assets/js/m/operator-locations.js; без JS всё видно).
+   Модалки вендинга и обслуживания — шторки (глобально); в шторке обслуживания вместо списка —
+   крупные плитки выбора «что сделано». */
+
+@media (max-width: 768px) {
+
+    .locations-container {
+        max-width: none;
+        margin: 0;
+        padding: 12px var(--m-gutter) 24px;
+    }
+    .locations-container > .back-link {
+        display: none;          /* раздел из шторки «Профиль»; назад — жестом/кнопкой браузера */
+    }
+    .locations-container > h2 {
+        margin: 4px 0 6px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .locations-container > h2 .rr-icon {
+        display: none;
+    }
+    .locations-container > .page-intro.spaced {
+        margin: 0 0 14px;
+        font-size: 14px;
+        line-height: 1.45;
+    }
+
+    /* ---------- Карточка точки ---------- */
+    .ol-location-card {
+        display: flex;
+        flex-direction: column;
+        margin: 0 0 12px;
+        padding: 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        box-shadow: none;
+        scroll-margin-top: calc(var(--m-header-h) + var(--m-safe-t) + 12px);
+    }
+    .ol-location-card:hover {
+        box-shadow: none;
+        border-color: var(--border);
+    }
+    .ol-location-card:target {
+        border-color: var(--accent);
+    }
+    .ol-location-card .top-row {
+        display: contents;      /* инфо — сверху, кнопки «Локация · Календарь» — под вендингом */
+    }
+    .ol-location-card .location-info {
+        order: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .location-info .title {
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .location-info .badge-assigned {
+        order: -1;              /* плашка над названием, как бейджи в карточке объявления */
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0 0 6px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .location-info .address,
+    .location-info .owner {
+        margin-top: 4px;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .location-info .address .rr-icon,
+    .location-info .owner .rr-icon {
+        margin-right: 2px;
+    }
+
+    /* ---------- Вендинг на точке ---------- */
+    .ol-location-card .machine-box {
+        order: 2;
+        margin-top: 12px;
+        padding: 12px;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .machine-info {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4px;
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .machine-info b {
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .ol-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 10px;
+    }
+    .ol-badges .service-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    .ol-badges .service-badge .rr-icon {
+        width: 14px;
+        height: 14px;
+        vertical-align: 0;
+    }
+    .service-ok            { background: var(--success-soft); color: var(--success); }
+    .service-due           { background: var(--warning-soft); color: var(--warning); }
+    .service-unknown       { background: var(--bg-elevated); color: var(--text-muted); }
+    .service-broken        { background: var(--danger-soft);  color: var(--danger); }
+    .service-needs-service { background: var(--warning-soft); color: var(--warning); }
+
+    .machine-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .ol-btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: var(--m-tap);
+        padding: 0 14px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.15;
+        text-align: center;
+    }
+    .ol-btn-action .rr-icon {
+        width: 18px;
+        height: 18px;
+        vertical-align: 0;
+    }
+    /* Главное действие — крупная кнопка */
+    .machine-actions .btn-service,
+    .machine-box .btn-add-machine {
+        width: 100%;
+        min-height: 48px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+        border-radius: 14px;
+    }
+    .machine-actions .btn-service:hover,
+    .machine-box .btn-add-machine:hover,
+    .machine-actions .btn-service:active,
+    .machine-box .btn-add-machine:active {
+        background: var(--accent-hover);
+    }
+    .ol-btn-action.btn-edit-machine {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+    .ol-btn-action.btn-edit-machine:active {
+        background: var(--bg-elevated);
+    }
+    .machine-box.empty-machine {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .empty-machine-note {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    /* ---------- «Локация · Календарь» — ряд второстепенных кнопок ---------- */
+    .ol-location-card .location-actions {
+        order: 3;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .location-actions .ol-btn-action {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+    .location-actions .ol-btn-action:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- Аккордеон «Подробнее» ---------- */
+    .ol-more {
+        order: 4;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: calc(100% + 28px);
+        min-height: var(--m-tap);
+        margin: 10px -14px -14px;
+        padding: 0 14px;
+        background: none;
+        border: 0;
+        border-top: 1px solid var(--border);
+        border-radius: 0 0 var(--m-radius) var(--m-radius);
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .ol-more .rr-icon {
+        width: 18px;
+        height: 18px;
+        transition: transform 0.18s ease;
+    }
+    .ol-more:active {
+        background: var(--bg-elevated-2);
+    }
+    .ol-more-off,
+    .ol-location-card.is-open .ol-more-on {
+        display: none;
+    }
+    .ol-location-card.is-open .ol-more-off {
+        display: inline;
+    }
+    .ol-location-card.is-open .ol-more .rr-icon {
+        transform: rotate(180deg);
+    }
+    .locations-container:not(.m-acc) .ol-more {
+        display: none;      /* без JS — детали просто видны */
+    }
+    .locations-container.m-acc .ol-location-card:not(.is-open) .ol-detail {
+        display: none;
+    }
+
+    /* ---------- Пусто ---------- */
+    .locations-container > .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 30px 18px 22px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        font-size: 15px;
+        line-height: 1.45;
+    }
+    .ol-empty-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 6px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .ol-empty-ic .rr-icon {
+        width: 26px;
+        height: 26px;
+        vertical-align: 0;
+    }
+    .ol-empty-title {
+        max-width: 300px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.3;
+        color: var(--text);
+    }
+    .locations-container > .empty .m-btn {
+        color: #fff;
+    }
+    .ol-empty-hint {
+        max-width: 340px;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    /* ---------- Шторки «Указать вендинг» и «Отметить обслуживание» ---------- */
+    .m-pg-op-locs .modal-box h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 16px;
+        padding-right: 44px;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .m-pg-op-locs .modal-box h3 .rr-icon {
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+        vertical-align: 0;
+    }
+    .m-pg-op-locs .modal-box .form-group {
+        margin-bottom: 14px;
+    }
+    .m-pg-op-locs .modal-box .form-group > label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .m-pg-op-locs .modal-box .form-group input:not([type="file"]):not([type="radio"]),
+    .m-pg-op-locs .modal-box .form-group select,
+    .m-pg-op-locs .modal-box .form-group textarea {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 16px;
+    }
+    .m-pg-op-locs .modal-box .form-group textarea {
+        min-height: 88px;
+        padding: 12px 14px;
+        line-height: 1.4;
+    }
+    .m-pg-op-locs .modal-box input[type="file"] {
+        display: block;
+        width: 100%;
+        min-height: 48px;
+        padding: 8px;
+        background: var(--bg-input);
+        border: 1px dashed var(--border-strong);
+        border-radius: 14px;
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+    .m-pg-op-locs .modal-box input[type="file"]::file-selector-button {
+        min-height: 32px;
+        margin-right: 10px;
+        padding: 0 12px;
+        background: var(--accent-soft);
+        border: 0;
+        border-radius: 10px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .m-pg-op-locs .photo-upload-hint {
+        margin-top: 6px;
+        font-size: 12px;
+    }
+    .ol-modal-error {
+        font-size: 14px;
+    }
+    .ol-progress-track {
+        background: var(--bg-elevated-2);
+    }
+    .ol-progress-bar-fill {
+        background: var(--accent);
+    }
+    /* Кнопка отправки — липкая у нижнего края шторки, всегда под пальцем */
+    .m-pg-op-locs .modal-box .btn-submit {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        width: 100%;
+        min-height: 52px;
+        margin-top: 6px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+        box-shadow: 0 10px 0 10px var(--bg-elevated), 0 -8px 16px -8px var(--bg-elevated);
+    }
+
+    /* Плитки выбора «что сделано» */
+    .ol-svc-opts {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .ol-svc-opts .ol-svc-opt {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 56px;
+        margin: 0;
+        padding: 8px 44px 8px 10px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 400;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .ol-svc-opt input {
+        position: absolute;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        pointer-events: none;
+    }
+    /* Кружок-радио справа */
+    .ol-svc-opt::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 14px;
+        width: 20px;
+        height: 20px;
+        margin-top: -10px;
+        border: 2px solid var(--border-strong);
+        border-radius: 50%;
+        box-sizing: border-box;
+    }
+    .ol-svc-opt:has(input:checked) {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+    }
+    .ol-svc-opt:has(input:checked)::after {
+        border: 6px solid var(--accent);
+    }
+    .ol-svc-opt:has(input:focus-visible) {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+    .ol-svc-ic {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: var(--success-soft);
+        color: var(--success);
+    }
+    .ol-svc-ic .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+    .ol-svc-opt.is-warn .ol-svc-ic { background: var(--warning-soft); color: var(--warning); }
+    .ol-svc-opt.is-info .ol-svc-ic { background: var(--info-soft);    color: var(--info); }
+    .ol-svc-opt.is-bad  .ol-svc-ic { background: var(--danger-soft);  color: var(--danger); }
+    .ol-svc-txt {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+    .ol-svc-txt b {
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .ol-svc-txt small {
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--text-muted);
+    }
+
+    /* Узкие экраны: подпись главной кнопки — в одну строку */
+    @media (max-width: 360px) {
+        .machine-actions .btn-service,
+        .machine-box .btn-add-machine {
+            padding: 0 10px;
+            gap: 6px;
+            font-size: 15px;
+        }
+    }
+
+    /* Ссылки подвала — не ниже 32px (общий подвал; см. запрос координатору в отчёте) */
+    body.m-pg-op-locs .footer p.footer-legal-links a {
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+}
