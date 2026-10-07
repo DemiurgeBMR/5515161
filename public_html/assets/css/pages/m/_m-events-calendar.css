@@ -1,5 +1,1302 @@
 /* ===== ТЕЛЕФОНЫ: Календарь выездов (pages/events_calendar.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Экран «как приложение»:
+     заголовок «Выезды» + главная кнопка «Новый выезд» и «⋯» (шторка действий) → карточка «Сегодня» →
+     сводка горизонтальными плитками → поиск + кнопка «Фильтры» (шторка с чипами) →
+     «Список / Месяц» + навигация по месяцам → карточки выездов (FullCalendar listMonth) или компактная
+     сетка с точками и список выбранного дня. Модалки календаря (.cal-modal-*) → шторки снизу.
+   Поведение — assets/js/m/calendar.js. Порядок блоков меняется через flex order (.calendar-layout —
+   display: contents), разметка десктопа та же. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Каркас страницы ---------- */
+    .calendar-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: none;
+        padding: 10px var(--m-gutter) 24px;
+    }
+    .calendar-layout {
+        display: contents;          /* «Сегодня» и календарь становятся блоками страницы — их можно упорядочить */
+    }
+    .calendar-header  { order: 0; }
+    .today-sidebar    { order: 1; }
+    .calendar-stats   { order: 2; }
+    .calendar-toolbar { order: 3; }
+    .calendar-card    { order: 4; }
+
+    html.cal-m-lock,
+    html.cal-m-lock body {
+        overflow: hidden;           /* открыта шторка календаря — страница под ней не ездит */
+    }
+
+    /* ---------- Шапка: заголовок, «Новый выезд», «⋯» ---------- */
+    .calendar-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        min-height: 48px;
+    }
+    .calendar-title-block {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .cal-back-link,
+    .calendar-subtitle {
+        display: none;              /* вкладка нижней панели — «назад» не нужен; первый экран — под содержимое */
+    }
+    .calendar-title {
+        font-size: 24px;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .calendar-title .rr-icon {
+        display: none;
+    }
+    .calendar-actions {
+        flex: none;
+        width: auto;
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+    .calendar-actions #historyBtn,
+    .calendar-actions #refreshCalendarBtn {
+        display: none;              /* — в шторке «⋯» */
+    }
+    .calendar-actions .action-btn {
+        flex: none;
+    }
+    .calendar-actions #newEventBtn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: var(--m-tap);
+        padding: 0 14px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 800;
+        white-space: nowrap;
+        box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.28);
+    }
+    .calendar-actions #newEventBtn .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .cal-m-more {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        padding: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text);
+        cursor: pointer;
+    }
+    .cal-m-more .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* ---------- «Сегодня» — первая карточка ---------- */
+    .today-sidebar {
+        background: var(--bg-elevated);
+        border-color: var(--border);
+        border-radius: var(--m-radius);
+        box-shadow: none;
+    }
+    .today-sidebar-header {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 12px 14px 2px;
+        border-bottom: 0;
+    }
+    .today-sidebar-title {
+        font-size: 17px;
+    }
+    .today-sidebar-date {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .today-events {
+        max-height: none;
+        overflow: visible;
+        padding: 6px 8px 8px;
+    }
+    .today-empty {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 6px 4px;
+        text-align: left;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+    .today-empty .rr-icon {
+        width: 16px;
+        height: 16px;
+        color: var(--accent);
+    }
+    .today-event {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        column-gap: 10px;
+        padding: 10px;
+        margin-bottom: 6px;
+        background: var(--bg-elevated-2);
+        border-color: var(--border);
+        border-radius: 12px;
+    }
+    .today-event:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    .today-event:active {
+        background: var(--accent-soft);
+    }
+    .today-event-time {
+        grid-row: 1 / span 3;
+        display: flex;
+        align-items: flex-start;
+        gap: 3px;
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.3;
+        color: var(--accent);
+    }
+    .today-event-time .rr-icon {
+        flex: none;
+        width: 14px;
+        height: 14px;
+        margin-top: 2px;
+    }
+    .today-event-title {
+        font-size: 15px;
+        overflow-wrap: anywhere;
+    }
+    .today-event-city {
+        font-size: 13px;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+    }
+    .today-event-city .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: -2px;
+    }
+    .today-event-status {
+        justify-self: start;
+    }
+
+    /* Статус-плашки (сегодня, детали) — цвета темы вместо светлых заливок десктопа */
+    .calendar-container .today-event-status,
+    .cal-modal-box .today-event-status {
+        gap: 5px;
+        margin-top: 6px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.3;
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+    }
+    .cal-modal-box .today-event-status {
+        margin-top: 0;
+    }
+    .calendar-container .today-event-status.status-requested,
+    .calendar-container .today-event-status.status-reviewing,
+    .cal-modal-box .today-event-status.status-requested,
+    .cal-modal-box .today-event-status.status-reviewing {
+        background: var(--warning-soft);
+        color: var(--warning);
+    }
+    .calendar-container .today-event-status.status-confirmed,
+    .cal-modal-box .today-event-status.status-confirmed {
+        background: var(--info-soft);
+        color: var(--info);
+    }
+    .calendar-container .today-event-status.status-completed,
+    .cal-modal-box .today-event-status.status-completed {
+        background: var(--success-soft);
+        color: var(--success);
+    }
+    .calendar-container .today-event-status.status-emergency,
+    .cal-modal-box .today-event-status.status-emergency {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+
+    /* ---------- Сводка: горизонтальные плитки-фильтры ---------- */
+    .calendar-stats {
+        display: flex;
+        gap: 8px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 2px var(--m-gutter);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x proximity;
+        scroll-padding: 0 var(--m-gutter);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .calendar-stats::-webkit-scrollbar {
+        display: none;
+    }
+    .stat-card {
+        flex: 1 0 auto;
+        min-width: 124px;
+        min-height: 60px;
+        padding: 10px 12px;
+        gap: 10px;
+        background: var(--bg-elevated);
+        border-color: var(--border);
+        border-radius: 14px;
+        box-shadow: none;
+        scroll-snap-align: start;
+    }
+    .stat-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    .stat-card:active {
+        background: var(--bg-elevated-2);
+    }
+    .stat-card.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    .stat-icon {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        border-radius: 11px;
+    }
+    .stat-icon .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .stat-icon.today     { background: var(--info-soft);    color: var(--info); }
+    .stat-icon.pending   { background: var(--warning-soft); color: var(--warning); }
+    .stat-icon.emergency { background: var(--danger-soft);  color: var(--danger); }
+    .stat-icon.completed { background: var(--success-soft); color: var(--success); }
+    .stat-number {
+        font-size: 20px;
+    }
+    .stat-label {
+        margin-top: 1px;
+        white-space: nowrap;
+        font-size: 12px;
+        line-height: 1.25;
+        color: var(--text-muted);
+    }
+    /* Есть ожидающие подтверждения / срочные — плитка заметна (рамка, цвет числа) */
+    #statPending.has-items {
+        border-color: var(--warning);
+    }
+    #statPending.has-items .stat-number {
+        color: var(--warning);
+    }
+    #statEmergency.has-items {
+        background: var(--danger-soft);
+        border-color: var(--danger);
+    }
+    #statEmergency.has-items .stat-number {
+        color: var(--danger);
+    }
+    #statPending.has-items.active,
+    #statEmergency.has-items.active {
+        box-shadow: inset 0 0 0 2px currentColor;
+    }
+
+    /* ---------- Поиск + кнопка «Фильтры» (селекты — в шторке чипами) ---------- */
+    .calendar-toolbar {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+    }
+    .calendar-toolbar .toolbar-left {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: 0;
+    }
+    .calendar-toolbar .toolbar-right {
+        display: none;
+    }
+    .cal-search-box {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+    .cal-search-box input {
+        width: 100%;
+        height: 48px;
+        padding: 0 14px 0 42px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        font-size: 16px;
+        text-overflow: ellipsis;
+    }
+    .cal-search-box .search-icon {
+        left: 14px;
+        display: flex;
+    }
+    .cal-search-box .search-icon .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .cal-m-filter-btn {
+        flex: none;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 48px;
+        min-width: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .cal-m-filter-btn .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .cal-m-filter-btn.is-on {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    .cal-m-dot {
+        position: absolute;
+        top: 7px;
+        right: 7px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 2px var(--bg-input);
+    }
+    .cal-m-dot[hidden] {
+        display: none;
+    }
+
+    /* Шторка фильтров: группы чипов */
+    .cal-m-fgroup + .cal-m-fgroup {
+        margin-top: 16px;
+    }
+    .cal-m-fgroup .m-label {
+        margin-bottom: 8px;
+    }
+    .cal-m-sheet .m-sheet-link[disabled] {
+        color: var(--text-faint);
+        cursor: default;
+    }
+    .cal-m-sheet .m-sheet-body {
+        padding-top: 4px;
+    }
+
+    /* ---------- Календарь: «Список / Месяц» и навигация по месяцам ---------- */
+    .calendar-card {
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    #calendar {
+        min-height: 0;
+    }
+    .cal-m-viewbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .cal-m-viewbar .m-seg {
+        flex: 1 1 auto;
+        padding: 2px;
+    }
+    .cal-m-viewbar .m-seg > * {
+        min-height: var(--m-tap);
+    }
+    .cal-m-viewbar .m-seg .rr-icon {
+        width: 17px;
+        height: 17px;
+    }
+    .cal-m-today {
+        flex: none;
+        height: 48px;
+        padding: 0 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .cal-m-today:active,
+    .cal-m-more:active,
+    .cal-m-filter-btn:active {
+        background: var(--bg-elevated-2);
+    }
+
+    .calendar-card .fc .fc-toolbar.fc-header-toolbar {
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin: 0 0 10px;
+    }
+    .calendar-card .fc .fc-toolbar-title {
+        font-size: 20px;
+        line-height: 1.2;
+        text-align: center;
+    }
+    .calendar-card .fc .fc-toolbar-title::first-letter {
+        text-transform: uppercase;
+    }
+    .calendar-card .fc .fc-prev-button,
+    .calendar-card .fc .fc-next-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        padding: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        color: var(--text);
+    }
+    .calendar-card .fc .fc-prev-button:hover,
+    .calendar-card .fc .fc-next-button:hover {
+        background: var(--bg-elevated);
+    }
+    .calendar-card .fc .fc-prev-button:active,
+    .calendar-card .fc .fc-next-button:active {
+        background: var(--bg-elevated-2);
+        color: var(--text);
+    }
+
+    /* ---------- Вид «Список»: карточки выездов ---------- */
+    .calendar-card .fc-theme-standard .fc-list {
+        border: 0;
+    }
+    .calendar-card .fc .fc-list-table,
+    .calendar-card .fc .fc-list-table > tbody {
+        display: block;
+        width: 100%;
+    }
+    .calendar-card .fc .fc-list-day {
+        display: none;               /* дата — «колонка» в каждой карточке */
+    }
+    .calendar-card .fc .fc-list-event {
+        display: block;
+        margin: 0 0 8px;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        color: var(--text) !important;
+        font-style: normal !important;
+        font-weight: inherit !important;
+        opacity: 1 !important;
+        cursor: pointer;
+    }
+    .calendar-card .fc .fc-list-event td {
+        display: block;
+        padding: 0;
+        border: 0;
+        background: none !important;
+    }
+    .calendar-card .fc .fc-list-event .fc-list-event-time,
+    .calendar-card .fc .fc-list-event .fc-list-event-graphic {
+        display: none;
+    }
+    .calendar-card .cal-event-emergency::before {
+        content: none;
+    }
+    .calendar-card .fc .fc-list-empty {
+        display: block;
+        height: auto;
+        background: none;
+    }
+    .calendar-card .fc .fc-list-empty-cushion {
+        margin: 0;
+    }
+
+    .cal-mcard {
+        position: relative;
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        color: var(--text);
+        text-align: left;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .cal-mcard:active {
+        background: var(--bg-elevated-2);
+    }
+    .cal-mcard:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+    /* Требует ответа — янтарная полоса слева; срочный — красная полоса и подложка */
+    .cal-mcard.is-attn {
+        border-color: var(--warning);
+        box-shadow: inset 4px 0 0 var(--warning);
+    }
+    .cal-mcard.is-emergency {
+        background: linear-gradient(90deg, var(--danger-soft), transparent 75%), var(--bg-elevated);
+        border-color: var(--danger);
+        box-shadow: inset 4px 0 0 var(--danger);
+    }
+    .cal-mcard.s-cancelled .cal-mcard-body {
+        opacity: 0.6;
+    }
+    .cal-mcard.s-cancelled .cal-mcard-title {
+        text-decoration: line-through;
+    }
+    .cal-mcard-date {
+        flex: 0 0 46px;
+        align-self: flex-start;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 54px;
+        border-radius: 12px;
+        background: var(--bg-elevated-2);
+        color: var(--text);
+    }
+    .cal-mcard-date b {
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    .cal-mcard-date span {
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.2;
+        color: var(--text-muted);
+    }
+    .cal-mcard-date.is-today {
+        background: var(--accent);
+        color: #fff;
+    }
+    .cal-mcard-date.is-today span {
+        color: #fff;
+    }
+    .cal-mcard.is-past .cal-mcard-date:not(.is-today) {
+        background: transparent;
+        box-shadow: inset 0 0 0 1px var(--border);
+    }
+    /* Следующий выезд того же дня — дата не повторяется */
+    .calendar-card .fc-list-event + .fc-list-event .cal-mcard-date {
+        visibility: hidden;
+    }
+    .cal-mcard-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    .cal-mcard-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .cal-mtype {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 8px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .cal-mtype.t-maintenance { background: var(--info-soft);    color: var(--info); }
+    .cal-mtype.t-restock     { background: var(--success-soft); color: var(--success); }
+    .cal-mtype.t-repair      { background: var(--warning-soft); color: var(--warning); }
+    .cal-mtype.t-removal,
+    .cal-mtype.t-other       { background: var(--bg-elevated-2); color: var(--text-muted); }
+    .cal-mtype .rr-icon,
+    .cal-mcard .m-pill .rr-icon {
+        width: 13px;
+        height: 13px;
+        flex: none;
+    }
+    .cal-mcard .m-pill {
+        white-space: normal;
+    }
+    .cal-pill-strong {
+        font-weight: 800;
+    }
+    .cal-mcard-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .cal-mcard-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        font-size: 13px;
+        line-height: 1.35;
+        color: var(--text-muted);
+    }
+    .cal-mcard-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .cal-mcard-meta .rr-icon {
+        flex: none;
+        width: 14px;
+        height: 14px;
+    }
+    .cal-mcard-foot {
+        margin-top: 2px;
+    }
+
+    /* Пустой месяц / ничего не найдено */
+    .cal-m-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 28px 18px;
+        background: var(--bg-elevated);
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--m-radius);
+    }
+    .cal-m-empty > .rr-icon {
+        margin-bottom: 0;
+    }
+    .cal-m-empty b {
+        margin: 0;
+    }
+    .cal-m-empty p {
+        max-width: 320px;
+        margin: 0 0 4px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .cal-m-empty .m-btn {
+        width: 100%;
+        max-width: 340px;
+    }
+    .cal-m-empty .m-btn .rr-icon {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        color: currentColor;
+    }
+
+    /* ---------- Вид «Месяц»: компактная сетка с точками ---------- */
+    .calendar-card .fc-dayGridMonth-view {
+        padding: 4px 4px 6px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .calendar-card .fc-theme-standard td,
+    .calendar-card .fc-theme-standard th,
+    .calendar-card .fc-theme-standard .fc-scrollgrid {
+        border: 0;
+    }
+    .calendar-card .fc .fc-col-header-cell {
+        background: none;
+    }
+    .calendar-card .fc .fc-scrollgrid-section-sticky > * {
+        position: static;               /* дни недели не прилипают под шапкой сайта */
+    }
+    .calendar-card .fc .fc-col-header-cell-cushion {
+        padding: 6px 0 4px;
+        font-size: 12px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .calendar-card .fc .fc-daygrid-day,
+    .calendar-card .fc .fc-daygrid-day.fc-day-other,
+    .calendar-card .fc .fc-day-today {
+        background: none !important;
+        cursor: pointer;
+    }
+    .calendar-card .fc .fc-daygrid-day-frame {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 50px;
+        margin: 1px;
+        border-radius: 12px;
+    }
+    .calendar-card .fc .fc-daygrid-day-top {
+        flex-direction: row;
+        justify-content: center;
+    }
+    .calendar-card .fc .fc-daygrid-day-number,
+    .calendar-card .fc .fc-day-today .fc-daygrid-day-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        margin: 3px 0 0;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .calendar-card .fc .fc-daygrid-day.fc-day-other .fc-daygrid-day-top {
+        opacity: 0.4;
+    }
+    .calendar-card .fc .fc-daygrid-day-events,
+    .calendar-card .fc .fc-daygrid-body-natural .fc-daygrid-day-events {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 3px;
+        min-height: 8px;
+        margin: 3px 3px 5px;
+        padding: 0;
+    }
+    .calendar-card .fc .fc-daygrid-event-harness,
+    .calendar-card .fc .fc-daygrid-event-harness-abs {
+        position: static !important;
+        margin: 0 !important;
+        visibility: visible !important;
+    }
+    .calendar-card .fc .fc-daygrid-event {
+        display: block;
+        width: 7px;
+        height: 7px;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        border: 0 !important;
+        border-radius: 50%;
+        background: var(--text-muted) !important;
+        box-shadow: none;
+        font-size: 0;
+        opacity: 1 !important;
+        overflow: hidden;
+        pointer-events: none;        /* касание — по дню (выбор дня), а не по крошечной точке */
+    }
+    .calendar-card .fc .fc-daygrid-event > * {
+        display: none;
+    }
+    .calendar-card .fc .fc-daygrid-event.event-requested,
+    .calendar-card .fc .fc-daygrid-event.event-reviewing { background: var(--warning) !important; }
+    .calendar-card .fc .fc-daygrid-event.event-confirmed { background: var(--info) !important; }
+    .calendar-card .fc .fc-daygrid-event.event-completed { background: var(--success) !important; }
+    .calendar-card .fc .fc-daygrid-event.event-cancelled { background: var(--text-faint) !important; }
+    .calendar-card .fc .fc-daygrid-event.event-quicklog  { background: var(--text-muted) !important; }
+    .calendar-card .fc .fc-daygrid-event.cal-event-emergency {
+        width: 9px;
+        height: 9px;
+        background: var(--danger) !important;
+        box-shadow: 0 0 0 2px var(--danger-soft);
+    }
+    .calendar-card .fc .fc-daygrid-day-bottom,
+    .calendar-card .fc .fc-highlight {
+        display: none;
+    }
+
+    /* Список выбранного дня под сеткой */
+    .cal-m-day {
+        margin-top: 14px;
+    }
+    .cal-m-day[hidden] {
+        display: none;
+    }
+    .cal-m-day-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 2px 8px;
+    }
+    .cal-m-day-title {
+        margin: 0;
+        min-width: 0;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .cal-m-day-count {
+        flex: none;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .cal-m-day-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cal-m-day-empty {
+        padding: 16px;
+        background: var(--bg-elevated);
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--m-radius);
+        font-size: 14px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .cal-m-day-add {
+        margin-top: 10px;
+    }
+
+    /* Загрузка: маленький индикатор сверху, без затемнения содержимого */
+    .loading-overlay {
+        align-items: flex-start;
+        padding-top: 64px;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        border-radius: 0;
+        pointer-events: none;
+    }
+    .loading-overlay .spinner {
+        width: 28px;
+        height: 28px;
+        border-width: 3px;
+    }
+
+    /* ---------- Модалки календаря → шторки снизу ---------- */
+    .cal-modal-overlay:not(.photo-lightbox-overlay) {
+        top: var(--m-vvt, 0px);
+        bottom: auto;
+        height: var(--m-vvh, 100dvh);
+        align-items: flex-end;
+        padding: 0;
+        background: rgba(0, 0, 0, 0.55);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+    .cal-modal-overlay:not(.photo-lightbox-overlay) .cal-modal-box {
+        width: 100%;
+        max-width: none;
+        max-height: calc(var(--m-vvh, 100dvh) - var(--m-safe-t) - 16px);
+        padding: 0 18px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+        overscroll-behavior: contain;
+        animation: calSheetUp 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transition: transform 0.2s ease;
+    }
+    @keyframes calSheetUp {
+        from { transform: translateY(100%); }
+        to   { transform: none; }
+    }
+    .cal-modal-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 0 -18px 6px;
+        padding: 22px 10px 10px 18px;
+        background: var(--bg-elevated);
+    }
+    .cal-modal-header::before {
+        content: "";
+        position: absolute;
+        top: 9px;
+        left: 50%;
+        width: 42px;
+        height: 5px;
+        margin-left: -21px;
+        border-radius: 3px;
+        background: var(--border-strong);
+    }
+    .cal-modal-header > div {
+        min-width: 0;
+    }
+    .cal-modal-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 20px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .cal-modal-title .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+    }
+    .cal-modal-subtitle {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+    }
+    .cal-close-btn {
+        flex: 0 0 var(--m-tap);
+        width: var(--m-tap);
+        height: var(--m-tap);
+        border-radius: 50%;
+        background: var(--bg-elevated-2);
+        color: var(--text);
+        font-size: 26px;
+        line-height: 1;
+    }
+
+    /* Формы в шторках: поля 48px, 16px, подпись над полем */
+    .cal-form-group {
+        margin-bottom: 14px;
+    }
+    .cal-form-label {
+        margin-bottom: 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .cal-form-control {
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        font-size: 16px;
+    }
+    select.cal-form-control {
+        text-overflow: ellipsis;
+    }
+    textarea.cal-form-control {
+        min-height: 96px;
+        padding: 12px 14px;
+    }
+    input[type="file"].cal-form-control {
+        height: auto;
+        padding: 12px 14px;
+        border-style: dashed;
+        font-size: 15px;
+    }
+    .cal-dt-split {
+        display: flex;
+        gap: 10px;
+    }
+    .cal-dt-col {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .cal-dt-col .cal-form-control {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    .emergency-toggle {
+        min-height: 52px;
+        padding: 0 14px;
+        background: var(--danger-soft);
+        border: 1px solid transparent;
+        border-radius: 14px;
+    }
+    .emergency-toggle input {
+        flex: none;
+        width: 22px;
+        height: 22px;
+    }
+    .emergency-toggle span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 15px;
+        color: var(--danger);
+    }
+    .emergency-toggle .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .form-error-box {
+        margin-top: 4px;
+        background: var(--danger-soft);
+        border-color: transparent;
+        border-radius: 12px;
+        color: var(--danger);
+        font-size: 14px;
+    }
+    .no-locations-hint {
+        color: var(--danger);
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .photo-upload-hint,
+    .progress-text {
+        font-size: 13px;
+    }
+    .progress-track {
+        background: var(--bg-elevated-2);
+    }
+    /* Кнопки формы — липкий низ шторки */
+    .cal-modal-buttons {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        gap: 10px;
+        margin: 18px -18px 0;
+        padding: 12px 18px calc(12px + var(--m-safe-b));
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+    }
+    .cal-modal-buttons button {
+        height: 48px;
+        border-radius: 14px;
+        font-size: 16px;
+    }
+
+    /* Детали выезда: строки «подпись — значение», действия внизу шторки */
+    .detail-grid {
+        display: block;
+        margin: 0 0 14px;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .detail-grid .detail-item {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 12px;
+        background: none;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+    }
+    .detail-grid .detail-item:last-child {
+        border-bottom: 0;
+    }
+    .detail-label {
+        font-size: 12px;
+    }
+    .detail-grid .detail-label {
+        flex: none;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-transform: none;
+    }
+    .detail-grid .detail-value {
+        min-width: 0;
+        margin: 0;
+        font-size: 15px;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    .detail-item.spaced {
+        margin-bottom: 14px;
+        background: var(--bg-elevated-2);
+        border-radius: 14px;
+    }
+    .detail-item.spaced .detail-value {
+        font-size: 15px;
+        overflow-wrap: anywhere;
+    }
+    .emergency-reason {
+        margin-bottom: 14px;
+        background: var(--danger-soft);
+        border-color: transparent;
+        border-radius: 14px;
+    }
+    .emergency-reason-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--danger);
+    }
+    .emergency-reason-title .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    .emergency-reason-text {
+        font-size: 15px;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .history-entry {
+        background: var(--bg-elevated);
+        border-radius: 12px;
+        font-size: 14px;
+    }
+    .detail-photo-thumb-btn {
+        width: 72px;
+        height: 72px;
+        border-color: var(--border);
+        border-radius: 12px;
+    }
+    /* Действия: главное (подтвердить/завершить) — во всю ширину, остальные — панель из трёх
+       кнопок «значок над подписью» (компактно: шторка не съедает экран на низких телефонах) */
+    .detail-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 16px -18px 0;
+        padding: 12px 18px calc(12px + var(--m-safe-b));
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+    }
+    .detail-actions button {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-height: 58px;
+        padding: 6px 4px;
+        border-radius: 14px;
+        font-size: 13px;
+        line-height: 1.15;
+        text-align: center;
+        grid-column: auto;
+    }
+    .detail-actions button .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+    }
+    .detail-actions .full.cal-act-open {
+        grid-column: auto;
+    }
+    .detail-actions .cal-act-confirm,
+    .detail-actions .cal-act-complete,
+    .detail-actions .cal-act-open:only-child {
+        grid-column: 1 / -1;
+        order: -1;
+        flex-direction: row;
+        gap: 8px;
+        min-height: 48px;
+        font-size: 16px;
+    }
+    .detail-actions .cal-act-open,
+    .detail-actions .cal-act-open:hover,
+    .detail-actions .cal-act-resched,
+    .detail-actions .cal-act-resched:hover {
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+    .detail-actions .cal-act-open:only-child,
+    .detail-actions .cal-act-open:only-child:hover {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+    }
+    .detail-actions .cal-act-cancel {
+        background: transparent;
+        border: 1px solid var(--danger-soft);
+        color: var(--danger);
+    }
+
+    /* Фото на весь экран */
+    .lightbox-close-btn {
+        top: calc(var(--m-safe-t) + 10px);
+        right: 10px;
+        width: var(--m-tap);
+        height: var(--m-tap);
+    }
+    .lightbox-nav-btn {
+        width: var(--m-tap);
+        height: var(--m-tap);
+    }
+    #lightboxPrev.lightbox-nav-btn { left: 8px; }
+    #lightboxNext.lightbox-nav-btn { right: 8px; }
+    .lightbox-img {
+        max-width: 100%;
+        max-height: 78dvh;
+        border-radius: 0;
+    }
+
+    /* Контекстное меню (долгое нажатие на десктопной сетке не используется, но на всякий случай — крупно) */
+    .context-menu .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: var(--m-tap);
+        font-size: 15px;
+    }
+}
+
+/* Узкие телефоны: у кнопки фильтров только иконка, у «Новый выезд» — без значка (заголовок не обрезается) */
+@media (max-width: 374px) {
+    .calendar-actions #newEventBtn {
+        padding: 0 12px;
+    }
+    .calendar-actions #newEventBtn .rr-icon {
+        display: none;
+    }
+    .cal-m-filter-btn {
+        width: 48px;
+        padding: 0;
+    }
+    .cal-m-filter-lb {
+        display: none;
+    }
+}
+
+/* Высокий экран: действия в деталях — липкий низ шторки (на низком/альбомном — обычным блоком) */
+@media (max-width: 768px) and (min-height: 560px) {
+    .detail-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+    }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+    .cal-modal-overlay .cal-modal-box {
+        animation: none;
+        transition: none;
+    }
+}
