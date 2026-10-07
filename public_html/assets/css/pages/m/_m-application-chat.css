@@ -478,6 +478,12 @@
     .m-chat-screen .chat-input textarea::placeholder {
         color: var(--text-muted);
     }
+    /* подсказка в одну строку — на узком экране не обрезается посередине второй строки */
+    .m-chat-screen .chat-input textarea:placeholder-shown {
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
     .m-chat-screen .chat-input textarea:focus {
         border-color: var(--accent);
     }
