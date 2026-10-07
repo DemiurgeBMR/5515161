@@ -137,8 +137,10 @@
         font-weight: 800;
         line-height: 1.3;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
     }
     .oa-time {
         flex: none;
@@ -211,6 +213,16 @@
         font-weight: 800;
         line-height: 22px;
         text-align: center;
+    }
+
+    @media (max-width: 360px) {
+        .oa-card {
+            gap: 10px;
+        }
+        .oa-thumb {
+            width: 52px;
+            height: 52px;
+        }
     }
 
     /* ---------- Пустые состояния ---------- */

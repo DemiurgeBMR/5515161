@@ -60,26 +60,22 @@
     }
     .ol-location-card .location-info {
         order: 1;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        column-gap: 10px;
-        align-items: start;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
     }
     .location-info .title {
-        grid-column: 1;
-        grid-row: 1;
         font-size: 17px;
         font-weight: 800;
         line-height: 1.3;
         overflow-wrap: anywhere;
     }
     .location-info .badge-assigned {
-        grid-column: 2;
-        grid-row: 1;
+        order: -1;              /* плашка над названием, как бейджи в карточке объявления */
         display: inline-flex;
         align-items: center;
         gap: 4px;
-        margin: 1px 0 0;
+        margin: 0 0 6px;
         padding: 3px 9px;
         border-radius: 10px;
         background: var(--accent-soft);
@@ -91,7 +87,6 @@
     }
     .location-info .address,
     .location-info .owner {
-        grid-column: 1 / -1;
         margin-top: 4px;
         font-size: 14px;
         line-height: 1.4;

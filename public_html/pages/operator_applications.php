@@ -227,7 +227,7 @@ foreach ($mApps as $app) {
                                 <span class="oa-sub"><?php echo htmlspecialchars($app['city']); ?> · <?php echo htmlspecialchars($app['owner_name']); ?></span>
                                 <span class="oa-status"><span class="m-pill <?php echo $mStatus[$ds][1] ?? 'is-muted'; ?>"><?php echo htmlspecialchars($mStatus[$ds][0] ?? $ds); ?></span></span>
                                 <span class="oa-last">
-                                    <span class="oa-last-text"><?php if ($lastText === ''): ?><span class="oa-muted">Сообщений пока нет — напишите собственнику</span><?php else: ?><?php echo (int) ($meta['last_sender'] ?? 0) === (int) $user_id ? '<span class="oa-you">Вы:</span> ' : ''; ?><?php echo htmlspecialchars($lastText); ?><?php endif; ?></span>
+                                    <span class="oa-last-text"><?php if ($lastText === ''): ?><span class="oa-muted"><?php echo in_array($ds, ['cancelled', 'rejected', 'unassigned'], true) ? 'Сообщений нет' : 'Сообщений пока нет — напишите собственнику'; ?></span><?php else: ?><?php echo (int) ($meta['last_sender'] ?? 0) === (int) $user_id ? '<span class="oa-you">Вы:</span> ' : ''; ?><?php echo htmlspecialchars($lastText); ?><?php endif; ?></span>
                                     <?php if ($unread > 0): ?><span class="oa-unread" aria-label="Непрочитанных: <?php echo $unread; ?>"><?php echo $unread > 99 ? '99+' : $unread; ?></span><?php endif; ?>
                                 </span>
                             </span>
