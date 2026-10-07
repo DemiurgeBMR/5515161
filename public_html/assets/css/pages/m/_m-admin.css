@@ -465,6 +465,22 @@
         border-color: rgba(224, 169, 63, 0.45);
         color: var(--adm-warn);
     }
+    /* «Одобрить все / Отклонить все» — пара в одну строку, слова не рвутся */
+    table.adm-cards td.c-act > a.btn-approve,
+    table.adm-cards td.c-act > a.btn-reject {
+        gap: 4px;
+        padding: 0 8px;
+        font-size: 14px;
+    }
+    table.adm-cards td.c-act > a.btn-approve .rr-icon,
+    table.adm-cards td.c-act > a.btn-reject .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    table.adm-cards td.c-act > a > span {
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
     table.adm-cards td.c-act > a:active {
         opacity: 0.8;
     }
