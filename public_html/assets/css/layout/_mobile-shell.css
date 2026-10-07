@@ -175,7 +175,7 @@
     }
     body .footer p.footer-legal-links a {
         display: inline-block;
-        padding: 6px 2px;
+        padding: 8px 2px;
     }
 
     /* ---------- Нижняя панель ---------- */
@@ -572,6 +572,15 @@
     body.m-no-tabbar .toast-container,
     body.m-no-tabbar .rr-toast-container {
         bottom: calc(var(--m-safe-b) + 8px);
+    }
+    /* Экран с липкой кнопкой действия: тосты поднимаются над ней */
+    body.m-has-cta .toast-container,
+    body.m-has-cta .rr-toast-container {
+        bottom: calc(var(--m-tabbar-h) + var(--m-safe-b) + 84px);
+    }
+    body.m-has-cta.m-no-tabbar .toast-container,
+    body.m-has-cta.m-no-tabbar .rr-toast-container {
+        bottom: calc(var(--m-safe-b) + 84px);
     }
     body .rr-toast {
         min-width: 0;
