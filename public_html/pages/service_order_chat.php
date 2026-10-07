@@ -114,15 +114,16 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     <title>Чат по заявке — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-no-tabbar m-chat-screen m-so-chat">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="chat-container">
-    <a href="<?php echo $backUrl; ?>" class="chat-back-link">← Назад</a>
+    <a href="<?php echo $backUrl; ?>" class="chat-back-link m-hide">← Назад</a>
 
     <div class="chat-card">
         <div class="chat-main">
             <div class="chat-main-topbar service-order-topbar">
+                <a href="<?php echo $backUrl; ?>" class="chat-m-back m-only" data-chat-back aria-label="Назад"><?php echo rr_icon('chevron-left'); ?></a>
                 <div class="who">
                     <div class="party-avatar"><?php echo htmlspecialchars(getInitials($otherPartyLabel)); ?></div>
                     <div class="name">
@@ -170,10 +171,10 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                             $prevDate = $msgDate;
                         ?>
                         <?php if ($showDateSeparator): ?>
-                            <div class="date-separator"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
+                            <div class="date-separator" data-date="<?php echo $msgDate; ?>"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
                         <?php endif; ?>
                         <?php if ($msg['is_system']): ?>
-                            <div class="date-separator"><span><?php echo htmlspecialchars($msg['message']); ?></span></div>
+                            <div class="date-separator is-system"><span><?php echo htmlspecialchars($msg['message']); ?></span></div>
                         <?php else: ?>
                             <div class="message <?php echo $isOwn ? 'own' : ''; ?> <?php echo $isGrouped ? 'grouped' : ''; ?>">
                                 <?php if (!$isOwn): ?>
@@ -182,13 +183,17 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                                 <div class="message-body">
                                     <?php if (!$isGrouped): ?>
                                         <div class="sender">
-                                            <?php echo htmlspecialchars($msg['sender_name']); ?>
+                                            <span class="sender-name"><?php echo htmlspecialchars($msg['sender_name']); ?></span>
                                             <span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
                                         </div>
                                     <?php endif; ?>
                                     <?php echo renderChatAttachment($msg); ?>
                                     <?php if ($msg['message'] !== ''): ?>
                                         <div class="text"><?php echo nl2br(htmlspecialchars($msg['message'])); ?></div>
+                                    <?php endif; ?>
+                                    <?php if ($isGrouped): ?>
+                                        <!-- телефон: время у каждого пузыря (на десктопе у сгруппированных его нет) -->
+                                        <div class="msg-meta m-only"><span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -197,6 +202,11 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                 <?php else: ?>
                     <div class="chat-empty"><span class="chat-empty-icon"><?php echo rr_icon('message-circle'); ?></span>Сообщений пока нет. Напишите, если есть вопросы по заявке.</div>
                 <?php endif; ?>
+            </div>
+
+            <!-- телефон: кнопка «к последним сообщениям» (assets/js/m/chat.js) -->
+            <div class="chat-m-jump m-only">
+                <button type="button" class="chat-m-jump-btn" id="chatJumpBtn" aria-label="К последним сообщениям" hidden><?php echo rr_icon('chevron-down'); ?><span class="chat-m-jump-count" hidden></span></button>
             </div>
 
             <div class="chat-input">
@@ -259,10 +269,12 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     function appendMessage(msg, isOwn) {
         if (msg.is_system) {
             var sep = document.createElement('div');
-            sep.className = 'date-separator';
+            sep.className = 'date-separator is-system';
             sep.innerHTML = '<span>' + escapeHtml(msg.message) + '</span>';
             chatMessages.appendChild(sep);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (!(window.RRChatM && window.RRChatM.afterAppend(sep, false, msg))) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
             return;
         }
         var date = new Date(msg.created_at * 1000);
@@ -273,12 +285,15 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
         var textHtml = msg.message ? '<div class="text">' + escapeHtml(msg.message) + '</div>' : '';
         div.innerHTML = avatarHtml +
             '<div class="message-body">' +
-                '<div class="sender">' + escapeHtml(msg.sender_name) + ' <span class="time">' + time + '</span></div>' +
+                '<div class="sender"><span class="sender-name">' + escapeHtml(msg.sender_name) + '</span> <span class="time">' + time + '</span></div>' +
                 attachmentHtml(msg) +
                 textHtml +
             '</div>';
         chatMessages.appendChild(div);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Телефон: прокрутка «как в мессенджере» — assets/js/m/chat.js; на десктопе как раньше.
+        if (!(window.RRChatM && window.RRChatM.afterAppend(div, isOwn, msg))) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     var PAPERCLIP_FILE_ICON = '<?php echo addslashes(rr_icon("file-text")); ?>';
@@ -389,6 +404,7 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     setTimeout(checkNewMessages, 1000);
 })();
 </script>
+<script src="/assets/js/m/chat.js"></script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
