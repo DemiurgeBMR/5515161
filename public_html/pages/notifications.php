@@ -71,9 +71,12 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
     <div class="notif-page-head">
         <h2><?php echo rr_icon('bell'); ?> Уведомления</h2>
         <?php if ($unreadTotal > 0): ?>
-            <a href="?mark_all=1&csrf=<?php echo urlencode(csrf_token()); ?><?php echo $category !== '' ? '&category=' . urlencode($category) : ''; ?>" class="notif-mark-all">Прочитать всё (<?php echo $unreadTotal; ?>)</a>
+            <a href="?mark_all=1&csrf=<?php echo urlencode(csrf_token()); ?><?php echo $category !== '' ? '&category=' . urlencode($category) : ''; ?>" class="notif-mark-all"><span class="m-only notif-m-ic"><?php echo rr_icon('check'); ?></span>Прочитать всё<span class="m-hide"> (<?php echo $unreadTotal; ?>)</span></a>
         <?php endif; ?>
     </div>
+    <p class="notif-m-sub m-only"><?php echo $unreadTotal > 0
+        ? $unreadTotal . ' ' . rr_plural_ru($unreadTotal, 'непрочитанное', 'непрочитанных', 'непрочитанных')
+        : 'Всё прочитано'; ?></p>
 
     <div class="notif-tabs">
         <a href="/pages/notifications.php" class="<?php echo $category === '' ? 'active' : ''; ?>">Все</a>
@@ -85,7 +88,16 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
     </div>
 
     <?php if (count($notifications) === 0): ?>
-        <div class="notif-empty">У вас пока нет уведомлений<?php echo $category !== '' ? ' в этой категории' : ''; ?>.</div>
+        <div class="notif-empty m-empty">
+            <span class="m-only notif-empty-ic"><?php echo rr_icon('bell'); ?></span>
+            <b class="m-only"><?php echo $category !== '' ? 'Здесь пусто' : 'Уведомлений пока нет'; ?></b>
+            У вас пока нет уведомлений<?php echo $category !== '' ? ' в этой категории' : ''; ?>.
+            <?php if ($category !== ''): ?>
+                <a href="/pages/notifications.php" class="m-btn m-btn--soft m-only">Все уведомления</a>
+            <?php else: ?>
+                <a href="/pages/edit_profile.php" class="m-btn m-btn--ghost m-only">Настроить уведомления</a>
+            <?php endif; ?>
+        </div>
     <?php else: ?>
         <div class="notif-list" id="notifList">
             <?php $lastDay = null; foreach ($notifications as $n): ?>
@@ -97,13 +109,13 @@ $unreadTotal = (int) $unreadTotalStmt->fetchColumn();
                     $meta = NOTIFICATION_META[$n['type']] ?? ['icon' => 'info-circle'];
                     $isUnread = $n['read_at'] === null;
                 ?>
-                <div class="notif-item<?php echo $isUnread ? ' unread' : ''; ?>"
+                <div class="notif-item<?php echo $isUnread ? ' unread' : ''; ?> notif-cat-<?php echo htmlspecialchars($n['category'] ?? ''); ?> notif-type-<?php echo htmlspecialchars($n['type']); ?>"
                      data-id="<?php echo $n['id']; ?>"
                      data-link="<?php echo htmlspecialchars($n['link'] ?? ''); ?>">
                     <span class="notif-item-icon"><?php echo rr_icon($meta['icon']); ?></span>
                     <div class="notif-item-body">
                         <div class="notif-item-message"><?php echo nl2br(htmlspecialchars($n['message'])); ?></div>
-                        <div class="notif-item-time"><?php echo date('d.m.Y H:i', strtotime($n['created_at'])); ?></div>
+                        <div class="notif-item-time"><span class="m-hide"><?php echo date('d.m.Y H:i', strtotime($n['created_at'])); ?></span><span class="m-only"><?php echo date('H:i', strtotime($n['created_at'])); ?></span></div>
                     </div>
                     <?php if ($isUnread): ?><span class="notif-item-dot"></span><?php endif; ?>
                 </div>
@@ -127,7 +139,8 @@ document.getElementById('notifList')?.querySelectorAll('.notif-item').forEach(fu
         var id = this.dataset.id;
         var link = this.dataset.link;
         if (this.classList.contains('unread')) {
-            fetch('/api/get_notifications.php?action=mark_read&id=' + id + '&csrf=' + encodeURIComponent(window.csrfToken));
+            // keepalive: запрос «прочитано» не обрывается переходом по ссылке сразу после него
+            fetch('/api/get_notifications.php?action=mark_read&id=' + id + '&csrf=' + encodeURIComponent(window.csrfToken), { keepalive: true });
             this.classList.remove('unread');
         }
         if (link) {
@@ -135,6 +148,14 @@ document.getElementById('notifList')?.querySelectorAll('.notif-item').forEach(fu
         }
     });
 });
+// Телефон: активная категория в ленте чипов — в зоне видимости (лента прокручивается по горизонтали)
+(function () {
+    var tabs = document.querySelector('.notif-tabs');
+    var on = tabs && tabs.querySelector('a.active');
+    if (!on || !window.matchMedia || !window.matchMedia('(max-width: 768px)').matches) return;
+    var x = on.getBoundingClientRect().left - tabs.getBoundingClientRect().left;
+    if (x + on.offsetWidth > tabs.clientWidth) tabs.scrollLeft = x - 12;
+})();
 </script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
