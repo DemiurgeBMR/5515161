@@ -508,7 +508,7 @@
 
     /* ---------- Таблица → карточки ----------
        <table class="m-table-cards"> и в каждой <td> атрибут data-label="Название колонки".
-       Заголовок таблицы скрыт (остаётся для скринридеров), каждая строка — карточка,
+       Заголовок таблицы скрыт, каждая строка — карточка,
        каждая ячейка — «подпись слева, значение справа». td.m-cell-full — на всю ширину,
        td.m-cell-title — заголовок карточки без подписи, td[data-label=""] — без подписи. */
     table.m-table-cards,
@@ -523,12 +523,7 @@
         background: none;
     }
     table.m-table-cards thead {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        white-space: nowrap;
+        display: none;       /* подписи колонок переехали в data-label каждой ячейки */
     }
     table.m-table-cards tr {
         margin: 0 0 10px;
