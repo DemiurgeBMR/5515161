@@ -130,7 +130,15 @@
         var okText = link.getAttribute('data-rr-confirm-ok') || undefined;
         var danger = link.hasAttribute('data-rr-confirm-danger');
         rrConfirm(message, { okText: okText, danger: danger }).then(function (ok) {
-            if (ok) window.location.href = link.href;
+            if (!ok) return;
+            var go = function () { window.location.href = link.href; };
+            // Действие подтверждено из открытой шторки телефона: сначала закрываем её (убираем запись
+            // истории), иначе после перехода «Назад» потребовал бы лишнего нажатия.
+            if (window.RRMobile && window.RRMobile.closeAll && link.closest('.m-sheet.is-open')) {
+                window.RRMobile.closeAll(go);
+            } else {
+                go();
+            }
         });
     });
 
