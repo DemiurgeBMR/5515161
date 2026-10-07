@@ -111,7 +111,7 @@ if (!function_exists('rr_mobile_nav_config')) {
                  'match' => ['pages/catalog.php', 'pages/location.php']],
                 ['key' => 'map',     'href' => '/pages/map.php',     'icon' => 'map',    'label' => 'Карта',   'kind' => 'link', 'match' => ['pages/map.php']],
                 ['key' => 'login',   'href' => '/pages/login.php',   'icon' => 'user',   'label' => 'Войти',   'kind' => 'link',
-                 'match' => ['pages/login.php', 'pages/register.php', 'pages/forgot_password.php', 'pages/reset_password.php', 'pages/verify_2fa.php']],
+                 'match' => ['pages/login.php', 'pages/register.php', 'pages/forgot_password.php', 'pages/reset_password.php', 'pages/verify_2fa.php', 'pages/verify_email.php']],
                 $moreTab,
             ],
             'menu' => [
