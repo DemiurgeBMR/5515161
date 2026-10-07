@@ -196,6 +196,11 @@
         gap: 10px;
         margin: 0 0 12px;
     }
+    @media (min-width: 600px) {
+        .dash-stats-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));   /* лёжа/планшет — плитки в один ряд */
+        }
+    }
     .dash-stat-card {
         position: relative;
         display: flex;
