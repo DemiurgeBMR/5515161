@@ -292,6 +292,9 @@
         margin-left: auto;
         color: var(--text);
     }
+    .cat-sort-short {
+        display: none;
+    }
 
     /* ---------- Карточки: 2 колонки (общие для каталога и «Избранного») ---------- */
     .catalog-grid {
@@ -765,6 +768,16 @@
     }
     .cat-sortsheet .m-menu-item.is-accent > .rr-icon {
         color: var(--accent);
+    }
+}
+
+/* Узкие телефоны: в строке сортировки — короткая подпись («Новые»), полная — в шторке */
+@media (max-width: 374px) {
+    .cat-sort-long {
+        display: none;
+    }
+    .cat-sort-short {
+        display: inline;
     }
 }
 

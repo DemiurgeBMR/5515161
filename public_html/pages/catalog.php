@@ -253,6 +253,7 @@ $mSortLabels = [
     'price_desc'   => 'Сначала дороже',
     'traffic_desc' => 'Сначала проходимые',
 ];
+$mSortShort = ['newest' => 'Новые', 'price_asc' => 'Дешевле', 'price_desc' => 'Дороже', 'traffic_desc' => 'Проходимые'];
 $mCredits = $is_operator ? rr_credits_summary($pdo, $user_id) : null;
 // Подписи-«чипы» для полей шторки (выпадающие списки на телефоне превращаются в ряды чипов)
 $mTypeChipLabels = [
@@ -457,7 +458,7 @@ $mTypeSelectedHidden = $space_type !== '' && array_search($space_type, $mTypeKey
             <?php if (count($topCityCounts) > 0): ?>
                 <button type="button" class="cat-sortrow-btn cat-sortrow-city" data-m-sheet-open="catCitySheet" aria-controls="catCitySheet"><?php echo rr_icon('map-pin'); ?><span><?php echo htmlspecialchars($city !== '' ? $city : 'Все города'); ?></span><?php echo rr_icon('chevron-down'); ?></button>
             <?php endif; ?>
-            <button type="button" class="cat-sortrow-btn cat-sortrow-sort" data-m-sheet-open="catSortSheet" aria-controls="catSortSheet" aria-label="Сортировка: <?php echo htmlspecialchars($mSortLabels[$sort]); ?>"><span><?php echo htmlspecialchars($mSortLabels[$sort]); ?></span><?php echo rr_icon('chevron-down'); ?></button>
+            <button type="button" class="cat-sortrow-btn cat-sortrow-sort" data-m-sheet-open="catSortSheet" aria-controls="catSortSheet" aria-label="Сортировка: <?php echo htmlspecialchars($mSortLabels[$sort]); ?>"><span class="cat-sort-long"><?php echo htmlspecialchars($mSortLabels[$sort]); ?></span><span class="cat-sort-short" aria-hidden="true"><?php echo htmlspecialchars($mSortShort[$sort]); ?></span><?php echo rr_icon('chevron-down'); ?></button>
         </div>
 
         <div class="catalog-subtitle m-hide">Найдено локаций: <?php echo $total; ?></div>
