@@ -146,10 +146,10 @@ if (!$hasFullMapAccess) {
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <?php endif; ?>
 </head>
-<body>
+<body class="m-pg-map<?php echo $hasFullMapAccess ? ' m-map-full' : ''; ?>">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="map-page">
+    <div class="map-page<?php echo $hasFullMapAccess ? ' map-page--full' : ''; ?>" id="mapPage">
         <div class="map-toolbar">
             <h1><?php echo rr_icon('map-pin'); ?> Карта локаций</h1>
             <form method="GET" class="map-filter">
@@ -206,6 +206,57 @@ if (!$hasFullMapAccess) {
         <?php else: ?>
             <div id="map"></div>
 
+            <?php if (count($mapPoints) > 0): ?>
+                <?php
+                    $mStars = function ($n) {
+                        $n = max(0, min(5, (int)$n));
+                        return $n > 0 ? '<span class="cat-stars" role="img" aria-label="Проходимость: ' . $n . ' из 5">' . str_repeat('★', $n) . '<i>' . str_repeat('★', 5 - $n) . '</i></span>' : '';
+                    };
+                ?>
+                <!-- Телефон: если карта не загрузилась -->
+                <div class="m-only map-nomap" role="status"><?php echo rr_icon('map'); ?><span>Карта не загрузилась — список локаций ниже.</span></div>
+
+                <!-- Телефон: выдвижная панель со списком локаций (ближайшие к центру карты — сверху) -->
+                <section class="m-only map-panel" id="mapPanel" aria-label="Список локаций">
+                    <button type="button" class="map-panel-head" aria-expanded="false" aria-controls="mapPanelList">
+                        <span class="map-panel-grip" aria-hidden="true"></span>
+                        <span class="map-panel-title">
+                            <b><?php echo count($mapPoints); ?> <?php echo rr_plural_ru(count($mapPoints), 'локация', 'локации', 'локаций'); ?> на карте</b>
+                            <small><?php echo $isOwner ? 'Ваши локации' : 'Ближайшие к центру карты — сверху'; ?><?php if (!empty($total_no_geo)): ?> · ещё <?php echo (int)$total_no_geo; ?> без координат<?php endif; ?></small>
+                        </span>
+                        <?php echo rr_icon('chevron-up', 'map-panel-chev'); ?>
+                    </button>
+                    <ul class="map-panel-list" id="mapPanelList">
+                        <?php foreach ($mapPoints as $pt): ?>
+                            <li>
+                                <a href="<?php echo htmlspecialchars($pt['url']); ?>" class="map-row" data-id="<?php echo (int)$pt['id']; ?>" data-lat="<?php echo htmlspecialchars((string)$pt['lat']); ?>" data-lng="<?php echo htmlspecialchars((string)$pt['lng']); ?>">
+                                    <img src="<?php echo htmlspecialchars($pt['photo']); ?>" alt="" loading="lazy">
+                                    <span class="map-row-main">
+                                        <b class="map-row-title"><?php echo htmlspecialchars($pt['title']); ?></b>
+                                        <span class="map-row-sub"><?php echo rr_icon(!empty($pt['address']) ? 'map-pin' : 'lock'); ?> <?php echo htmlspecialchars($pt['city'] . (!empty($pt['address']) ? ', ' . $pt['address'] : '')); ?></span>
+                                        <?php echo $mStars($pt['traffic']); ?>
+                                    </span>
+                                    <span class="map-row-price"><?php echo number_format($pt['price'], 0, ',', ' '); ?> ₽<small>/ мес</small></span>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </section>
+
+                <!-- Телефон: карточка-превью по нажатию на метку -->
+                <div class="m-only map-preview" id="mapPreview" hidden>
+                    <img src="" alt="" class="map-preview-img">
+                    <div class="map-preview-main">
+                        <div class="map-preview-price"></div>
+                        <b class="map-preview-title"></b>
+                        <div class="map-preview-sub"></div>
+                        <div class="map-preview-stars"></div>
+                    </div>
+                    <button type="button" class="map-preview-x" aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+                    <a href="#" class="m-btn map-preview-open">Открыть <?php echo rr_icon('arrow-right'); ?></a>
+                </div>
+            <?php endif; ?>
+
             <?php if (count($mapPoints) === 0): ?>
                 <div class="empty spaced">
                     <?php if ($isOwner): ?>
@@ -223,11 +274,19 @@ if (!$hasFullMapAccess) {
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 
     <?php if ($hasFullMapAccess): ?>
+    <script src="/assets/js/m/map.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
     (function () {
         var points = <?php echo json_encode($mapPoints, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        // Телефон (≤768px): метка открывает карточку-превью внизу вместо всплывающего окна Leaflet,
+        // список локаций — в выдвижной панели (assets/js/m/map.js). Десктоп — как раньше.
+        var phone = !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+        if (typeof L === 'undefined') {
+            if (window.RRMapM) window.RRMapM.noMap();
+            return;
+        }
 
         function escapeHtml(text) {
             var div = document.createElement('div');
@@ -252,6 +311,9 @@ if (!$hasFullMapAccess) {
             var addressLine = loc.address
                 ? '<div class="map-popup-address"><?php echo rr_icon('map-pin'); ?> ' + escapeHtml(loc.city + ', ' + loc.address) + '</div>'
                 : '<div class="map-popup-address map-popup-address-locked"><?php echo rr_icon('lock'); ?> ' + escapeHtml(loc.city) + ' · точный адрес — за 1 контакт</div>';
+            if (phone && window.RRMapM) {
+                marker.on('click', function () { window.RRMapM.preview(loc); });
+            } else {
             marker.bindPopup(
                 '<div class="map-popup">' +
                     '<img src="' + escapeHtml(loc.photo) + '" alt="">' +
@@ -262,15 +324,21 @@ if (!$hasFullMapAccess) {
                     '<a href="' + escapeHtml(loc.url) + '" class="map-popup-link">Подробнее →</a>' +
                 '</div>'
             );
+            }
             markers.push(marker);
         });
 
         if (markers.length > 0) {
             var group = L.featureGroup(markers);
+            if (phone && window.RRMapM) {
+                map.fitBounds(group.getBounds(), window.RRMapM.fitPadding());
+            } else {
             map.fitBounds(group.getBounds().pad(0.2));
+            }
         } else {
             map.setView([55.751244, 37.618423], 5);
         }
+        if (phone && window.RRMapM) window.RRMapM.attach(map);
     })();
     </script>
     <?php endif; ?>
