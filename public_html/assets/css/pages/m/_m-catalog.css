@@ -799,14 +799,3 @@
         transition: none;
     }
 }
-
-/* Ссылки подвала на моих страницах: высота 32px (общий подвал даёт 30px — см. запрос координатору) */
-@media (max-width: 768px) {
-    .m-pg-catalog .footer p.footer-legal-links a,
-    .m-pg-home .footer p.footer-legal-links a,
-    .m-pg-map .footer p.footer-legal-links a,
-    .m-pg-favorites .footer p.footer-legal-links a {
-        padding-top: 7px;
-        padding-bottom: 7px;
-    }
-}
