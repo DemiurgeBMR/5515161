@@ -804,6 +804,9 @@
     .cat-hero-link br {
         display: none;
     }
+    .cat-hero-link {
+        padding: 6px 0;           /* одна строка — зона нажатия не меньше 32px */
+    }
 }
 
 @media (max-width: 768px) and (prefers-reduced-motion: reduce) {
