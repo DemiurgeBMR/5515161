@@ -1,5 +1,1239 @@
 /* ===== ТЕЛЕФОНЫ: Админка (admin/*.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Что здесь устроено:
+   • меню «На модерацию / Все локации / …» (.nav-admin) на телефоне дублирует нижнюю панель
+     (Модерация · Локации · Люди · Заказы · Ещё → Геокодирование, Починка фото) — скрыто;
+   • таблицы (.adm-cards) превращены в карточки: у каждой <td> свой класс c-* и место в сетке
+     карточки, главное действие — крупная кнопка, остальное — в шторке (пользователи);
+   • «было / стало» на странице ревизии — стопкой, липкая панель «Отклонить / Одобрить».
+   Цвета — только переменные темы; плашки статусов красятся «мягкими» фонами темы. */
+
+@media (max-width: 768px) {
+
+    /* Тёмный/светлый текст плашек: цвет статуса, подмешанный к цвету текста, — читается на мягком фоне обеих тем */
+    :root {
+        --adm-ok: var(--success);
+        --adm-warn: var(--warning);
+        --adm-bad: var(--danger);
+        --adm-info: var(--info);
+        --adm-acc: var(--accent);
+        --adm-bad-line: var(--danger);
+    }
+    @supports (color: color-mix(in srgb, red, blue)) {
+        :root {
+            --adm-ok: color-mix(in srgb, var(--success) 62%, var(--text));
+            --adm-warn: color-mix(in srgb, var(--warning) 62%, var(--text));
+            --adm-bad: color-mix(in srgb, var(--danger) 70%, var(--text));
+            --adm-info: color-mix(in srgb, var(--info) 62%, var(--text));
+            --adm-acc: color-mix(in srgb, var(--accent) 70%, var(--text));
+            --adm-bad-line: color-mix(in srgb, var(--danger) 50%, transparent);
+        }
+    }
+
+    /* ---------- Каркас страницы ---------- */
+    .admin-container,
+    .revisions-container,
+    .changes-container {
+        max-width: none;
+        margin: 4px auto 20px;
+        padding: 0 var(--m-gutter);
+    }
+    .nav-admin {
+        display: none;            /* то же самое — в нижней панели и шторке «Ещё» */
+    }
+    .admin-container > h1 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0 14px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .admin-container > h1 .rr-icon {
+        flex: none;
+        width: 24px;
+        height: 24px;
+        color: var(--accent);
+    }
+    .admin-container > h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 18px 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .admin-container > h2 .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        color: var(--text-muted);
+    }
+    .admin-container .flash-message,
+    .admin-container .success {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+        border-left-width: 4px;
+        border-radius: 14px;
+        overflow-wrap: anywhere;
+    }
+    .admin-container .flash-message.flash-error {
+        background: var(--danger-soft);
+        border-color: var(--adm-bad-line);
+    }
+
+    /* ---------- Плитки-показатели ---------- */
+    .admin-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .admin-stats.admin-stats-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .stat-box {
+        padding: 12px 8px;
+        border-radius: 14px;
+        box-shadow: none;
+    }
+    .stat-box:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: var(--border);
+    }
+    .stat-box .number {
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+    .stat-box .label {
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 1.25;
+    }
+    .stat-box.pending {
+        background: var(--accent-soft);
+        border-color: rgba(var(--accent-rgb), 0.4);
+    }
+
+    /* ---------- Фильтры-чипы (Все / Активные / …) ---------- */
+    .filters.adm-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 14px;
+    }
+    .filters.adm-chips a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+    }
+    .filters.adm-chips a.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--adm-acc);
+    }
+
+    /* ---------- Поиск пользователей ---------- */
+    .admin-users-filter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+    .admin-users-filter input,
+    .admin-users-filter select {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+    }
+    .admin-users-filter input {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+    .admin-users-filter .btn-view {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        background: var(--accent);
+        border: 0;
+        border-radius: 14px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .admin-users-filter a.btn-view {
+        grid-column: 1 / -1;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        font-weight: 700;
+    }
+
+    /* ---------- Пагинация ---------- */
+    .pagination.adm-pager {
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .pagination.adm-pager a,
+    .pagination.adm-pager span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .pagination.adm-pager .active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+    }
+
+    /* ---------- Пустые состояния ---------- */
+    .empty-pending,
+    .revisions-card .empty {
+        padding: 34px 16px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        font-size: 15px;
+        line-height: 1.4;
+    }
+    .empty-pending h3,
+    .revisions-card .empty h3 {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text);
+    }
+    .empty-pending h3 .rr-icon {
+        width: 24px;
+        height: 24px;
+        color: var(--accent);
+    }
+
+    /* ---------- Плашки статусов ---------- */
+    .adm-cards .status,
+    .adm-cards .status-badge,
+    .adm-cards .user-status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin: 0;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.3;
+        white-space: normal;
+        text-align: left;
+    }
+    .adm-cards .status .rr-icon,
+    .adm-cards .status-badge .rr-icon,
+    .adm-cards .user-status-pill .rr-icon {
+        flex: none;
+        width: 14px;
+        height: 14px;
+    }
+    .adm-cards .status.active,
+    .adm-cards .status.done,
+    .adm-cards .status-approved,
+    .adm-cards .user-status-verified {
+        background: var(--success-soft);
+        color: var(--adm-ok);
+    }
+    .adm-cards .status.pending,
+    .adm-cards .status.new,
+    .adm-cards .status-pending,
+    .adm-cards .user-status-unverified,
+    .adm-cards .user-status-locked {
+        background: var(--warning-soft);
+        color: var(--adm-warn);
+    }
+    .adm-cards .status.hidden,
+    .adm-cards .status.cancelled,
+    .adm-cards .status-rejected,
+    .adm-cards .user-status-banned {
+        background: var(--danger-soft);
+        color: var(--adm-bad);
+    }
+    .adm-cards .status.in-progress,
+    .adm-cards .user-status-2fa {
+        background: var(--info-soft);
+        color: var(--adm-info);
+    }
+
+    /* ---------- Таблица → карточки ---------- */
+    .admin-table {
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+    .admin-table table.adm-cards,
+    table.adm-cards,
+    table.adm-cards tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        border: 0;
+        background: none;
+    }
+    table.adm-cards thead {
+        display: none;            /* подписи колонок заменены подписями ячеек (data-label) */
+    }
+    table.adm-cards tr {
+        position: relative;
+        display: grid;
+        column-gap: 12px;
+        row-gap: 6px;
+        margin: 0 0 10px;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        color: var(--text);
+    }
+    table.adm-cards td {
+        display: block;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.35;
+        color: var(--text);
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    table.adm-cards td .rr-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: -3px;
+    }
+
+    /* Общее для карточек: заголовок, цена, id, дата */
+    table.adm-cards td.c-title,
+    table.adm-cards td.c-name {
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    table.adm-cards td.c-price {
+        text-align: right;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    table.adm-cards td.c-id {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    table.adm-cards td.c-city,
+    table.adm-cards td.c-owner,
+    table.adm-cards td.c-email {
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+    table.adm-cards td.c-date {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    table.adm-cards td.c-date::before {
+        content: attr(data-label) ": ";
+    }
+    table.adm-cards td.c-badge {
+        font-size: 12px;
+    }
+
+    /* ---------- Кнопки действий внутри карточки (локации, заказы, ревизии) ---------- */
+    table.adm-cards td.c-act {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    table.adm-cards td.c-act > a,
+    table.adm-cards td.c-act > .admin-inline-order-form {
+        order: 2;
+    }
+    table.adm-cards td.c-act > a {
+        flex: 1 1 calc(50% - 4px);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 48px;
+        margin: 0;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.15;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text);
+    }
+    table.adm-cards td.c-act > a .rr-icon {
+        flex: none;
+        width: 18px;
+        height: 18px;
+    }
+    /* Главное действие: на всю ширину ряда (рядом — «глаз») */
+    table.adm-cards td.c-act > a.act-main,
+    table.adm-cards td.c-act > a:first-child:nth-last-child(2) {
+        order: 0;
+        flex: 1 1 calc(100% - 56px);
+    }
+    table.adm-cards td.c-act > a.act-main.btn-view {
+        background: var(--accent);
+        color: #fff;
+    }
+    table.adm-cards td.c-act > a.act-eye {
+        order: 1;
+        flex: 0 0 48px;
+        width: 48px;
+        padding: 0;
+        background: transparent;
+        border-color: var(--border-strong);
+        color: var(--text);
+    }
+    table.adm-cards td.c-act > a.act-eye .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    table.adm-cards td.c-act > a.btn-approve {
+        background: var(--accent-soft);
+        border-color: rgba(var(--accent-rgb), 0.45);
+        color: var(--adm-acc);
+    }
+    table.adm-cards td.c-act > a.btn-reject {
+        background: var(--danger-soft);
+        border-color: var(--adm-bad-line);
+        color: var(--adm-bad);
+    }
+    table.adm-cards td.c-act > a.btn-hide {
+        background: var(--warning-soft);
+        border-color: rgba(224, 169, 63, 0.45);
+        color: var(--adm-warn);
+    }
+    /* «Одобрить все / Отклонить все» — пара в одну строку, слова не рвутся */
+    table.adm-cards td.c-act > a.btn-approve,
+    table.adm-cards td.c-act > a.btn-reject {
+        gap: 4px;
+        padding: 0 8px;
+        font-size: 14px;
+    }
+    table.adm-cards td.c-act > a.btn-approve .rr-icon,
+    table.adm-cards td.c-act > a.btn-reject .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    table.adm-cards td.c-act > a > span {
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+    table.adm-cards td.c-act > a:active {
+        opacity: 0.8;
+    }
+
+    /* ---------- Карточка локации (index, locations) ---------- */
+    .adm-cards-loc tr {
+        grid-template-columns: 76px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "photo title title"
+            "photo city  price"
+            "photo owner id"
+            "photo badge badge"
+            "act   act   act";
+        align-items: start;
+    }
+    .adm-cards-loc td.c-photo {
+        grid-area: photo;
+        width: 76px;
+        height: 76px;
+    }
+    .adm-cards-loc td.c-photo img,
+    .adm-cards-loc .c-thumb-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 76px;
+        height: 76px;
+        object-fit: cover;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text-faint);
+    }
+    .adm-cards-loc .c-thumb-empty .rr-icon {
+        width: 28px;
+        height: 28px;
+    }
+    .adm-cards-loc td.c-title { grid-area: title; }
+    .adm-cards-loc td.c-city  { grid-area: city; }
+    .adm-cards-loc td.c-price { grid-area: price; }
+    .adm-cards-loc td.c-owner { grid-area: owner; }
+    .adm-cards-loc td.c-id    { grid-area: id; text-align: right; }
+    .adm-cards-loc td.c-id::before { content: "ID "; }
+    .adm-cards-loc td.c-badge { grid-area: badge; }
+    .adm-cards-loc td.c-act { grid-area: act; }
+    /* «Правок: 2» — плашкой */
+    .adm-cards-loc td.c-badge[data-label="Правок"] {
+        display: inline-flex;
+        align-items: center;
+        justify-self: start;
+        padding: 4px 10px;
+        border-radius: 10px;
+        background: var(--warning-soft);
+        color: var(--adm-warn);
+        font-weight: 700;
+    }
+    .adm-cards-loc td.c-badge[data-label="Правок"]::before {
+        content: "Ожидает правок: ";
+        white-space: pre;
+    }
+
+    /* ---------- Карточка пользователя ----------
+       Flex-«ряды» (а не сетка): пустые блоки (нет подписки у собственника) не оставляют дыр. */
+    table.adm-cards.adm-cards-user tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px 12px;
+    }
+    .adm-cards-user td {
+        flex: 0 0 100%;
+    }
+    .adm-cards-user td.c-name  { order: 1; flex: 1 1 0; }
+    .adm-cards-user td.c-id    { order: 2; flex: 0 0 auto; text-align: right; }
+    .adm-cards-user td.c-email { order: 3; }
+    .adm-cards-user td.c-role {
+        order: 4;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .adm-cards-user td.c-status { order: 5; }
+    .adm-cards-user td.c-sub    { order: 6; }
+    .adm-cards-user td.c-date   { order: 7; }
+    .adm-cards-user td.c-cta    { order: 8; }
+    .adm-cards-user td.c-status,
+    .adm-cards-user td.c-sub {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    .adm-cards-user td.c-sub .you-note {
+        display: none;            /* «—» у не-операторов: подписки нет, строка не нужна */
+    }
+    .adm-cards-user td.c-sub:has(> .you-note:only-child) {
+        display: none;
+    }
+    .adm-cards-user .adm-reason {
+        flex: 1 1 100%;
+        font-size: 13px;
+        line-height: 1.35;
+        color: var(--text-muted);
+    }
+    .adm-cards-user td.c-cta {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
+    }
+    .adm-cards-user td.c-cta .m-btn {
+        min-height: 48px;
+        padding: 0 14px;
+        font-size: 15px;
+    }
+    .adm-cards-user td.c-cta .cta-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .adm-cards-user td.c-cta .cta-more {
+        flex: 0 0 auto;
+        min-width: 96px;
+    }
+    .adm-btn-danger {
+        background: var(--danger-soft);
+        border-color: var(--adm-bad-line);
+        color: var(--adm-bad);
+    }
+    .adm-btn-danger:active {
+        background: var(--danger-soft);
+        opacity: 0.8;
+    }
+    .adm-cards-user td.actions-self {
+        display: none;
+    }
+
+    /* Шторка «Действия пользователя» (та же <td class="actions">, на десктопе — обычная ячейка) */
+    table.adm-cards td.c-act.m-sheet {
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+        font-size: 16px;
+        color: var(--text);
+        text-align: left;
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+    }
+    .adm-cards .m-sheet:focus {
+        outline: 0;
+    }
+    .adm-cards .m-sheet .m-sheet-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .adm-cards .m-sheet .m-sheet-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 4px 18px calc(16px + var(--m-safe-b));
+    }
+    .adm-cards .m-sheet .m-sheet-body > a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 50px;
+        margin: 0;
+        padding: 0 16px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .adm-cards .m-sheet .m-sheet-body > a .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .adm-cards .m-sheet .m-sheet-body > a.btn-approve {
+        background: var(--accent-soft);
+        border-color: rgba(var(--accent-rgb), 0.45);
+        color: var(--adm-acc);
+    }
+    .adm-cards .m-sheet .m-sheet-body > a.btn-reject {
+        background: var(--danger-soft);
+        border-color: var(--adm-bad-line);
+        color: var(--adm-bad);
+    }
+
+    /* Подпись и инлайн-формы (подписка, кредиты, статус заказа): поле + кнопка */
+    .adm-lbl {
+        display: block;
+        grid-column: 1 / -1;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .adm-cards .admin-inline-subscription-form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 8px;
+        margin: 0;
+    }
+    .adm-cards .admin-inline-subscription-form select,
+    .adm-cards .admin-inline-subscription-form input[type="number"],
+    .adm-cards .admin-inline-order-form select {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        padding: 0 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+    }
+    .adm-cards .admin-inline-subscription-form .admin-credits-input {
+        width: 100%;
+    }
+    .adm-cards .admin-inline-subscription-form button {
+        min-height: 48px;
+        padding: 0 16px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.45);
+        border-radius: 14px;
+        color: var(--adm-acc);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .adm-cards .admin-inline-subscription-form button .rr-icon {
+        width: 18px;
+        height: 18px;
+        margin-right: 4px;
+    }
+
+    /* ---------- Карточка заказа ---------- */
+    .adm-cards-order tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "id      badge"
+            "service price"
+            "client  client"
+            "date    date"
+            "act     act";
+        align-items: center;
+    }
+    .adm-cards-order td.c-id {
+        grid-area: id;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text);
+    }
+    .adm-cards-order td.c-id::before {
+        content: "Заказ ";
+    }
+    .adm-cards-order td.c-badge   { grid-area: badge; }
+    .adm-cards-order td.c-service { grid-area: service; color: var(--text-muted); }
+    .adm-cards-order td.c-price   { grid-area: price; }
+    .adm-cards-order td.c-client {
+        grid-area: client;
+        padding: 8px 10px;
+        background: var(--bg-elevated-2);
+        border-radius: 12px;
+        line-height: 1.5;
+    }
+    .adm-cards-order td.c-client a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .adm-cards-order td.c-date { grid-area: date; }
+    .adm-cards-order td.c-act {
+        grid-area: act;
+        flex-direction: column;
+        flex-wrap: nowrap;
+    }
+    .adm-cards-order td.c-act > a,
+    .adm-cards-order td.c-act > a.act-main,
+    .adm-cards-order td.c-act > a:first-child:nth-last-child(2) {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+    .adm-cards-order .admin-inline-order-form {
+        display: grid;
+        gap: 6px;
+        width: 100%;
+        margin: 0;
+    }
+    .adm-cards-order tr:has(> td.c-empty) {
+        display: block;
+    }
+    .adm-cards-order td.c-empty {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        padding: 28px 12px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .adm-cards-order td.c-empty .rr-icon {
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 8px;
+        color: var(--text-faint);
+    }
+    .adm-cards-order td.c-empty b {
+        font-size: 17px;
+        color: var(--text);
+    }
+
+    /* ---------- Список ревизий (view_revisions) ---------- */
+    .revisions-card {
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .revisions-card h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0 8px;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .revisions-card h2 .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+    }
+    .revisions-card .page-intro {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .revisions-card .page-intro.spaced {
+        margin: 0 0 14px;
+        overflow-wrap: anywhere;
+    }
+    .adm-cards-rev tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "id   badge"
+            "date date"
+            "act  act";
+        align-items: center;
+    }
+    .adm-cards-rev td.c-id {
+        grid-area: id;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text);
+    }
+    .adm-cards-rev td.c-badge { grid-area: badge; }
+    .adm-cards-rev td.c-date  { grid-area: date; }
+    .adm-cards-rev td.c-act { grid-area: act; }
+    .adm-cards-rev td.c-act:empty,
+    .adm-cards-rev td.c-act:not(:has(a)) {
+        display: none;
+    }
+    .adm-cards-rev td.c-act > a.act-main {
+        flex: 1 1 100%;
+    }
+
+    /* «Назад» на страницах ревизий */
+    .btn-back {
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+        margin: 0 0 4px;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        text-decoration: none;
+    }
+
+    /* ---------- Просмотр ревизии: было / стало ---------- */
+    .changes-card {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .changes-card h2 {
+        order: 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 4px 0 8px;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .changes-card h2 .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        margin-top: 2px;
+        color: var(--accent);
+    }
+    .changes-card .revision-meta {
+        order: 0;
+        margin: 0 0 6px;
+        font-size: 14px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    .adm-group {
+        margin: 12px 0 8px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+    }
+    .adm-group-changed {
+        order: 1;
+        color: var(--adm-acc);
+    }
+    .adm-group-same {
+        order: 3;
+    }
+    .changes-card .change-row {
+        display: block;
+        margin: 0 0 8px;
+        padding: 12px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .changes-card .change-row:last-child {
+        border-bottom: 1px solid var(--border);
+    }
+    .changes-card .change-row.is-changed {
+        order: 2;
+        border-color: rgba(var(--accent-rgb), 0.4);
+    }
+    .changes-card .change-row:not(.is-changed) {
+        order: 4;
+        padding: 9px 14px;
+    }
+    .changes-card .no-changes {
+        order: 2;
+        padding: 28px 12px;
+    }
+    .changes-card .change-label {
+        width: auto;
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .changes-card .change-row:not(.is-changed) {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+    }
+    .changes-card .change-row:not(.is-changed) .change-label {
+        flex: 0 0 40%;
+        margin: 0;
+    }
+    .changes-card .change-row:not(.is-changed) .change-values {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .changes-card .change-values {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .changes-card .change-old,
+    .changes-card .change-new {
+        padding: 8px 10px 8px 12px;
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 15px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .changes-card .change-old {
+        background: var(--danger-soft);
+        border-left: 3px solid var(--danger);
+    }
+    .changes-card .change-new {
+        background: var(--success-soft);
+        border-left: 3px solid var(--success);
+    }
+    .changes-card .change-old::before,
+    .changes-card .change-new::before {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.4px;
+    }
+    .changes-card .change-old::before {
+        content: "БЫЛО";
+        color: var(--adm-bad);
+    }
+    .changes-card .change-new::before {
+        content: "СТАЛО";
+        color: var(--adm-ok);
+    }
+    .changes-card .change-old .value,
+    .changes-card .change-new .value {
+        padding: 0;
+        background: none;
+        border-radius: 0;
+    }
+    .changes-card .change-arrow {
+        display: none;
+    }
+    .changes-card .change-same {
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .changes-card .unchanged-note {
+        display: none;            /* и так сказано в заголовке группы «Без изменений» */
+    }
+    .changes-card .change-row.photo-row {
+        padding: 12px 14px;
+    }
+    .changes-card .change-label.full-width {
+        margin-bottom: 8px;
+    }
+    .changes-card .change-label.full-width .rr-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: -3px;
+    }
+    .changes-card .photo-section {
+        margin-top: 4px;
+    }
+    .changes-card .photo-group {
+        margin-bottom: 12px;
+    }
+    .changes-card .photo-group:last-child {
+        margin-bottom: 0;
+    }
+    .changes-card .photo-group-title {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .changes-card .photo-group-title .rr-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: -3px;
+    }
+    .changes-card .photo-group-title.added   { color: var(--adm-ok); }
+    .changes-card .photo-group-title.removed { color: var(--adm-bad); }
+    .changes-card .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        gap: 8px;
+    }
+    .changes-card .photo-item {
+        width: auto;
+        padding: 4px;
+        border-radius: 10px;
+    }
+    .changes-card .photo-item img {
+        display: block;
+        height: 88px;
+        border-radius: 7px;
+    }
+    .changes-card .photo-item .label {
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .changes-card .photo-item .label.added   { color: var(--adm-ok); }
+    .changes-card .photo-item .label.removed { color: var(--adm-bad); }
+    .changes-card .photo-add    { border-color: var(--success); }
+    .changes-card .photo-delete { border-color: var(--danger); }
+
+    /* Липкая панель «Отклонить / Одобрить» */
+    .changes-card .change-actions.m-sticky-cta {
+        order: 5;
+        margin: 0;
+        padding-top: 10px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+    }
+    .change-actions.m-sticky-cta .m-btn {
+        flex: 1 1 0;
+        min-width: 0;
+        margin: 0;
+        min-height: 52px;
+        padding: 0 12px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    .change-actions.m-sticky-cta .btn-approve {
+        order: 2;
+        background: var(--accent);
+        color: #fff;
+    }
+    .change-actions.m-sticky-cta .btn-reject {
+        order: 1;
+        background: var(--danger-soft);
+        border-color: var(--adm-bad-line);
+        color: var(--adm-bad);
+    }
+
+    /* ---------- Служебные страницы (геокодирование, починка фото) ---------- */
+    .adm-tool p {
+        margin: 0 0 14px;
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--text-muted);
+    }
+    .adm-tool p.adm-count {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 16px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .adm-tool p.adm-count strong {
+        font-size: 28px;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--accent);
+    }
+    .adm-tool p.adm-done {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+        border-radius: 16px;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .adm-tool p.adm-done .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+    }
+    .adm-tool form {
+        margin: 0 0 14px;
+    }
+    .adm-tool .btn-submit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 52px;
+        padding: 10px 16px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-align: center;
+    }
+    .adm-tool .admin-link-paragraph {
+        margin: 18px 0 0;
+    }
+    .adm-tool .admin-link-paragraph a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+}
+
+/* Планшет-портрет и телефон лёжа (600–768): плитки в 4 колонки, карточки в 2 колонки */
+@media (min-width: 600px) and (max-width: 768px) {
+    .admin-stats.admin-stats-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .admin-stats {
+        gap: 10px;
+    }
+    table.adm-cards tbody {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-items: start;
+    }
+    table.adm-cards tr {
+        margin: 0;
+    }
+    table.adm-cards tr:only-child {
+        grid-column: 1 / -1;
+    }
+    .admin-users-filter {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto;
+    }
+    .admin-users-filter input {
+        grid-column: auto;
+    }
+    .admin-users-filter a.btn-view {
+        grid-column: auto;
+    }
+}
+
+/* Узкие телефоны (320–360): подписи «Одобрить все / Отклонить все» — в одну строку */
+@media (max-width: 360px) {
+    table.adm-cards td.c-act > a.btn-approve,
+    table.adm-cards td.c-act > a.btn-reject {
+        padding: 0 8px;
+        font-size: 14px;
+    }
+    table.adm-cards td.c-act > a.btn-approve .rr-icon,
+    table.adm-cards td.c-act > a.btn-reject .rr-icon {
+        display: none;
+    }
+}
+
+/* Низкий экран (телефон лёжа): плотнее, но кнопки не мельчают */
+@media (max-width: 768px) and (max-height: 480px) {
+    .admin-container > h1 {
+        margin: 6px 0 10px;
+    }
+    .adm-cards .m-sheet .m-sheet-body {
+        gap: 8px;
+    }
+}

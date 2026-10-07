@@ -88,7 +88,7 @@ unset($_SESSION['flash']);
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="admin-container">
-        <h1><?php echo rr_icon('shield'); ?> Админ-панель</h1>
+        <h1><?php echo rr_icon('shield'); ?> <span class="m-hide">Админ-панель</span><span class="m-only">Пользователи</span></h1>
 
         <?php if ($flash): ?>
             <div class="flash-message"><?php echo htmlspecialchars($flash); ?></div>
@@ -103,7 +103,7 @@ unset($_SESSION['flash']);
             <a href="/admin/service_orders.php"><?php echo rr_icon('file-text'); ?> Заказы услуг</a>
         </div>
 
-        <div class="admin-stats">
+        <div class="admin-stats admin-stats-4">
             <div class="stat-box">
                 <div class="number"><?php echo $total_matching; ?></div>
                 <div class="label"><?php echo $roleFilter !== '' || $search !== '' ? 'Найдено' : 'Всего пользователей'; ?></div>
@@ -122,11 +122,11 @@ unset($_SESSION['flash']);
             </div>
         </div>
 
-        <h2><?php echo rr_icon('users'); ?> Все пользователи</h2>
+        <h2 class="m-hide"><?php echo rr_icon('users'); ?> Все пользователи</h2>
 
         <form method="GET" class="admin-users-filter">
-            <input type="text" name="q" placeholder="Имя или email..." value="<?php echo htmlspecialchars($search); ?>">
-            <select name="role">
+            <input type="text" name="q" placeholder="Имя или email..." value="<?php echo htmlspecialchars($search); ?>" autocomplete="off" enterkeyhint="search" aria-label="Имя или email">
+            <select name="role" aria-label="Роль">
                 <option value="">Все роли</option>
                 <option value="owner" <?php echo $roleFilter === 'owner' ? 'selected' : ''; ?>>Собственники</option>
                 <option value="operator" <?php echo $roleFilter === 'operator' ? 'selected' : ''; ?>>Операторы</option>
@@ -140,7 +140,7 @@ unset($_SESSION['flash']);
 
         <?php if ($total_matching > 0): ?>
             <div class="admin-table">
-                <table>
+                <table class="adm-cards adm-cards-user">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -156,18 +156,21 @@ unset($_SESSION['flash']);
                     <tbody>
                         <?php foreach ($users as $u): ?>
                             <tr>
-                                <td>#<?php echo $u['id']; ?></td>
-                                <td><?php echo htmlspecialchars($u['full_name'] ?? '—'); ?></td>
-                                <td><?php echo htmlspecialchars($u['email']); ?></td>
-                                <td>
+                                <td class="c-id" data-label="ID">#<?php echo $u['id']; ?></td>
+                                <td class="c-name" data-label="Имя"><?php echo htmlspecialchars($u['full_name'] ?? '—'); ?></td>
+                                <td class="c-email" data-label="Email"><?php echo htmlspecialchars($u['email']); ?></td>
+                                <td class="c-role" data-label="Роль">
                                     <?php
                                     $roleLabels = ['owner' => rr_icon('building') . ' Собственник', 'operator' => rr_icon('check') . ' Оператор', 'admin' => rr_icon('shield') . ' Админ'];
                                     echo $roleLabels[$u['role']] ?? htmlspecialchars($u['role']);
                                     ?>
                                 </td>
-                                <td>
+                                <td class="c-status" data-label="Статус">
                                     <?php if ($u['is_banned']): ?>
                                         <span class="user-status-pill user-status-banned" title="<?php echo htmlspecialchars($u['banned_reason'] ?? ''); ?>"><?php echo rr_icon('ban'); ?> Заблокирован</span>
+                                        <?php if (!empty($u['banned_reason'])): ?>
+                                            <span class="m-only adm-reason">Причина: <?php echo htmlspecialchars($u['banned_reason']); ?></span>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                     <?php if ($u['locked_until'] && strtotime($u['locked_until']) > time()): ?>
                                         <span class="user-status-pill user-status-locked"><?php echo rr_icon('clock'); ?> Временная блокировка</span>
@@ -179,7 +182,7 @@ unset($_SESSION['flash']);
                                         <span class="user-status-pill user-status-2fa"><?php echo rr_icon('lock'); ?> 2FA</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="c-sub" data-label="Подписка">
                                     <?php if ($u['role'] === 'operator'): ?>
                                         <?php $rowCredits = rr_credits_summary($pdo, $u['id']); ?>
                                         <?php if (!empty($u['sub_end_date'])): ?>
@@ -196,11 +199,32 @@ unset($_SESSION['flash']);
                                         <span class="you-note">—</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo formatDate($u['created_at']); ?></td>
-                                <td class="actions">
-                                    <?php if ($u['id'] == $_SESSION['user_id']): ?>
+                                <td class="c-date" data-label="Регистрация"><?php echo formatDate($u['created_at']); ?></td>
+                                <?php $isSelf = ($u['id'] == $_SESSION['user_id']); $uSheet = 'uAct' . (int) $u['id']; ?>
+                                <td class="c-cta m-only">
+                                    <?php if ($isSelf): ?>
+                                        <span class="m-pill is-muted">Это вы</span>
+                                    <?php else: ?>
+                                        <?php if ($u['is_banned']): ?>
+                                            <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="m-btn m-btn--soft cta-main" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать"><?php echo rr_icon('check'); ?> Разблокировать</a>
+                                        <?php else: ?>
+                                            <a href="/admin/user_actions.php?action=ban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="m-btn adm-btn-danger cta-main" data-rr-confirm="Заблокировать пользователя? Он не сможет войти в аккаунт." data-rr-confirm-ok="Заблокировать" data-rr-confirm-danger><?php echo rr_icon('ban'); ?> Заблокировать</a>
+                                        <?php endif; ?>
+                                        <button type="button" class="m-btn m-btn--ghost cta-more" data-m-sheet-open="<?php echo $uSheet; ?>" aria-haspopup="dialog" aria-label="Все действия"><?php echo rr_icon('more'); ?> Ещё</button>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="actions c-act<?php echo $isSelf ? ' actions-self' : ' m-sheet'; ?>" data-label="Действия"<?php echo $isSelf ? '' : ' id="' . $uSheet . '"'; ?>>
+                                    <?php if (!$isSelf): ?>
+                                        <div class="m-only m-sheet-handle" aria-hidden="true"></div>
+                                        <div class="m-only m-sheet-head">
+                                            <b class="m-sheet-title"><?php echo htmlspecialchars($u['full_name'] ?? $u['email']); ?></b>
+                                            <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if ($isSelf): ?>
                                         <span class="you-note">Это вы</span>
                                     <?php else: ?>
+                                        <div class="m-sheet-body">
                                         <?php if ($u['is_banned']): ?>
                                             <a href="/admin/user_actions.php?action=unban&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Разблокировать пользователя?" data-rr-confirm-ok="Разблокировать"><?php echo rr_icon('check'); ?> Разблокировать</a>
                                         <?php else: ?>
@@ -212,7 +236,8 @@ unset($_SESSION['flash']);
                                                 <input type="hidden" name="action" value="extend_subscription">
                                                 <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
                                                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                                                <select name="plan">
+                                                <span class="m-only adm-lbl">Выдать подписку</span>
+                                                <select name="plan" aria-label="Тариф">
                                                     <?php foreach ($subscriptionPlans as $planKey => $plan): ?>
                                                         <option value="<?php echo htmlspecialchars($planKey); ?>"><?php echo htmlspecialchars($plan['label']); ?></option>
                                                     <?php endforeach; ?>
@@ -226,7 +251,8 @@ unset($_SESSION['flash']);
                                                 <input type="hidden" name="action" value="grant_credits">
                                                 <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
                                                 <input type="hidden" name="csrf" value="<?php echo htmlspecialchars(csrf_token()); ?>">
-                                                <input type="number" name="credits" min="1" max="100" value="5" class="admin-credits-input">
+                                                <span class="m-only adm-lbl">Начислить кредиты</span>
+                                                <input type="number" name="credits" min="1" max="100" value="5" class="admin-credits-input" inputmode="numeric" aria-label="Количество кредитов">
                                                 <button type="submit" class="btn-view"><?php echo rr_icon('card'); ?> Начислить кредиты</button>
                                             </form>
                                         <?php endif; ?>
@@ -236,6 +262,7 @@ unset($_SESSION['flash']);
                                         <?php elseif ($total_admins > 1): ?>
                                             <a href="/admin/user_actions.php?action=remove_admin&id=<?php echo $u['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-view" data-rr-confirm="Снять права администратора?" data-rr-confirm-ok="Снять"><?php echo rr_icon('x'); ?> Снять админку</a>
                                         <?php endif; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -245,7 +272,7 @@ unset($_SESSION['flash']);
             </div>
 
             <?php if ($total_pages > 1): ?>
-                <div class="pagination">
+                <div class="pagination adm-pager">
                     <?php if ($page > 1): ?>
                         <a href="?page=<?php echo $page-1; ?>&<?php echo http_build_query($filterParams); ?>">←</a>
                     <?php endif; ?>

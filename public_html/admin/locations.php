@@ -51,6 +51,20 @@ $total_pages = max(1, (int)ceil($total / $per_page));
 $sql .= " ORDER BY l.created_at DESC LIMIT $per_page OFFSET $offset";
 $locations = $pdo->query($sql)->fetchAll();
 
+// Превью главного фото для карточек на телефоне (на десктопе колонка скрыта).
+$thumbs = [];
+if ($locations) {
+    $thumbIds = array_map('intval', array_column($locations, 'id'));
+    $thumbRows = $pdo->query("
+        SELECT location_id, photo_path FROM location_photos
+        WHERE location_id IN (" . implode(',', $thumbIds) . ") AND is_pending = 0
+        ORDER BY location_id, is_main DESC, sort_order ASC, id ASC
+    ")->fetchAll();
+    foreach ($thumbRows as $t) {
+        if (!isset($thumbs[$t['location_id']])) $thumbs[$t['location_id']] = $t['photo_path'];
+    }
+}
+
 $flash = $_SESSION['flash'] ?? '';
 unset($_SESSION['flash']);
 ?>
@@ -81,7 +95,7 @@ unset($_SESSION['flash']);
             <a href="/admin/service_orders.php"><?php echo rr_icon('file-text'); ?> Заказы услуг</a>
         </div>
         
-        <div class="filters">
+        <div class="filters adm-chips">
             <a href="?filter=all" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">Все</a>
             <a href="?filter=active" class="<?php echo $filter === 'active' ? 'active' : ''; ?>">Активные</a>
             <a href="?filter=pending" class="<?php echo $filter === 'pending' ? 'active' : ''; ?>">На модерации</a>
@@ -89,7 +103,7 @@ unset($_SESSION['flash']);
         </div>
         
         <div class="admin-table">
-            <table>
+            <table class="adm-cards adm-cards-loc">
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -104,12 +118,13 @@ unset($_SESSION['flash']);
                 <tbody>
                     <?php foreach ($locations as $loc): ?>
                         <tr>
-                            <td><?php echo $loc['id']; ?></td>
-                            <td><?php echo htmlspecialchars($loc['title']); ?></td>
-                            <td><?php echo htmlspecialchars($loc['city']); ?></td>
-                            <td><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
-                            <td><?php echo htmlspecialchars($loc['owner_name']); ?></td>
-                            <td>
+                            <td class="c-photo m-only"><?php if (!empty($thumbs[$loc['id']])): ?><img src="/<?php echo htmlspecialchars($thumbs[$loc['id']]); ?>" alt="" loading="lazy"><?php else: ?><span class="c-thumb-empty"><?php echo rr_icon('camera'); ?></span><?php endif; ?></td>
+                            <td class="c-id" data-label="ID"><?php echo $loc['id']; ?></td>
+                            <td class="c-title" data-label="Название"><?php echo htmlspecialchars($loc['title']); ?></td>
+                            <td class="c-city" data-label="Город"><?php echo htmlspecialchars($loc['city']); ?></td>
+                            <td class="c-price" data-label="Цена"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
+                            <td class="c-owner" data-label="Собственник"><?php echo htmlspecialchars($loc['owner_name']); ?></td>
+                            <td class="c-badge" data-label="Статус">
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <span class="status pending"><?php echo rr_icon('clock'); ?> Ожидает правок</span>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
@@ -120,12 +135,12 @@ unset($_SESSION['flash']);
                                     <span class="status hidden"><?php echo rr_icon('ban'); ?> Скрыта</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="actions">
+                            <td class="actions c-act" data-label="Действия">
                                 <?php if ($loc['pending_revisions'] > 0): ?>
                                     <!-- Есть ожидающие правки -->
-                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view"><?php echo rr_icon('list'); ?> Правки</a>
-                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
-                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
+                                    <a href="/admin/view_revisions.php?id=<?php echo $loc['id']; ?>" class="btn-view act-main"><?php echo rr_icon('list'); ?> Правки</a>
+                                    <a href="/admin/actions.php?action=approve_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить все правки?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> <span>Одобрить<span class="m-only">&nbsp;все</span></span></a>
+                                    <a href="/admin/actions.php?action=reject_pending&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить все правки?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> <span>Отклонить<span class="m-only">&nbsp;все</span></span></a>
                                 <?php elseif ($loc['is_moderated'] == 0): ?>
                                     <!-- Новая локация без ревизий (редко) – можно удалить -->
                                     <a href="/admin/actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Удалить локацию?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
@@ -137,7 +152,7 @@ unset($_SESSION['flash']);
                                         <a href="/admin/actions.php?action=show&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Показать локацию?" data-rr-confirm-ok="Показать"><?php echo rr_icon('unlock'); ?> Показать</a>
                                     <?php endif; ?>
                                 <?php endif; ?>
-                                <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view"><?php echo rr_icon('eye'); ?></a>
+                                <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" target="_blank" class="btn-view act-eye" aria-label="Открыть на сайте"><?php echo rr_icon('eye'); ?></a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -146,7 +161,7 @@ unset($_SESSION['flash']);
         </div>
 
         <?php if ($total_pages > 1): ?>
-            <div class="pagination">
+            <div class="pagination adm-pager">
                 <?php if ($page > 1): ?>
                     <a href="?page=<?php echo $page-1; ?>&<?php echo http_build_query($filterParams); ?>">←</a>
                 <?php endif; ?>
