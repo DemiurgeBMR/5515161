@@ -17,11 +17,11 @@ require_once __DIR__ . '/../config.php';
 
     <div class="legal-page">
         <div class="legal-container">
-            <a href="/" class="back-link">← На главную</a>
+            <a href="/" class="back-link m-hide">← На главную</a>
             <h1><?php echo rr_icon('lock'); ?> Политика обработки персональных данных</h1>
             <p class="legal-updated">Действует с 17 сентября 2026 года</p>
 
-            <div class="legal-toc">
+            <div class="legal-toc" id="legalToc">
                 <a href="#operator">1. Оператор персональных данных</a>
                 <a href="#terms">2. Термины</a>
                 <a href="#composition">3. Состав обрабатываемых данных</a>
@@ -241,5 +241,6 @@ require_once __DIR__ . '/../config.php';
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/legal.js" defer></script>
 </body>
 </html>

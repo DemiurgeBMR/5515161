@@ -1,5 +1,365 @@
-/* ===== ТЕЛЕФОНЫ: Подписка и тарифы (pages/subscription.php) =====
+/* ===== ТЕЛЕФОНЫ: Тарифы и подписка (pages/subscription.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+   Блоки с классом .m-only (баланс, CTA гостя, списки «что входит», история) на десктопе скрыты. */
 
+@media (max-width: 768px) {
+
+    .subscription-container {
+        max-width: none;
+        margin: 0;
+        padding: 12px var(--m-gutter) 24px;
+    }
+    .subscription-container h2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 0 12px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .subscription-container h2 .rr-icon {
+        width: 26px;
+        height: 26px;
+        color: var(--accent);
+    }
+
+    /* Сообщение после действия (куплено / ошибка) */
+    .subscription-container .flash-message {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.45);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.45;
+    }
+
+    /* ---------- Баланс контактов — акцентная карточка сверху ---------- */
+    .m-balance {
+        margin: 0 0 14px;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--accent-soft), transparent 75%), var(--bg-elevated);
+        border: 1px solid rgba(var(--accent-rgb), 0.4);
+        border-radius: var(--m-radius);
+    }
+    .m-balance.is-empty {
+        background: var(--warning-soft);
+        border-color: rgba(224, 169, 63, 0.45);
+    }
+    .m-balance-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .m-balance-num {
+        margin: 2px 0 8px;
+        font-size: 44px;
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: -0.5px;
+        color: var(--accent);
+    }
+    .m-balance.is-empty .m-balance-num {
+        color: var(--text);
+    }
+    .m-balance-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .m-balance-hint {
+        margin-top: 10px;
+        font-size: 13px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+
+    /* Плашка собственника/администратора («платные контакты не нужны») */
+    .subscription-container .subscription-status-banner {
+        align-items: flex-start;
+        margin: 0 0 14px;
+        padding: 12px 14px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.4);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.45;
+    }
+    .subscription-container .subscription-status-banner .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin-top: 1px;
+        color: var(--accent);
+    }
+
+    /* ---------- Гость: войти / зарегистрироваться ---------- */
+    .m-guest-cta {
+        margin: 0 0 14px;
+        padding: 16px;
+        background: linear-gradient(135deg, var(--accent-soft), transparent 75%), var(--bg-elevated);
+        border: 1px solid rgba(var(--accent-rgb), 0.4);
+        border-radius: var(--m-radius);
+    }
+    .m-guest-cta-title {
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .m-guest-cta-text {
+        margin: 6px 0 14px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+
+    .subscription-description {
+        margin: 0 0 4px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    /* ---------- Секции ---------- */
+    .subscription-section-title {
+        margin: 24px 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .subscription-section-title .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+    }
+    .subscription-section-sub {
+        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    /* ---------- Карточки тарифов — вертикальный список ----------
+       Слева название и цена за единицу, справа цена; ниже «что входит» и кнопка 48px. */
+    .plan-cards,
+    .plan-cards-single {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: 12px;
+    }
+    .plan-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        justify-items: start;
+        column-gap: 12px;
+        row-gap: 2px;
+        padding: 16px;
+        border-radius: var(--m-radius);
+        text-align: left;
+    }
+    .plan-card.best-value,
+    .plan-card.m-best {
+        padding-top: 44px;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px var(--accent);
+    }
+    .plan-card-badge {
+        position: absolute;
+        top: 12px;
+        left: 16px;
+        transform: none;
+        padding: 4px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    .plan-card-label {
+        grid-column: 1;
+        grid-row: 1;
+        min-width: 0;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.25;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--text);
+    }
+    .plan-card-price {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: center;
+        justify-self: end;
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.1;
+        white-space: nowrap;
+    }
+    .plan-card-per-month {
+        grid-column: 1;
+        grid-row: 2;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+    .m-plan-list {
+        grid-column: 1 / -1;
+        grid-row: 3;
+        width: 100%;
+        margin: 12px 0 0;
+        padding: 12px 0 0;
+        border-top: 1px solid var(--border);
+        list-style: none;
+    }
+    .m-plan-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 0 0 6px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+    }
+    .m-plan-list li:last-child {
+        margin-bottom: 0;
+    }
+    .m-plan-list .rr-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin-top: 2px;
+        color: var(--accent);
+    }
+    .plan-card form,
+    .plan-card > .btn-submit,
+    .plan-card-unavailable {
+        grid-column: 1 / -1;
+        grid-row: 4;
+        width: 100%;
+        margin-top: 14px;
+    }
+    .plan-card .btn-submit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    .plan-card .btn-submit:active {
+        background: var(--accent-hover);
+    }
+    .plan-card-unavailable {
+        padding: 13px 8px;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    /* ---------- Мои заявки «Сделка под ключ» ---------- */
+    .m-orders-title {
+        margin-top: 24px;
+    }
+    .turnkey-orders-list {
+        max-width: none;
+        margin: 12px 0 0;
+        gap: 10px;
+    }
+    .m-orders-title + .turnkey-orders-list {
+        margin-top: 8px;
+    }
+    .turnkey-order-row {
+        padding: 14px;
+        border-radius: var(--m-radius);
+    }
+    .turnkey-order-main {
+        gap: 8px 10px;
+    }
+    .turnkey-order-date {
+        font-size: 13px;
+    }
+    .turnkey-order-price {
+        font-size: 15px;
+        font-weight: 800;
+    }
+    .turnkey-order-row .status {
+        padding: 3px 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        line-height: 1.3;
+    }
+    .turnkey-order-row .status.new         { background: var(--warning-soft); color: var(--warning); }
+    .turnkey-order-row .status.in-progress { background: var(--info-soft);    color: var(--info); }
+    .turnkey-order-row .status.done        { background: var(--accent-soft);  color: var(--accent); }
+    .turnkey-order-row .status.cancelled   { background: var(--danger-soft);  color: var(--danger); }
+    .turnkey-order-note {
+        margin-top: 10px;
+        padding-top: 10px;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+    .turnkey-order-chat-link {
+        min-height: 44px;
+        margin-top: 4px;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    /* ---------- История покупок и трат ---------- */
+    .m-history-title {
+        margin-top: 24px;
+    }
+    .m-history-title + .m-history {
+        margin-top: 10px;
+    }
+    .m-history .m-row-sub {
+        white-space: normal;
+    }
+    .m-history .m-row-end {
+        align-items: flex-end;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        white-space: nowrap;
+    }
+
+    /* ---------- «Что даёт оплата» внизу ---------- */
+    .subscription-benefits.subscription-benefits-footer {
+        margin: 24px 0 0;
+        padding: 0;
+        list-style: none;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        line-height: 1.45;
+    }
+    .subscription-benefits-footer li {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 14px;
+        font-size: 14px;
+    }
+    .subscription-benefits-footer li + li {
+        border-top: 1px solid var(--border);
+    }
+    .subscription-benefits-footer li .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin-top: 1px;
+        color: var(--accent);
+    }
+}
