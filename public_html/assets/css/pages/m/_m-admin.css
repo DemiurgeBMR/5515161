@@ -528,7 +528,7 @@
 
     /* ---------- Карточка пользователя ----------
        Flex-«ряды» (а не сетка): пустые блоки (нет подписки у собственника) не оставляют дыр. */
-    .adm-cards-user tr {
+    table.adm-cards.adm-cards-user tr {
         display: flex;
         flex-wrap: wrap;
         align-items: flex-start;
@@ -1162,6 +1162,50 @@
         font-size: 15px;
         font-weight: 700;
         text-decoration: none;
+    }
+}
+
+/* Планшет-портрет и телефон лёжа (600–768): плитки в 4 колонки, карточки в 2 колонки */
+@media (min-width: 600px) and (max-width: 768px) {
+    .admin-stats.admin-stats-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .admin-stats {
+        gap: 10px;
+    }
+    table.adm-cards tbody {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        align-items: start;
+    }
+    table.adm-cards tr {
+        margin: 0;
+    }
+    table.adm-cards tr:only-child {
+        grid-column: 1 / -1;
+    }
+    .admin-users-filter {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 220px) auto;
+    }
+    .admin-users-filter input {
+        grid-column: auto;
+    }
+    .admin-users-filter a.btn-view {
+        grid-column: auto;
+    }
+}
+
+/* Узкие телефоны (320–360): подписи «Одобрить все / Отклонить все» — в одну строку */
+@media (max-width: 360px) {
+    table.adm-cards td.c-act > a.btn-approve,
+    table.adm-cards td.c-act > a.btn-reject {
+        padding: 0 8px;
+        font-size: 14px;
+    }
+    table.adm-cards td.c-act > a.btn-approve .rr-icon,
+    table.adm-cards td.c-act > a.btn-reject .rr-icon {
+        display: none;
     }
 }
 
