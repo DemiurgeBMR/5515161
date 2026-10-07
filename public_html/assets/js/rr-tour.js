@@ -1129,9 +1129,13 @@
         }
 
         var pad = step.pad != null ? step.pad : 8;
-        spot.style.left = (rect.left - pad) + 'px';
+        // Рамка подсветки не должна вылезать за видимую область по горизонтали (блок на всю ширину экрана)
+        var vbox = visibleBox();
+        var spotLeft = Math.max(vbox.left + 2, rect.left - pad);
+        var spotRight = Math.min(vbox.left + vbox.width - 2, rect.right + pad);
+        spot.style.left = spotLeft + 'px';
         spot.style.top = (rect.top - pad) + 'px';
-        spot.style.width = (rect.width + pad * 2) + 'px';
+        spot.style.width = Math.max(0, spotRight - spotLeft) + 'px';
         spot.style.height = (rect.height + pad * 2) + 'px';
         if (mode.sheet) return;
 
