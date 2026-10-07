@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function () {
             html += `<button class="cal-btn-primary cal-act-complete" onclick="completeActiveEvent()"><?php echo rr_icon('check'); ?> Завершить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-danger cal-act-cancel" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить<span class="m-only">выезд</span></button>`;
+            html += `<button class="cal-btn-danger cal-act-cancel" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить</button>`;
         }
         html += `</div>`;
 

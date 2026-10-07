@@ -1176,9 +1176,11 @@
         border-color: var(--border);
         border-radius: 12px;
     }
+    /* Действия: главное (подтвердить/завершить) — во всю ширину, остальные — панель из трёх
+       кнопок «значок над подписью» (компактно: шторка не съедает экран на низких телефонах) */
     .detail-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         margin: 16px -18px 0;
         padding: 12px 18px calc(12px + var(--m-safe-b));
@@ -1187,28 +1189,35 @@
     }
     .detail-actions button {
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        min-height: 48px;
-        padding: 0 10px;
+        gap: 4px;
+        min-height: 58px;
+        padding: 6px 4px;
         border-radius: 14px;
-        font-size: 15px;
+        font-size: 13px;
         line-height: 1.15;
+        text-align: center;
         grid-column: auto;
     }
     .detail-actions button .rr-icon {
         flex: none;
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
     }
     .detail-actions .full.cal-act-open {
-        grid-column: auto;              /* на десктопе «Открыть заявку» — во всю ширину; здесь — в паре с «Другая дата» */
+        grid-column: auto;
     }
     .detail-actions .cal-act-confirm,
-    .detail-actions .cal-act-complete {
+    .detail-actions .cal-act-complete,
+    .detail-actions .cal-act-open:only-child {
         grid-column: 1 / -1;
         order: -1;
+        flex-direction: row;
+        gap: 8px;
+        min-height: 48px;
+        font-size: 16px;
     }
     .detail-actions .cal-act-open,
     .detail-actions .cal-act-open:hover,
@@ -1220,14 +1229,11 @@
     }
     .detail-actions .cal-act-open:only-child,
     .detail-actions .cal-act-open:only-child:hover {
-        grid-column: 1 / -1;
         background: var(--accent);
         border-color: transparent;
         color: #fff;
     }
     .detail-actions .cal-act-cancel {
-        grid-column: 1 / -1;
-        min-height: var(--m-tap);
         background: transparent;
         border: 1px solid var(--danger-soft);
         color: var(--danger);
