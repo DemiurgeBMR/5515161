@@ -1113,6 +1113,10 @@
         padding-top: 16px;
         padding-bottom: 8px;
     }
+    /* на низком экране — не больше одного всплывающего уведомления поверх переписки */
+    body.m-chat-screen .toast-container .toast-notification:nth-last-child(n+2) {
+        display: none;
+    }
 }
 
 @media (max-width: 768px) and (prefers-reduced-motion: reduce) {
