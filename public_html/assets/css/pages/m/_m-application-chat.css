@@ -1,5 +1,1127 @@
 /* ===== ТЕЛЕФОНЫ: Чат по заявке (pages/application_chat.php) =====
    Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
    Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
-   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
 
+   Экран-мессенджер — общий для обоих чатов сайта: body.m-chat-screen ставят
+   pages/application_chat.php и pages/service_order_chat.php (у второго ещё .m-so-chat,
+   его особенности — _m-service-order-chat.css). Поведение — assets/js/m/chat.js.
+
+   Каркас: шапка сайта и подвал на этом экране скрыты (их роль берёт шапка чата с «назад»),
+   body — колонка высотой 100dvh: [плашка подтверждения email, если есть] → main (всё
+   остальное) → шапка чата · лента (прокручивается) · поле ввода. При открытой экранной
+   клавиатуре (html.m-kb из rr-mobile.js) main закреплён в видимой области (--m-vvt/--m-vvh).
+   Обучение (rr-tour.js) кладёт в конец body .rr-tour-spacer (flex: none) — чат на время
+   шага ужимается над карточкой обучения, а не уезжает под неё.
+
+   Панель деталей #chatSidebar — нижняя шторка; открыта при .open (+ .show у
+   #sidebarBackdrop) — этим же пользуется обучение (setChatSidebar), классы не менять. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Каркас экрана ---------- */
+    body.m-chat-screen {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        padding-bottom: 0;
+    }
+    body.m-chat-screen .header,
+    body.m-chat-screen .footer {
+        display: none;
+    }
+    body.m-chat-screen #main-content {
+        flex: 1 1 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    html.m-kb body.m-chat-screen #main-content {
+        position: fixed;
+        top: var(--m-vvt, 0px);
+        left: 0;
+        right: 0;
+        height: var(--m-vvh, 100dvh);
+        z-index: 5;
+    }
+    .m-chat-screen .chat-container {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+    .m-chat-screen .chat-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+        background: var(--bg);
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .m-chat-screen .chat-main {
+        position: relative;
+        min-height: 0;
+    }
+    /* Тосты — сверху под шапкой чата: внизу их место занимает поле ввода */
+    body.m-chat-screen .toast-container,
+    body.m-chat-screen .rr-toast-container {
+        top: calc(var(--m-safe-t) + 64px);
+        bottom: auto;
+    }
+    /* …и не поверх открытой шторки деталей */
+    body.m-chat-screen:has(.chat-sidebar.open) .toast-container {
+        display: none;
+    }
+
+    /* ---------- Шапка чата ---------- */
+    .m-chat-screen .chat-main-topbar {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 2px;
+        min-height: calc(56px + var(--m-safe-t));
+        padding: var(--m-safe-t) max(6px, env(safe-area-inset-right)) 0 max(2px, env(safe-area-inset-left));
+        background: var(--bg-elevated);
+        border-bottom: 1px solid var(--border);
+        position: relative;
+        z-index: 3;
+    }
+    .m-chat-screen .chat-m-back {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: var(--text);
+        text-decoration: none;
+    }
+    .m-chat-screen .chat-m-back .rr-icon {
+        width: 26px;
+        height: 26px;
+    }
+    .m-chat-screen .chat-main-topbar .who {
+        flex: 1 1 auto;
+        min-width: 0;
+        gap: 10px;
+        min-height: var(--m-tap);
+    }
+    .m-chat-screen .chat-main-topbar .who[data-chat-details] {
+        cursor: pointer;
+    }
+    .m-chat-screen .chat-main-topbar .who .party-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 14px;
+    }
+    .m-chat-screen .who-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .m-chat-screen .chat-main-topbar .who .name {
+        font-size: 16px;
+        line-height: 1.2;
+        font-weight: 800;
+    }
+    .m-chat-screen .who-sub {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        font-size: 13px;
+        line-height: 1.2;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .who-sub .m-pill {
+        flex: none;
+        padding: 2px 8px;
+    }
+    .m-chat-screen .who-loc {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-chat-screen .details-toggle-btn {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        padding: 0;
+        justify-content: center;
+        background: none;
+        border-radius: 50%;
+        color: var(--text);
+    }
+    .m-chat-screen .details-toggle-btn:hover {
+        background: none;
+    }
+    .m-chat-screen .details-toggle-btn:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-chat-screen .details-toggle-btn .status-dot,
+    .m-chat-screen .details-toggle-text {
+        display: none;
+    }
+    .m-chat-screen .details-toggle-ic {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Статусы заявки — цветом темы (плашка в шапке и бейдж в шторке) */
+    .m-chat-screen .status-pending,
+    .m-chat-screen .status-negotiating {
+        background: var(--warning-soft);
+        color: var(--warning);
+    }
+    .m-chat-screen .status-agreed,
+    .m-chat-screen .status-approved {
+        background: var(--success-soft);
+        color: var(--success);
+    }
+    .m-chat-screen .status-placed {
+        background: var(--info-soft);
+        color: var(--info);
+    }
+    .m-chat-screen .status-cancelled,
+    .m-chat-screen .status-rejected,
+    .m-chat-screen .status-unassigned {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+
+    /* ---------- Лента сообщений ---------- */
+    .m-chat-screen .chat-messages {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 8px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+        background: var(--bg);
+        scroll-behavior: auto;
+        overscroll-behavior-y: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Короткая переписка прижата к полю ввода, как в мессенджерах */
+    .m-chat-screen .chat-messages > :first-child {
+        margin-top: auto;
+    }
+    .m-chat-screen .date-separator {
+        flex: none;
+        margin: 6px 0 12px;
+        top: 2px;
+        z-index: 2;
+    }
+    .m-chat-screen .date-separator span {
+        padding: 4px 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+    /* Системное сообщение (смена статуса заказа) — не «липнет» к верху, переносится */
+    .m-chat-screen .date-separator.is-system {
+        position: static;
+    }
+    .m-chat-screen .date-separator.is-system span {
+        max-width: 88%;
+        background: var(--accent-soft);
+        border-color: transparent;
+        box-shadow: none;
+        color: var(--text);
+        font-weight: 600;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .m-chat-screen .message {
+        flex: none;
+        gap: 0;
+        margin: 0 0 8px;
+    }
+    .m-chat-screen .message.grouped {
+        margin-top: -5px;
+    }
+    .m-chat-screen .message:last-child {
+        margin-bottom: 0;
+    }
+    .m-chat-screen .message .avatar {
+        display: none;            /* переписка один на один — собеседник в шапке */
+    }
+    /* Пузырь — сам .message-body: текст, а время и галочки — в правом нижнем углу */
+    .m-chat-screen .message-body {
+        position: relative;
+        display: block;
+        min-width: 0;
+        max-width: min(82%, 560px);
+        padding: 7px 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 18px 18px 18px 6px;
+        color: var(--text);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+    .m-chat-screen .message.own .message-body {
+        background: rgba(var(--accent-rgb), 0.2);
+        border-color: rgba(var(--accent-rgb), 0.34);
+        border-radius: 18px 18px 6px 18px;
+    }
+    .m-chat-screen .message.grouped .message-body {
+        border-top-left-radius: 6px;
+    }
+    .m-chat-screen .message.own.grouped .message-body {
+        border-top-left-radius: 18px;
+        border-top-right-radius: 6px;
+    }
+    .m-chat-screen .message .text,
+    .m-chat-screen .message.own .text {
+        display: block;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        color: inherit;
+        font-size: 15px;
+        line-height: 1.4;
+        word-break: normal;
+        overflow-wrap: anywhere;
+    }
+    /* место под время в конце последней строки (время лежит поверх, absolute) */
+    .m-chat-screen .message .text::after {
+        content: '';
+        display: inline-block;
+        width: 40px;
+        height: 1px;
+    }
+    .m-chat-screen .message.own .text::after {
+        width: 60px;
+    }
+    .m-chat-screen .message .sender {
+        display: contents;
+    }
+    .m-chat-screen .sender-name {
+        display: none;            /* один на один имя не нужно */
+    }
+    .m-chat-screen .message .sender .time,
+    .m-chat-screen .message .msg-meta {
+        position: absolute;
+        right: 10px;
+        bottom: 5px;
+        margin: 0;
+        padding: 0;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 400;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .m-chat-screen .message .msg-meta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .m-chat-screen .message .msg-meta .time {
+        margin: 0;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .message.own:not(.grouped) .sender .time {
+        right: 28px;
+    }
+    /* «✓» и «✓✓» начинаются сразу за временем */
+    .m-chat-screen .message.own:not(.grouped) .msg-meta {
+        justify-content: flex-start;
+        width: 16px;
+    }
+    .m-chat-screen .read-receipt,
+    .m-chat-screen .read-receipt.read {
+        font-size: 13px;
+        line-height: 16px;
+        letter-spacing: -3px;
+        padding-right: 3px;
+    }
+    .m-chat-screen .read-receipt {
+        color: var(--text-muted);
+    }
+    .m-chat-screen .read-receipt.read {
+        color: var(--info);
+    }
+
+    /* Пустая переписка */
+    .m-chat-screen .chat-messages > .chat-empty {
+        margin: auto 0;
+    }
+    .m-chat-screen .chat-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 24px 24px;
+        color: var(--text-muted);
+        font-size: 15px;
+        line-height: 1.45;
+        text-align: center;
+    }
+    .m-chat-screen .chat-empty .chat-empty-icon {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+        opacity: 1;
+    }
+    .m-chat-screen .chat-empty .chat-empty-icon .rr-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    /* Кнопка «к последним сообщениям» — над полем ввода */
+    .m-chat-screen .chat-m-jump {
+        position: relative;
+        flex: none;
+        height: 0;
+        z-index: 4;
+    }
+    .m-chat-screen .chat-m-jump-btn {
+        position: absolute;
+        right: max(12px, env(safe-area-inset-right));
+        bottom: 12px;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-radius: 50%;
+        box-shadow: var(--shadow-md);
+        color: var(--text);
+        cursor: pointer;
+    }
+    .m-chat-screen .chat-m-jump-btn[hidden] {
+        display: none;
+    }
+    .m-chat-screen .chat-m-jump-btn .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .m-chat-screen .chat-m-jump-count {
+        position: absolute;
+        top: -7px;
+        right: -4px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 20px;
+        text-align: center;
+    }
+    .m-chat-screen .chat-m-jump-count[hidden] {
+        display: none;
+    }
+
+    /* ---------- Поле ввода ---------- */
+    .m-chat-screen .chat-input {
+        flex: none;
+        padding: 8px max(8px, env(safe-area-inset-right)) calc(8px + var(--m-safe-b)) max(8px, env(safe-area-inset-left));
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+    }
+    .m-chat-screen .chat-input form,
+    .m-chat-screen .chat-input form:focus-within {
+        align-items: flex-end;
+        gap: 8px;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .m-chat-screen .chat-input textarea {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: var(--m-tap);
+        max-height: 128px;
+        padding: 11px 16px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 22px;
+        color: var(--text);
+        font-size: 16px;
+        line-height: 20px;
+        overflow-y: auto;
+        resize: none;
+    }
+    .m-chat-screen .chat-input textarea::placeholder {
+        color: var(--text-muted);
+    }
+    .m-chat-screen .chat-input textarea:focus {
+        border-color: var(--accent);
+    }
+    .m-chat-screen .chat-input button[type="submit"] {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        min-height: var(--m-tap);
+        padding: 0;
+        background: var(--accent);
+        border: 0;
+        border-radius: 50%;
+        color: #fff;
+        font-size: 0;            /* глиф «➤» заменён иконкой ниже (JS меняет текст на «…» при отправке) */
+        line-height: 0;
+        transition: background 0.15s ease, color 0.15s ease;
+    }
+    .m-chat-screen .chat-input button[type="submit"]::before {
+        content: '';
+        width: 22px;
+        height: 22px;
+        margin-left: -2px;
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2 11 13'/%3E%3Cpath d='M22 2 15 22l-4-9-9-4z'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2 11 13'/%3E%3Cpath d='M22 2 15 22l-4-9-9-4z'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    .m-chat-screen .chat-input button:hover,
+    .m-chat-screen .chat-input button:disabled {
+        transform: none;
+    }
+    .m-chat-screen .chat-input button[type="submit"]:active {
+        background: var(--accent-hover);
+    }
+    /* Пустое поле (и нет вложения) — кнопка «приглушена» */
+    .m-chat-screen .chat-input:has(textarea:placeholder-shown):not(:has(.attachment-preview:not([hidden]))) button[type="submit"] {
+        background: var(--bg-elevated-2);
+        color: var(--text-muted);
+    }
+    /* Чат закрыт (заявка отменена) */
+    .m-chat-screen .chat-closed {
+        padding: 4px 8px 10px;
+        font-size: 14px;
+        font-style: normal;
+        line-height: 1.4;
+        color: var(--text-muted);
+        text-align: center;
+    }
+    .m-chat-screen .chat-input .chat-m-closed-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        height: auto;
+        min-height: var(--m-tap);
+        padding: 0 16px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .m-chat-screen .chat-input .chat-m-closed-btn .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .m-chat-screen .chat-closed[style*="none"] + .chat-m-closed-btn {
+        display: none;
+    }
+
+    /* ---------- Шторка деталей заявки ---------- */
+    .m-chat-screen .sidebar-backdrop {
+        display: block;
+        position: absolute;
+        inset: 0;
+        z-index: 190;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+    }
+    .m-chat-screen .sidebar-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.2s ease, visibility 0s;
+    }
+    .m-chat-screen .chat-sidebar {
+        position: absolute;
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 200;
+        display: block;
+        width: auto;
+        max-height: calc(100% - 24px);
+        margin: 0 auto;
+        padding: 0 0 calc(16px + var(--m-safe-b));
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.45);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+        transform: translateY(105%);
+        visibility: hidden;
+        transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.28s;
+    }
+    .m-chat-screen .chat-sidebar.open {
+        transform: none;
+        visibility: visible;
+        transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+    }
+    .m-chat-screen .chat-sidebar:focus {
+        outline: none;
+    }
+    /* Пока идёт обучение, шторка открывается мгновенно — оно измеряет её сразу после открытия */
+    body.m-chat-screen:has(> .rr-tour-layer) .chat-sidebar,
+    body.m-chat-screen:has(> .rr-tour-layer) .sidebar-backdrop {
+        transition: none;
+    }
+    .m-chat-screen .sidebar-header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        gap: 12px;
+        padding: 20px 10px 12px 18px;
+        background: var(--bg-elevated);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+    }
+    .m-chat-screen .chat-sheet-handle {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        width: 42px;
+        height: 5px;
+        margin-left: -21px;
+        border-radius: 3px;
+        background: var(--border-strong);
+    }
+    .m-chat-screen .sidebar-header-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    .m-chat-screen .sidebar-close-btn {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        padding: 0;
+        background: var(--bg-elevated-2);
+        border-radius: 50%;
+        color: var(--text);
+        font-size: 26px;
+        line-height: 1;
+    }
+    .m-chat-screen .sidebar-section,
+    .m-chat-screen .sidebar-section:last-child {
+        margin: 0 12px 10px;
+        padding: 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .m-chat-screen .sidebar-section:last-child {
+        margin-bottom: 0;
+    }
+    .m-chat-screen .sidebar-section-title {
+        margin: 0 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .sidebar-note {
+        margin: 0 0 12px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .sidebar-note .rr-icon {
+        width: 16px;
+        height: 16px;
+        vertical-align: -3px;
+    }
+    .m-chat-screen .status-message {
+        font-size: 14px;
+    }
+
+    /* Собеседник и локация */
+    .m-chat-screen .sidebar-profile .party-avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 16px;
+    }
+    .m-chat-screen .sidebar-profile .name {
+        font-size: 17px;
+        line-height: 1.25;
+    }
+    .m-chat-screen .sidebar-profile .meta {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    .m-chat-screen .chat-m-loc-btn {
+        margin-top: 12px;
+        font-size: 15px;
+    }
+    .m-chat-screen .chat-m-loc-btn .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Кнопки запроса/решения по закреплению */
+    .m-chat-screen .chat-sidebar .chat-btn-primary,
+    .m-chat-screen .chat-sidebar .btn-danger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: auto;
+        min-height: 48px;
+        padding: 0 16px;
+        border: 0;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .m-chat-screen .chat-sidebar .chat-btn-primary {
+        background: var(--accent);
+        color: #fff;
+    }
+    .m-chat-screen .chat-sidebar .btn-danger {
+        background: var(--danger);
+        color: #fff;
+    }
+    .m-chat-screen .chat-sidebar .modal-buttons {
+        margin-top: 0;
+        gap: 10px;
+    }
+    .m-chat-screen .chat-sidebar button:disabled {
+        opacity: 0.6;
+    }
+
+    /* Статус: поле-выбор, варианты раскрываются списком прямо в шторке */
+    .m-chat-screen .status-selector {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+    }
+    .m-chat-screen .status-selector.inactive {
+        justify-content: flex-start;
+        min-height: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        opacity: 1;
+    }
+    .m-chat-screen .chat-status-badge {
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.3;
+    }
+    .m-chat-screen .status-arrow {
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .status-dropdown {
+        position: static;
+        min-width: 0;
+        margin-top: 8px;
+        padding: 4px;
+        background: var(--bg-input);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        box-shadow: none;
+    }
+    .m-chat-screen .status-dropdown .dropdown-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: var(--m-tap);
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 16px;
+        color: var(--text);
+    }
+    .m-chat-screen .status-dropdown .dropdown-item:hover {
+        background: none;
+    }
+    .m-chat-screen .status-dropdown .dropdown-item:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-chat-screen .status-dropdown .dropdown-item.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .m-chat-screen .status-dropdown .dropdown-item.active::after {
+        content: '';
+        width: 18px;
+        height: 18px;
+        background: currentColor;
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12l5 5L20 6'/%3E%3C/svg%3E") center / contain no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 12l5 5L20 6'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    .m-chat-screen .status-personal-hint {
+        align-items: flex-start;
+        margin-top: 10px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .status-personal-hint svg {
+        margin-top: 2px;
+    }
+
+    /* Выезд */
+    .m-chat-screen .event-card {
+        gap: 12px;
+    }
+    .m-chat-screen .event-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--info-soft);
+        color: var(--info);
+    }
+    .m-chat-screen .event-icon .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .m-chat-screen .event-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+    .m-chat-screen .event-emergency {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        background: var(--danger);
+        font-size: 12px;
+    }
+    .m-chat-screen .event-datetime {
+        font-size: 17px;
+        font-weight: 800;
+    }
+    .m-chat-screen .event-comment {
+        padding: 10px 12px;
+        background: var(--warning-soft);
+        border-left: 4px solid var(--warning);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .m-chat-screen .event-empty {
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .event-actions {
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+    }
+    .m-chat-screen .event-actions .btn-event {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: var(--m-tap);
+        padding: 0 14px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 800;
+        background: var(--accent);
+        color: #fff;
+    }
+    .m-chat-screen .btn-event:hover {
+        opacity: 1;
+        transform: none;
+    }
+    .m-chat-screen .btn-event:active {
+        opacity: 0.85;
+    }
+    .m-chat-screen .btn-event .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .m-chat-screen .event-actions .btn-event.emergency-btn {
+        background: var(--danger);
+    }
+    .m-chat-screen .event-actions .btn-event.reschedule-btn {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .m-chat-screen .event-actions .btn-event.cancel-btn {
+        background: transparent;
+        border-color: var(--border-strong);
+        color: var(--text);
+    }
+    .m-chat-screen .event-summary-pill {
+        min-height: 48px;
+        gap: 10px;
+        padding: 0 14px;
+        background: var(--success-soft);
+        border-radius: 14px;
+        color: var(--success);
+        font-size: 15px;
+    }
+    .m-chat-screen .event-summary-pill:hover {
+        background: var(--success-soft);
+    }
+    .m-chat-screen .event-summary-pill + .event-card {
+        margin-top: 12px;
+    }
+    .m-chat-screen .event-summary-chevron {
+        font-size: 14px;
+    }
+
+    /* Действия: уведомления, удалить чат */
+    .m-chat-screen .sidebar-action-row {
+        gap: 12px;
+        min-height: 52px;
+        padding: 4px 0;
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .m-chat-screen .sidebar-action-row > span,
+    .m-chat-screen .sidebar-action-row.danger-link a {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .m-chat-screen .sidebar-action-row .rr-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .sidebar-action-row.danger-link a {
+        min-height: 48px;
+        color: var(--danger);
+    }
+    .m-chat-screen .sidebar-action-row.danger-link a .rr-icon {
+        color: var(--danger);
+    }
+    .m-chat-screen .sidebar-action-row .switch {
+        width: 52px;
+        height: 32px;
+    }
+    .m-chat-screen .sidebar-action-row .switch::after {
+        content: '';
+        position: absolute;
+        inset: -6px -4px;          /* зона нажатия 44px */
+    }
+    .m-chat-screen .sidebar-action-row .slider {
+        background-color: var(--border-strong);
+        border-radius: 16px;
+    }
+    .m-chat-screen .sidebar-action-row .slider:before {
+        width: 26px;
+        height: 26px;
+        left: 3px;
+        bottom: 3px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+    .m-chat-screen .sidebar-action-row input:checked + .slider {
+        background-color: var(--accent);
+    }
+    .m-chat-screen .sidebar-action-row input:checked + .slider:before {
+        transform: translateX(20px);
+    }
+    .m-chat-screen .sidebar-action-row input:focus-visible + .slider {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+    }
+
+    /* ---------- Окно даты выезда → шторка снизу ---------- */
+    .m-chat-screen .chat-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+        background: rgba(0, 0, 0, 0.55);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+    .m-chat-screen .chat-modal-box {
+        width: 100%;
+        max-width: 560px;
+        max-height: calc(100dvh - var(--m-safe-t) - 16px);
+        padding: 10px 18px calc(18px + var(--m-safe-b));
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+        background: var(--bg-elevated);
+        overscroll-behavior: contain;
+        animation: mChatSheetUp 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+    .m-chat-screen .chat-modal-box::before {
+        content: '';
+        display: block;
+        width: 42px;
+        height: 5px;
+        margin: 0 auto 12px;
+        border-radius: 3px;
+        background: var(--border-strong);
+    }
+    .m-chat-screen .chat-modal-box .modal-header {
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .m-chat-screen .chat-modal-box .modal-title {
+        font-size: 20px;
+    }
+    .m-chat-screen .chat-modal-box .modal-subtitle {
+        font-size: 14px;
+    }
+    .m-chat-screen .chat-modal-box .close-btn {
+        flex: 0 0 var(--m-tap);
+        width: var(--m-tap);
+        height: var(--m-tap);
+        border-radius: 50%;
+        background: var(--bg-elevated-2);
+        color: var(--text);
+        font-size: 26px;
+    }
+    .m-chat-screen .chat-modal-box .form-label {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .m-chat-screen .chat-modal-box .form-control {
+        min-height: 48px;
+        padding: 12px 14px;
+        background: var(--bg-input);
+        border-color: var(--border-strong);
+        border-radius: 14px;
+        font-size: 16px;
+    }
+    .m-chat-screen .chat-modal-box .modal-buttons {
+        flex-direction: column-reverse;
+        gap: 8px;
+        margin-top: 18px;
+    }
+    .m-chat-screen .chat-modal-box .modal-buttons button {
+        flex: none;
+        width: 100%;
+        height: auto;
+        min-height: 48px;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 16px;
+    }
+    .m-chat-screen .chat-modal-box .chat-btn-secondary {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+}
+
+@keyframes mChatSheetUp {
+    from { transform: translateY(40px); opacity: 0.4; }
+    to { transform: none; opacity: 1; }
+}
+
+/* Планшет-портрет: шторка и окно — не во всю ширину */
+@media (min-width: 600px) and (max-width: 768px) {
+    .m-chat-screen .chat-sidebar {
+        max-width: 560px;
+    }
+}
+
+/* Низкий экран (телефон лёжа): компактная шапка, поле ввода ниже, шторка выше */
+@media (max-width: 768px) and (max-height: 500px) {
+    .m-chat-screen .chat-main-topbar {
+        min-height: calc(48px + var(--m-safe-t));
+    }
+    .m-chat-screen .chat-main-topbar .who .party-avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+    .m-chat-screen .who-text {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+    }
+    .m-chat-screen .chat-main-topbar .who .name {
+        flex: 0 1 auto;
+        min-width: 0;
+        font-size: 15px;
+    }
+    .m-chat-screen .who-sub {
+        flex: 1 1 auto;
+    }
+    .m-chat-screen .chat-messages {
+        padding-top: 6px;
+        padding-bottom: 8px;
+    }
+    .m-chat-screen .chat-input {
+        padding-top: 6px;
+        padding-bottom: calc(6px + var(--m-safe-b));
+    }
+    .m-chat-screen .chat-input textarea {
+        max-height: 88px;
+    }
+    .m-chat-screen .chat-sidebar {
+        max-height: calc(100% - 8px);
+    }
+    .m-chat-screen .sidebar-header {
+        padding-top: 16px;
+        padding-bottom: 8px;
+    }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+    .m-chat-screen .chat-sidebar,
+    .m-chat-screen .sidebar-backdrop {
+        transition: none !important;
+    }
+    .m-chat-screen .chat-modal-box,
+    .m-chat-screen .message {
+        animation: none !important;
+    }
+}

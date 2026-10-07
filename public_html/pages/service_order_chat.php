@@ -204,6 +204,11 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
                 <?php endif; ?>
             </div>
 
+            <!-- телефон: кнопка «к последним сообщениям» (assets/js/m/chat.js) -->
+            <div class="chat-m-jump m-only">
+                <button type="button" class="chat-m-jump-btn" id="chatJumpBtn" aria-label="К последним сообщениям" hidden><?php echo rr_icon('chevron-down'); ?><span class="chat-m-jump-count" hidden></span></button>
+            </div>
+
             <div class="chat-input">
                 <?php if ($order['status'] !== 'cancelled'): ?>
                     <div id="attachmentPreview" class="attachment-preview" hidden>
@@ -264,10 +269,12 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     function appendMessage(msg, isOwn) {
         if (msg.is_system) {
             var sep = document.createElement('div');
-            sep.className = 'date-separator';
+            sep.className = 'date-separator is-system';
             sep.innerHTML = '<span>' + escapeHtml(msg.message) + '</span>';
             chatMessages.appendChild(sep);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            if (!(window.RRChatM && window.RRChatM.afterAppend(sep, false, msg))) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
             return;
         }
         var date = new Date(msg.created_at * 1000);
@@ -278,12 +285,15 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
         var textHtml = msg.message ? '<div class="text">' + escapeHtml(msg.message) + '</div>' : '';
         div.innerHTML = avatarHtml +
             '<div class="message-body">' +
-                '<div class="sender">' + escapeHtml(msg.sender_name) + ' <span class="time">' + time + '</span></div>' +
+                '<div class="sender"><span class="sender-name">' + escapeHtml(msg.sender_name) + '</span> <span class="time">' + time + '</span></div>' +
                 attachmentHtml(msg) +
                 textHtml +
             '</div>';
         chatMessages.appendChild(div);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Телефон: прокрутка «как в мессенджере» — assets/js/m/chat.js; на десктопе как раньше.
+        if (!(window.RRChatM && window.RRChatM.afterAppend(div, isOwn, msg))) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     var PAPERCLIP_FILE_ICON = '<?php echo addslashes(rr_icon("file-text")); ?>';
@@ -394,6 +404,7 @@ $otherPartyLabel = $isAdmin ? $order['customer_name'] : 'Команда RR';
     setTimeout(checkNewMessages, 1000);
 })();
 </script>
+<script src="/assets/js/m/chat.js"></script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>
