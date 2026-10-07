@@ -12,7 +12,7 @@ require_once __DIR__ . '/../config.php';
     <meta name="description" content="Политика обработки персональных данных сервиса RR (Riveg Rent) в соответствии со статьёй 18.1 Федерального закона № 152-ФЗ «О персональных данных».">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="m-pg-info">
+<body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="legal-page">

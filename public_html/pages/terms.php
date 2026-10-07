@@ -12,7 +12,7 @@ require_once __DIR__ . '/../config.php';
     <meta name="description" content="Пользовательское соглашение (публичная оферта) сервиса RR (Riveg Rent) — правила размещения объявлений, взаимодействия собственников и операторов, ответственность сторон.">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="m-pg-info">
+<body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="legal-page">

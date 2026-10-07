@@ -178,7 +178,7 @@ if ($isOperator) {
     <meta name="description" content="Тарифы RR для операторов вендинга: бесплатный контакт при регистрации, пакеты контактов, тариф с помесячной квотой, разблокировка адреса локации.">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="m-pg-info">
+<body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="subscription-container">

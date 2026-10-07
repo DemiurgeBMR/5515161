@@ -23,7 +23,7 @@ $dogovorSize = is_file($dogovorFile) ? rr_format_bytes(filesize($dogovorFile)) :
     <title>Документы — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="m-pg-info">
+<body>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="docs-container">
     <a href="<?php echo $backLink; ?>" class="back-link m-hide">← Назад</a>

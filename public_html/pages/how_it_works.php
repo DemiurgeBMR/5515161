@@ -14,7 +14,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <title>Как это работает — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body class="m-pg-info">
+<body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="hiw-page">
