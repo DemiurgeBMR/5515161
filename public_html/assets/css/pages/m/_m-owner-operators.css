@@ -1,0 +1,341 @@
+/* ===== ТЕЛЕФОНЫ: Кабинет собственника: мои операторы (pages/owner_operators.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран: m-appbar «назад» + заголовок → подпись → «Закрепить оператора» (крупная кнопка) →
+   карточки операторов (.oo-m-list, только телефон): аватар, имя, число точек, «Написать»;
+   ниже — его точки: локация, город и дата закрепления, вендинг и статус обслуживания (m-pill),
+   «⋯» → шторка: чат, локация, календарь, история обслуживания, «Открепить» (красным, с подтверждением).
+   Десктопная таблица .assignments-table скрыта на телефоне (m-hide); у карточек тот же класс —
+   обучение находит видимый элемент. Модалка «Закрепить оператора» — шторка (оболочка). */
+
+@media (max-width: 768px) {
+
+    .oo-container {
+        display: flex;
+        flex-direction: column;
+        max-width: none;
+        margin: 0;
+        padding: 0 var(--m-gutter) 24px;
+    }
+    .oo-appbar {
+        margin-bottom: 2px;
+    }
+    .oo-appbar .m-appbar-title {
+        font-size: 20px;
+    }
+    .oo-container .page-intro.spaced {
+        margin: 0 0 14px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    /* «Закрепить оператора» — главное действие страницы */
+    .oo-container #addAssignmentBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 48px;
+        margin: 0 0 16px;
+        padding: 0 20px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: #fff;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        transition: none;
+    }
+    .oo-container #addAssignmentBtn:active {
+        background: var(--accent-hover);
+    }
+    .oo-container #addAssignmentBtn .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+
+    /* ---------- Карточки операторов ---------- */
+    .assignments-table.oo-m-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: visible;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .oo-m-card {
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .oo-m-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 12px;
+        padding: 14px;
+    }
+    .oo-m-av {
+        flex: none;
+        width: 46px;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 19px;
+        font-weight: 800;
+    }
+    .oo-m-who {
+        flex: 100 1 120px;          /* не помещается «Написать» — кнопка уходит строкой ниже во всю ширину */
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .oo-m-name {
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .oo-m-sub {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    .oo-m-write {
+        flex: 1 0 auto;
+        padding: 0 14px;
+    }
+    .oo-m-write .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    /* Точки оператора */
+    .oo-m-locs {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--border);
+    }
+    .oo-m-loc {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 14px;
+    }
+    .oo-m-loc + .oo-m-loc {
+        border-top: 1px solid var(--border);
+    }
+    .oo-m-loc-ic {
+        flex: none;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .oo-m-loc-ic .rr-icon {
+        width: 18px;
+        height: 18px;
+    }
+    .oo-m-loc-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+    .oo-m-loc-title {
+        display: flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 32px;
+        margin: -4px 0 -4px;
+        padding-right: 40px;        /* место под «⋯» */
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+    }
+    .oo-m-loc-sub {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    .oo-m-machine {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 4px;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .oo-m-machine .rr-icon {
+        flex: none;
+        width: 15px;
+        height: 15px;
+        margin-top: 2px;
+        color: var(--text-muted);
+    }
+    .oo-m-loc-main .m-pill {
+        margin-top: 2px;
+        white-space: normal;
+    }
+    .oo-m-loc-main .m-pill .rr-icon {
+        flex: none;
+        width: 13px;
+        height: 13px;
+    }
+    .oo-m-more {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 12px;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .oo-m-more .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .oo-m-more:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* Шторка действий по точке: пункты — .m-menu-item из оболочки */
+    .oo-m-loc .m-sheet .m-sheet-body {
+        padding: 0 8px calc(12px + var(--m-safe-b));
+    }
+    .oo-m-loc .m-sheet .m-sheet-who b {
+        font-size: 17px;
+        font-weight: 800;
+    }
+    .oo-m-loc .m-sheet .m-menu-item.btn-unassign {
+        background: none;
+        border-radius: 14px;
+        color: var(--danger);
+        transition: none;
+    }
+    .oo-m-loc .m-sheet .m-menu-item.btn-unassign:active {
+        background: var(--bg-elevated-2);
+    }
+    .oo-m-loc .m-sheet .m-menu-item.btn-unassign > .rr-icon {
+        color: var(--danger);
+    }
+
+    /* ---------- Пустое состояние: иконка, текст, ниже — «Закрепить оператора» ---------- */
+    .oo-container .empty {
+        order: 5;
+        padding: 24px 12px 16px;
+        color: var(--text-muted);
+        text-align: center;
+    }
+    .oo-container:has(> .empty) #addAssignmentBtn {
+        order: 6;
+        width: max-content;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+    .oo-empty-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin-bottom: 12px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .oo-empty-ic .rr-icon {
+        width: 30px;
+        height: 30px;
+    }
+    .oo-container .empty p:first-of-type {
+        margin: 0 0 6px;
+        color: var(--text);
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+    .oo-container .empty p + p {
+        max-width: 320px;
+        margin: 0 auto;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    /* ---------- Модалка «Закрепить оператора» (шторка оболочки) ---------- */
+    #addModal .modal-box h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 48px 14px 0;
+        font-size: 20px;
+        font-weight: 800;
+    }
+    #addModal .form-group label {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    #addModal .form-group select {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 14px;
+        font-size: 16px;
+    }
+    #addModal .btn-submit {
+        width: 100%;
+        min-height: 48px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+    }
+}
+
+/* Узкий телефон: декоративная иконка точки уступает место тексту (статусы — в одну строку) */
+@media (max-width: 360px) {
+    .oo-m-loc-ic {
+        display: none;
+    }
+}
+
+/* Планшет-портрет: карточки операторов — в две колонки */
+@media (min-width: 600px) and (max-width: 768px) {
+    .assignments-table.oo-m-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+}

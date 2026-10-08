@@ -1,0 +1,402 @@
+/* ===== ТЕЛЕФОНЫ: Главная (index.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран: компактная «шапка» (заголовок, поиск, «Сдам место / Хочу найти место») → «Свежие предложения»
+   горизонтальной лентой карточек того же вида, что в каталоге (_m-catalog.css) → «Как это работает»
+   полосой из трёх шагов → призыв к действию по роли. Звёзды проходимости — общий класс .cat-stars. */
+
+@media (max-width: 768px) {
+
+    /* ---------- «Шапка» ---------- */
+    .m-pg-home .hero {
+        margin: 8px var(--m-gutter) 0;
+        padding: 18px 14px 14px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--bg-elevated);
+        border: 1px solid var(--border);
+        box-shadow: 0 0 38px rgba(var(--accent-rgb), 0.16);
+        color: var(--text);
+        text-align: left;
+    }
+    :root[data-theme="light"] .m-pg-home .hero {
+        box-shadow: var(--shadow-sm);
+    }
+    .m-pg-home .hero h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .m-pg-home .hero p {
+        margin: 0 0 14px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        opacity: 1;
+    }
+    .home-search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 46px;
+        margin: 0 0 12px;
+        padding: 0 14px;
+        border-radius: 23px;
+        background: var(--bg);
+        border: 1px solid var(--border-strong);
+    }
+    .home-search:focus-within {
+        border-color: var(--accent);
+    }
+    .home-search > .rr-icon {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        color: var(--text);
+    }
+    .home-search input {
+        flex: 1 1 auto;
+        min-width: 0;
+        height: 44px;
+        min-height: 0;
+        padding: 0;
+        background: transparent;
+        border: 0;
+        outline: 0;
+        color: var(--text);
+        font-size: 16px;
+        text-overflow: ellipsis;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    .home-search input::placeholder {
+        color: var(--text-muted);
+    }
+    .m-pg-home .cta-buttons {
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+    .m-pg-home .cta-buttons .btn {
+        flex: 1 1 0;
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        padding: 6px 10px;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.15;
+        text-align: center;
+        transition: none;
+    }
+    .m-pg-home .cta-buttons .btn:hover {
+        transform: none;
+    }
+    .m-pg-home .cta-buttons .btn-primary:active {
+        background: var(--accent-hover);
+    }
+    .m-pg-home .cta-buttons .btn-secondary {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+    }
+    .m-pg-home .cta-buttons .btn-secondary:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- «Свежие предложения»: горизонтальная лента карточек ---------- */
+    .home-locations-preview {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 22px 0 0;
+        padding: 0 var(--m-gutter);
+    }
+    .home-locations-preview h2 {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .home-locations-preview h2 .rr-icon {
+        color: var(--accent);
+        vertical-align: -2px;
+    }
+    .home-all-link {
+        margin: 0 0 10px auto;
+    }
+    .home-all-link .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    .home-location-grid {
+        flex: 1 1 100%;
+        display: flex;
+        gap: 10px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 2px var(--m-gutter) 4px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-padding: 0 var(--m-gutter);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+    .home-location-grid::-webkit-scrollbar {
+        display: none;
+    }
+    .home-location-grid > a {
+        flex: 0 0 158px;
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+    .home-location-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border-radius: var(--m-radius);
+        box-shadow: none;
+        transition: none;
+    }
+    .home-location-card:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: var(--border);
+    }
+    .home-location-grid > a:active .home-location-card {
+        border-color: var(--border-strong);
+    }
+    .home-location-card img {
+        display: block;
+        height: auto;
+        aspect-ratio: 3 / 2;
+        background: var(--bg-elevated-2);
+    }
+    .home-verified {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 8px 3px 6px;
+        border-radius: 10px;
+        background: rgba(36, 120, 196, 0.94);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    }
+    .home-verified .rr-icon {
+        width: 12px;
+        height: 12px;
+        stroke-width: 3;
+    }
+    .home-location-card .info {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        padding: 9px 11px 11px;
+    }
+    .home-location-card .price {
+        order: 1;
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .home-price-unit {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    .home-location-card .title {
+        order: 2;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        margin: 3px 0 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .home-location-card .address {
+        order: 3;
+        margin-top: 5px;
+        font-size: 12px;
+        line-height: 1.35;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .home-location-card .address .rr-icon {
+        width: 12px;
+        height: 12px;
+        vertical-align: -1px;
+    }
+    .home-location-card .meta-row,
+    .home-location-card .home-card-date {
+        display: none;            /* ID, площадь, дата — на странице локации; здесь звёзды и удобства */
+    }
+    .home-card-row {
+        order: 4;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        margin-top: auto;
+        padding-top: 8px;
+    }
+    .home-amen {
+        display: inline-flex;
+        gap: 7px;
+        color: var(--text-faint);
+    }
+    .home-amen .rr-icon {
+        width: 14px;
+        height: 14px;
+    }
+    .m-pg-home .view-all {
+        flex: 1 1 100%;
+        margin: 14px 0 0;
+    }
+    .m-pg-home .view-all a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 14px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .m-pg-home .view-all a:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-pg-home .empty-home {
+        flex: 1 1 100%;
+        margin-top: 0;
+        padding: 32px 18px;
+        border-radius: var(--m-radius);
+    }
+    .m-pg-home .empty-home h3 {
+        font-size: 17px;
+    }
+    .m-pg-home .empty-home p {
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    /* ---------- «Как это работает»: полоса из трёх шагов ---------- */
+    .home-steps {
+        margin: 26px 0 0;
+        padding: 0 var(--m-gutter);
+    }
+    .home-steps .m-section-link .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    .home-steps-list {
+        display: flex;
+        gap: 10px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 2px var(--m-gutter) 4px;
+        list-style: none;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-padding: 0 var(--m-gutter);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+    .home-steps-list::-webkit-scrollbar {
+        display: none;
+    }
+    .home-step {
+        flex: 0 0 216px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px;
+        border-radius: var(--m-radius);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        scroll-snap-align: start;
+    }
+    .home-step-n {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 6px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 16px;
+        font-weight: 800;
+    }
+    .home-step b {
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .home-step > span:last-child {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Призыв к действию ---------- */
+    .home-cta {
+        margin: 22px var(--m-gutter) 24px;
+        padding: 18px 16px 16px;
+        border-radius: var(--m-radius);
+        background: linear-gradient(135deg, var(--accent-soft), transparent 75%), var(--bg-elevated);
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+    }
+    .home-cta-title {
+        display: block;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .home-cta p {
+        margin: 6px 0 14px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .home-cta .m-btn {
+        color: #fff;
+    }
+}
+
+/* Планшет-портрет и телефон лёжа: шаги — в один ряд без прокрутки */
+@media (min-width: 600px) and (max-width: 768px) {
+    .home-step {
+        flex: 1 1 0;
+    }
+}

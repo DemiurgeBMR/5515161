@@ -1,0 +1,397 @@
+/* ===== ТЕЛЕФОНЫ: Кабинет собственника: заявки (pages/owner_applications.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран: заголовок 24/800 → (заявки на услуги — карточки m-table-cards) → список заявок:
+   строка таблицы = карточка-«диалог» как в мессенджере: аватар оператора, имя, время последнего
+   сообщения, локация, превью сообщения + счётчик непрочитанных, город · № · дата, статус-плашка
+   и «Чат». Вся карточка нажимается (ведёт в чат), ссылка на локацию — отдельно поверх.
+   Таблица остаётся таблицей в разметке (селекторы обучения .admin-table и .btn-view живы). */
+
+@media (max-width: 768px) {
+
+    .m-owner-apps .page-container-1000 {
+        max-width: none;
+        margin: 0;
+        padding: 14px var(--m-gutter) 24px;
+    }
+    .oa-page-title {
+        margin: 4px 0 6px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .oa-page-title .rr-icon {
+        display: none;
+    }
+    .m-owner-apps .subscription-section-title {
+        margin: 18px 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .m-owner-apps .subscription-section-title .rr-icon {
+        display: none;
+    }
+
+    /* ---------- Заявки: карточки-«диалоги» ---------- */
+    .admin-table.oa-apps {
+        overflow: visible;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .admin-table.oa-apps table,
+    .admin-table.oa-apps tbody {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+    /* Заголовки колонок в карточках не нужны (а приём «visually-hidden» у thead стенд считает обрезкой) */
+    .admin-table.oa-apps thead,
+    .admin-table.oa-orders thead {
+        display: none;
+    }
+    .admin-table.oa-apps tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .admin-table.oa-apps tr.oa-row {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        column-gap: 8px;
+        min-height: 64px;
+        padding: 12px 14px 12px 68px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .admin-table.oa-apps tr.oa-row:active {
+        background: var(--bg-elevated-2);
+    }
+    /* Перенос строки перед рядом «статус · Чат» */
+    .admin-table.oa-apps tr.oa-row::after {
+        content: '';
+        order: 75;
+        flex-basis: 100%;
+        height: 10px;
+    }
+    .admin-table.oa-apps td {
+        display: block;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        color: var(--text);
+    }
+
+    /* Аватар оператора — колонка слева */
+    .admin-table.oa-apps td.oa-av {
+        position: absolute;
+        left: 14px;
+        top: 12px;
+    }
+    .oa-av span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    /* Ряд 1: оператор · время */
+    .admin-table.oa-apps td.oa-op {
+        order: 10;
+        flex: 1 1 0;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .admin-table.oa-apps td.oa-time {
+        order: 20;
+        flex: none;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    /* Ряд 2: локация (отдельная ссылка поверх «нажимаемой» карточки) */
+    .admin-table.oa-apps td.oa-loc {
+        order: 30;
+        flex-basis: 100%;
+        margin-top: 1px;
+    }
+    .admin-table.oa-apps td.oa-loc a {
+        position: relative;
+        z-index: 1;
+        display: block;
+        max-width: 100%;
+        min-height: 32px;
+        padding: 6px 0;
+        margin: -6px 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+    }
+    /* Ряд 3: превью последнего сообщения + непрочитанные */
+    .admin-table.oa-apps td.oa-msg {
+        order: 40;
+        flex-basis: 100%;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 6px;
+    }
+    .oa-msg-text {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.35;
+    }
+    .oa-msg-text b {
+        color: var(--text);
+        font-weight: 600;
+    }
+    .oa-unread {
+        flex: none;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 11px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 22px;
+        text-align: center;
+    }
+    .admin-table.oa-apps tr.is-unread {
+        border-color: rgba(var(--accent-rgb), 0.45);
+    }
+    .admin-table.oa-apps tr.is-unread td.oa-op {
+        font-weight: 800;
+    }
+    .admin-table.oa-apps tr.is-unread .oa-msg-text {
+        color: var(--text);
+    }
+    .admin-table.oa-apps tr.is-unread td.oa-time {
+        color: var(--accent);
+        font-weight: 700;
+    }
+    /* Ряд 4: город · № · дата заявки */
+    .admin-table.oa-apps td.oa-city,
+    .admin-table.oa-apps td.oa-id,
+    .admin-table.oa-apps td.oa-date {
+        flex: none;
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    .admin-table.oa-apps td.oa-city {
+        order: 50;
+        flex: 0 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .admin-table.oa-apps td.oa-id {
+        order: 60;
+    }
+    .admin-table.oa-apps td.oa-date {
+        order: 70;
+    }
+    .admin-table.oa-apps td.oa-city,
+    .admin-table.oa-apps td.oa-id {
+        margin-right: 4px;
+    }
+    .admin-table.oa-apps td.oa-date::before {
+        content: 'от ';
+    }
+    /* Ряд 5: статус · «Чат» */
+    .admin-table.oa-apps td.oa-st {
+        order: 80;
+        flex: 1 1 auto;
+    }
+    .admin-table.oa-apps td.oa-act {
+        order: 90;
+        flex: none;
+        margin-left: auto;
+    }
+    .admin-table.oa-apps .btn-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--m-tap);
+        padding: 0 16px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .admin-table.oa-apps .btn-view .rr-icon {
+        width: 18px;
+        height: 18px;
+        vertical-align: 0;
+    }
+    /* Вся карточка ведёт в чат */
+    .admin-table.oa-apps .btn-view::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--m-radius);
+    }
+
+    /* Статусы — плашки в цветах темы */
+    .admin-table.oa-apps .status-badge,
+    .oa-orders .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .admin-table.oa-apps .status-badge .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    .admin-table.oa-apps .status-badge > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .admin-table.oa-apps .status-badge.status-pending,
+    .oa-orders .status.new {
+        background: var(--warning-soft);
+        color: var(--warning);
+    }
+    .admin-table.oa-apps .status-badge.status-negotiating,
+    .oa-orders .status.in-progress {
+        background: var(--info-soft);
+        color: var(--info);
+    }
+    .admin-table.oa-apps .status-badge.status-rejected {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+    .admin-table.oa-apps .status-badge.status-cancelled,
+    .admin-table.oa-apps .status-badge.status-unassigned,
+    .oa-orders .status.cancelled {
+        background: var(--bg-elevated-2);
+        color: var(--text-muted);
+    }
+    .admin-table.oa-apps tr.oa-st-cancelled td.oa-op,
+    .admin-table.oa-apps tr.oa-st-unassigned td.oa-op {
+        color: var(--text-muted);
+    }
+
+    /* ---------- Заявки на услуги: таблица → карточки (m-table-cards) ---------- */
+    .admin-table.oa-orders {
+        margin-bottom: 0;
+        overflow: visible;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .admin-table.oa-orders table.m-table-cards {
+        min-width: 0;
+    }
+    .admin-table.oa-orders td.oa-order-act {
+        justify-content: flex-start;
+        padding-top: 10px;
+    }
+    .admin-table.oa-orders .btn-view {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--m-tap);
+        padding: 0 16px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .admin-table.oa-orders .btn-view .rr-icon {
+        width: 18px;
+        height: 18px;
+        vertical-align: 0;
+    }
+
+    /* ---------- Пустое состояние ---------- */
+    .oa-empty-ic {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 64px;
+        height: 64px;
+        margin: 28px auto 12px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .oa-empty-ic .rr-icon {
+        width: 30px;
+        height: 30px;
+    }
+    .m-owner-apps .page-intro {
+        margin: 0 0 6px;
+        color: var(--text);
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.3;
+        text-align: center;
+    }
+    .oa-empty-hint {
+        max-width: 320px;
+        margin: 0 auto 16px;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1.4;
+        text-align: center;
+    }
+    .m-btn.oa-empty-btn {
+        display: flex;
+        width: max-content;
+        max-width: 100%;
+        margin: 0 auto 8px;
+    }
+}
+
+/* Планшет-портрет: заявки — в две колонки */
+@media (min-width: 600px) and (max-width: 768px) {
+    .admin-table.oa-apps tbody {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}

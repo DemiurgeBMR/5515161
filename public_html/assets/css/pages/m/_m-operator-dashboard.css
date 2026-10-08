@@ -1,0 +1,636 @@
+/* ===== ТЕЛЕФОНЫ: Дашборд оператора (pages/operator_dashboard.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран: «шапка профиля» (аватар, имя, роль, кнопка шторки «Профиль») → карточка баланса
+   контактов → плитки 2×2 → «Требует внимания» (раскрывающиеся карточки) → ближайший визит →
+   крупная кнопка «Найти локации». Боковое меню кабинета (.dashboard-nav) на телефоне не
+   показываем: те же разделы — в нижней панели и шторке «Профиль».
+   Новичку (нет ни точек, ни заявок) сразу под балансом — «первый шаг» с кнопкой поиска.
+   Попапы плиток — шторки (глобально), таблицы в них — карточки (.m-table-cards). */
+
+@media (max-width: 768px) {
+
+    /* ---------- Каркас ---------- */
+    .dashboard-wrapper {
+        display: block;
+        max-width: none;
+        margin: 0;
+        padding: 10px var(--m-gutter) 24px;
+    }
+
+    /* ---------- Шапка профиля ---------- */
+    .dashboard-sidebar {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) var(--m-tap);
+        grid-template-rows: auto auto;
+        column-gap: 12px;
+        align-items: center;
+        padding: 4px 0 14px;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .dashboard-sidebar .avatar {
+        grid-row: 1 / 3;
+        width: 52px;
+        height: 52px;
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+    }
+    .dashboard-sidebar .user-name {
+        align-self: end;
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-align: left;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .dashboard-sidebar .user-role {
+        align-self: start;
+        margin: 2px 0 0;
+        font-size: 13px;
+        line-height: 1.3;
+        text-align: left;
+        color: var(--accent);
+        font-weight: 700;
+    }
+    .dashboard-nav {
+        display: none;          /* разделы — в нижней панели и шторке «Профиль» */
+    }
+    .dash-m-profile {
+        grid-column: 3;
+        grid-row: 1 / 3;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .dash-m-profile .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+    .dash-m-profile:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- Основная колонка: без «карточки в карточке», порядок блоков ---------- */
+    .dashboard-main {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+    .dashboard-main > .welcome-text {
+        display: none;          /* имя уже в шапке профиля прямо над этим блоком */
+    }
+    .dashboard-main > .credits-card            { order: 1; }
+    .dashboard-main.is-empty > .quick-actions  { order: 2; }
+    .dashboard-main > .dash-stats-grid         { order: 3; }
+    .dashboard-main > .attention-heading       { order: 4; }
+    .dashboard-main > .attention-empty,
+    .dashboard-main > .attention-groups        { order: 5; }
+    .dashboard-main > .next-visit-card         { order: 6; }
+    .dashboard-main > .dash-qa-title           { order: 7; }
+    .dashboard-main > .quick-actions           { order: 8; }
+
+    .dashboard-main > h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 12px 0 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .dashboard-main > h3 .rr-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+        vertical-align: 0;
+    }
+
+    /* ---------- Баланс контактов — акцентная карточка ---------- */
+    .credits-card {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        column-gap: 12px;
+        row-gap: 2px;
+        align-items: start;
+        margin: 0 0 12px;
+        padding: 14px;
+        background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--bg-elevated);
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+        border-radius: var(--m-radius);
+    }
+    .credits-card.empty {
+        background: var(--bg-elevated);
+        border-color: var(--border);
+    }
+    .credits-card-icon {
+        grid-row: 1;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        font-size: 22px;
+    }
+    .credits-card-body {
+        grid-row: 1;
+        align-self: center;
+    }
+    .credits-card-title {
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .credits-card-sub {
+        margin-top: 4px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .credits-card-link {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--m-tap);
+        margin: 12px 0 0;
+        padding: 0 16px;
+        background: var(--accent-soft);
+        border-radius: 12px;
+        color: var(--accent);
+        font-size: 15px;
+        font-weight: 800;
+        text-align: center;
+        text-decoration: none;
+    }
+    .credits-card-link:hover {
+        text-decoration: none;
+    }
+    .credits-card.empty .credits-card-link {
+        background: var(--accent);
+        color: #fff;
+    }
+
+    /* ---------- Показатели — плитки 2×2 ---------- */
+    .dash-stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 0 0 12px;
+    }
+    @media (min-width: 600px) {
+        .dash-stats-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));   /* лёжа/планшет — плитки в один ряд */
+        }
+    }
+    .dash-stat-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+        padding: 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        text-align: left;
+    }
+    .dash-stat-card.clickable {
+        border-color: var(--border);
+        -webkit-tap-highlight-color: transparent;
+    }
+    .dash-stat-card.clickable:hover,
+    .dash-stat-card.clickable:focus-visible {
+        transform: none;
+        box-shadow: none;
+        border-color: var(--border);
+    }
+    .dash-stat-card.clickable:focus-visible {
+        border-color: var(--accent);
+    }
+    .dash-stat-card.clickable:active {
+        background: var(--bg-elevated-2);
+    }
+    /* «›» — плитка открывает шторку со списком */
+    .dash-stat-card.clickable::after {
+        content: '';
+        position: absolute;
+        top: 22px;
+        right: 15px;
+        width: 7px;
+        height: 7px;
+        border-top: 2px solid var(--text-faint);
+        border-right: 2px solid var(--text-faint);
+        transform: rotate(45deg);
+    }
+    .dash-stat-ic {
+        order: -1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        margin-bottom: 8px;
+        border-radius: 11px;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .dash-stat-ic .rr-icon {
+        width: 18px;
+        height: 18px;
+        vertical-align: 0;
+    }
+    .dash-stat-card .number {
+        max-width: 100%;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.2px;
+        overflow-wrap: anywhere;
+    }
+    .dash-stat-card .label {
+        margin-top: 3px;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+
+    /* ---------- Ближайший визит — карточка, вся нажимается ---------- */
+    .next-visit-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        column-gap: 12px;
+        align-items: start;
+        margin: 0 0 12px;
+        padding: 14px 14px 4px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .next-visit-icon {
+        grid-row: 1 / 3;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--info-soft);
+        color: var(--info);
+        font-size: 22px;
+    }
+    .next-visit-title {
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.3;
+    }
+    .next-visit-sub {
+        margin-top: 3px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .next-visit-link {
+        grid-column: 2;
+        justify-self: start;
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: left;
+    }
+    .next-visit-link::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--m-radius);
+    }
+    .next-visit-link:hover {
+        text-decoration: none;
+    }
+    .next-visit-card:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- Быстрые действия — крупная кнопка ---------- */
+    .quick-actions {
+        flex-direction: column;
+        gap: 10px;
+        margin: 0 0 4px;
+    }
+    .quick-actions .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 52px;
+        padding: 0 20px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    .quick-actions .btn .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+    .quick-actions .btn:active {
+        background: var(--accent-hover);
+    }
+
+    /* Новичок: «первый шаг» вместо раздела «Быстрые действия» внизу */
+    .dashboard-main.is-empty > .dash-qa-title {
+        display: none;
+    }
+    .dashboard-main.is-empty > .quick-actions {
+        margin: 0 0 12px;
+        padding: 22px 16px 16px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        text-align: center;
+    }
+    .dash-first-step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 8px;
+    }
+    .dash-first-step-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        margin-bottom: 6px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .dash-first-step-ic .rr-icon {
+        width: 26px;
+        height: 26px;
+        vertical-align: 0;
+    }
+    .dash-first-step b {
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .dash-first-step span:last-child {
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+
+    /* ---------- «Требует внимания» — раскрывающиеся карточки ---------- */
+    .dashboard-main > .attention-heading {
+        margin-top: 10px;
+    }
+    .attention-empty {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px;
+        padding: 14px;
+        background: var(--success-soft);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        font-size: 15px;
+        line-height: 1.35;
+    }
+    .attention-empty .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        color: var(--success);
+    }
+    .attention-groups {
+        gap: 10px;
+        margin: 0 0 12px;
+    }
+    .attention-group {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        overflow: hidden;
+    }
+    /* Шапка группы распадается: заголовок — сверху (по нему раскрывается),
+       ссылка «Все точки →» — кнопкой внизу раскрытой карточки */
+    .attention-group-head {
+        display: contents;
+    }
+    .attention-group-head > span {
+        order: 0;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 62px;
+        padding: 10px 40px 10px 12px;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+        -webkit-tap-highlight-color: transparent;
+    }
+    .attention-group-head > span > .rr-icon {
+        flex: none;
+        box-sizing: content-box;
+        width: 20px;
+        height: 20px;
+        padding: 10px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        vertical-align: 0;
+    }
+    .attention-group-head .att-n {
+        margin-left: auto;
+        min-width: 26px;
+        justify-content: center;
+        font-size: 13px;
+    }
+    .att-maint .attention-group-head > span > .rr-icon,
+    .att-maint .att-n {
+        background: var(--warning-soft);
+        color: var(--warning);
+    }
+    .att-pending .attention-group-head > span > .rr-icon,
+    .att-pending .att-n {
+        background: var(--info-soft);
+        color: var(--info);
+    }
+    .att-unread .attention-group-head > span > .rr-icon,
+    .att-unread .att-n {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+    .attention-list {
+        order: 1;
+        gap: 0;
+        margin: 0;
+        padding: 0 14px;
+        border-top: 1px solid var(--border);
+    }
+    .attention-list li + li {
+        border-top: 1px solid var(--border);
+    }
+    .attention-list a {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        padding: 10px 22px 10px 0;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+    }
+    .attention-list a .rr-icon {
+        margin-left: 4px;
+        color: var(--danger);
+    }
+    .attention-list a::after,
+    .attention-group-head > span::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 4px;
+        width: 7px;
+        height: 7px;
+        margin-top: -4px;
+        border-top: 2px solid var(--text-faint);
+        border-right: 2px solid var(--text-faint);
+        transform: rotate(45deg);
+    }
+    .attention-list a:active {
+        color: var(--accent);
+    }
+    .attention-group-head > a {
+        order: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 14px;
+        border-top: 1px solid var(--border);
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--accent);
+    }
+    .attention-group-head > a:active {
+        background: var(--bg-elevated-2);
+    }
+    /* Аккордеон (включает assets/js/m/operator-dashboard.js; без JS всё раскрыто) */
+    .attention-groups.m-acc .attention-group-head > span {
+        cursor: pointer;
+    }
+    .attention-groups.m-acc .attention-group-head > span::after {
+        right: 18px;
+        margin-top: -6px;
+        transform: rotate(135deg);
+        transition: transform 0.18s ease;
+    }
+    .attention-groups.m-acc .attention-group.is-open .attention-group-head > span::after {
+        margin-top: -2px;
+        transform: rotate(-45deg);
+    }
+    .attention-groups.m-acc .attention-group:not(.is-open) .attention-list,
+    .attention-groups.m-acc .attention-group:not(.is-open) .attention-group-head > a {
+        display: none;
+    }
+    .attention-groups.m-acc .attention-group-head > span:active {
+        background: var(--bg-elevated-2);
+    }
+    .attention-groups:not(.m-acc) .attention-group-head > span::after {
+        content: none;
+    }
+
+    /* ---------- Шторки плиток (модалки → шторки глобально): заголовок и карточки ---------- */
+    .m-pg-op-dash .modal-box h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 14px;
+        padding-right: 44px;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .m-pg-op-dash .modal-box h3 .rr-icon {
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+        vertical-align: 0;
+    }
+    .m-pg-op-dash .modal-box .page-intro {
+        font-size: 15px;
+        line-height: 1.5;
+    }
+    .modal-box table.dash-m-table {
+        margin-top: 0;
+    }
+    .modal-box table.dash-m-table td,
+    .modal-box table.dash-m-table td:first-child {
+        white-space: normal;
+        font-weight: 400;
+        vertical-align: baseline;
+    }
+    .modal-box table.dash-m-table td.m-cell-title {
+        font-weight: 800;
+    }
+    .modal-box table.dash-m-table td.m-cell-title a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        color: var(--accent);
+        text-decoration: none;
+        overflow-wrap: anywhere;
+    }
+    .modal-box table.dash-m-table tfoot {
+        display: block;
+    }
+    .modal-box table.dash-m-table tfoot tr {
+        background: var(--accent-soft);
+        border-color: rgba(var(--accent-rgb), 0.35);
+    }
+    .modal-box table.dash-m-table tfoot td {
+        border-bottom-color: rgba(var(--accent-rgb), 0.25);
+    }
+    .modal-box table.dash-m-table .service-badge {
+        margin-top: 0;
+    }
+
+    /* Ссылки подвала — не ниже 32px (общий подвал; см. запрос координатору в отчёте) */
+    body.m-pg-op-dash .footer p.footer-legal-links a {
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+}

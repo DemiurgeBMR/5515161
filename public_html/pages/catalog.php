@@ -144,6 +144,15 @@ $stmt_count->execute($params);
 $total = $stmt_count->fetchColumn();
 $total_pages = max(1, (int)ceil($total / $per_page));
 
+// Телефон: шторка фильтров показывает «Показать N предложений» и пересчитывает N
+// при изменении полей — тем же запросом подсчёта, без выборки карточек и вёрстки.
+if (isset($_GET['m_count'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['total' => (int)$total]);
+    exit;
+}
+
 // ---------- Основной запрос с LIMIT и OFFSET ----------
 $sql = "SELECT l.*,
         (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 AND is_pending = 0 LIMIT 1) as main_photo
@@ -191,12 +200,78 @@ $access_hours_options = ['24/7', '08:00-22:00', '09:00-21:00', '10:00-20:00', '�
 $filterParams = array_filter($_GET, function ($k) {
     return $k !== 'page';
 }, ARRAY_FILTER_USE_KEY);
+
+// ---------- Телефон (≤768px): плитки категорий, строка «N локаций · город / сортировка»,
+// шторки фильтров/города/сортировки, компактный пейджер. На десктопе эти блоки скрыты (.m-only). ----------
+// Ссылка каталога с текущими фильтрами, в которых часть параметров заменена/убрана (пустые не тащим).
+$mCatalogUrl = function (array $set = [], array $drop = []) use ($filterParams) {
+    $p = array_filter($filterParams, function ($v, $k) use ($drop) {
+        return !in_array($k, $drop, true) && $k !== 'm_count' && $v !== '' && $v !== null;
+    }, ARRAY_FILTER_USE_BOTH);
+    foreach ($set as $k => $v) {
+        if ($v === '' || $v === null) { unset($p[$k]); } else { $p[$k] = $v; }
+    }
+    $qs = http_build_query($p);
+    return '/pages/catalog.php' . ($qs !== '' ? '?' . $qs : '');
+};
+// Сколько фильтров шторки включено — счётчик на кнопке фильтров (поиск и сортировка не считаются)
+$mActiveFilters = ($city !== '' ? 1 : 0) + ($space_type !== '' ? 1 : 0) + ($traffic_min > 0 ? 1 : 0)
+    + ($access_hours !== '' ? 1 : 0) + (($min_price !== '' || $max_price !== '') ? 1 : 0)
+    + (($min_area !== '' || $max_area !== '') ? 1 : 0) + $has_electricity + $has_wifi + $has_water;
+// Плитки категорий: короткие подписи и иконки; показываем типы, по которым есть свободные локации
+$mTypeTiles = [
+    'retail' => ['Магазины', 'bag'], 'office' => ['Офисы', 'briefcase'], 'gym' => ['Фитнес', 'dumbbell'],
+    'hotel' => ['Отели', 'bed'], 'hospital' => ['Медицина', 'cross'], 'transit' => ['Вокзалы', 'train'],
+    'cafe' => ['Кафе', 'coffee'], 'coworking' => ['Коворкинги', 'users'], 'education' => ['Учёба', 'book'],
+    'cinema' => ['Досуг', '@film'], 'auto' => ['Авто', 'wrench'], 'warehouse' => ['Склады', '@box'],
+    'factory' => ['Заводы', '@factory'], 'bank' => ['Банки', 'card'], 'post' => ['Почта', 'mail'],
+    'park' => ['Парки', '@tree'], 'stadium' => ['Стадионы', '@trophy'], 'museum' => ['Музеи', '@landmark'],
+    'laundromat' => ['Прачечные', 'droplet'], 'other' => ['Другое', 'more'],
+];
+// Иконки, которых нет в includes/icons.php, — в том же линейном стиле
+$mExtraIcons = [
+    'film'     => '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4M3 12h18"/>',
+    'box'      => '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+    'factory'  => '<path d="M3 21V10l6 4v-4l6 4V5h6v16z"/><path d="M7 17h2M12 17h2M17 17h2"/>',
+    'tree'     => '<path d="M12 22v-5"/><path d="M12 3 6 11h3l-4 6h14l-4-6h3z"/>',
+    'trophy'   => '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
+    'landmark' => '<path d="M3 21h18M5 21v-9M9.5 21v-9M14.5 21v-9M19 21v-9M2 9l10-6 10 6z"/>',
+];
+$mIcon = function ($name) use ($mExtraIcons) {
+    if ($name !== '' && $name[0] === '@') {
+        return '<svg class="rr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $mExtraIcons[substr($name, 1)] . '</svg>';
+    }
+    return rr_icon($name);
+};
+$mTypeCounts = [];
+foreach ($pdo->query("SELECT space_type, COUNT(*) AS cnt FROM locations l WHERE l.is_active = 1 AND l.is_moderated = 1 AND $notOccupiedSql GROUP BY space_type") as $r) {
+    $mTypeCounts[(string)$r['space_type']] = (int)$r['cnt'];
+}
+$mSortLabels = [
+    'newest'       => 'Сначала новые',
+    'price_asc'    => 'Сначала дешевле',
+    'price_desc'   => 'Сначала дороже',
+    'traffic_desc' => 'Сначала проходимые',
+];
+$mSortShort = ['newest' => 'Новые', 'price_asc' => 'Дешевле', 'price_desc' => 'Дороже', 'traffic_desc' => 'Проходимые'];
+$mCredits = $is_operator ? rr_credits_summary($pdo, $user_id) : null;
+// Подписи-«чипы» для полей шторки (выпадающие списки на телефоне превращаются в ряды чипов)
+$mTypeChipLabels = [
+    'retail' => 'Магазины и ТЦ', 'office' => 'Офисы', 'gym' => 'Фитнес', 'hotel' => 'Отели',
+    'hospital' => 'Медицина', 'transit' => 'Вокзалы', 'cafe' => 'Кафе', 'coworking' => 'Коворкинги',
+    'education' => 'Учебные заведения', 'cinema' => 'Кино и досуг', 'auto' => 'Автосалоны и СТО',
+    'warehouse' => 'Склады', 'factory' => 'Заводы', 'bank' => 'Банки', 'post' => 'Почта',
+    'park' => 'Парки', 'stadium' => 'Стадионы', 'museum' => 'Музеи', 'laundromat' => 'Прачечные', 'other' => 'Другое',
+];
+$mTypeChipsVisible = 6;   // остальные — под «Ещё N»
+$mTypeKeys = array_keys($space_types);
+$mTypeSelectedHidden = $space_type !== '' && array_search($space_type, $mTypeKeys, true) >= $mTypeChipsVisible;
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Каталог локаций для вендинга — RR</title>
     <meta name="description" content="Каталог мест под вендинговые автоматы: фильтры по городу, цене и типу помещения. Подберите точку для установки или сдайте своё помещение в аренду.">
     <meta property="og:type" content="website">
@@ -205,7 +280,7 @@ $filterParams = array_filter($_GET, function ($k) {
     <meta property="og:url" content="<?php echo htmlspecialchars(SITE_URL); ?>/pages/catalog.php">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-catalog">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="catalog-page">
@@ -217,12 +292,27 @@ $filterParams = array_filter($_GET, function ($k) {
              поля, один явный кнопка-сабмит вместо автопосыла формы при каждом
              изменении поля. -->
         <div class="filters-card">
-        <form class="catalog-filters" method="GET">
+        <form class="catalog-filters" method="GET" id="catFilterForm">
             <div class="search-box">
                 <span class="filters-search-icon"><?php echo rr_icon('search'); ?></span>
-                <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>">
+                <input type="text" name="q" placeholder="Город, тип помещения, район, ID (RR-00007)..." value="<?php echo htmlspecialchars($search_query); ?>" enterkeyhint="search" aria-label="Поиск локаций">
             </div>
+            <!-- Телефон: кнопка шторки фильтров рядом с поиском (счётчик — сколько фильтров включено) -->
+            <button type="button" class="m-only cat-fbtn<?php echo $mActiveFilters ? ' is-active' : ''; ?>" data-m-sheet-open="catFilterSheet" aria-controls="catFilterSheet" aria-label="Фильтры<?php echo $mActiveFilters ? ': включено ' . $mActiveFilters : ''; ?>">
+                <?php echo rr_icon('sliders'); ?>
+                <?php if ($mActiveFilters): ?><i class="cat-fbtn-n" aria-hidden="true"><?php echo $mActiveFilters; ?></i><?php endif; ?>
+            </button>
 
+            <!-- На десктопе — обычный блок полей формы; на телефоне — высокая шторка «Фильтры»
+                 (шапка со «Сбросить», прокручиваемое тело, липкая кнопка «Показать N»). -->
+            <div class="m-sheet m-sheet--tall cat-fsheet" id="catFilterSheet" aria-labelledby="catFilterTitle">
+            <div class="m-sheet-handle m-only" aria-hidden="true"></div>
+            <div class="m-sheet-head m-only">
+                <b id="catFilterTitle">Фильтры</b>
+                <a href="<?php echo htmlspecialchars($mCatalogUrl([], ['city', 'space_type', 'traffic_min', 'access_hours', 'sort', 'min_price', 'max_price', 'min_area', 'max_area', 'has_electricity', 'has_wifi', 'has_water'])); ?>" class="m-sheet-link" data-cat-reset>Сбросить</a>
+                <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+            </div>
+            <div class="m-sheet-body catalog-filters cat-fsheet-body">
             <div class="filters-grid">
                 <div class="filter-field">
                     <label>Город</label>
@@ -242,6 +332,13 @@ $filterParams = array_filter($_GET, function ($k) {
                             <option value="<?php echo $key; ?>" <?php echo ($space_type === $key) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <div class="m-only cat-chips<?php echo $mTypeSelectedHidden ? ' is-expanded' : ''; ?>" data-chips-for="space_type" role="group" aria-label="Тип помещения">
+                        <button type="button" class="m-chip" data-value="" aria-pressed="<?php echo $space_type === '' ? 'true' : 'false'; ?>">Любой</button>
+                        <?php foreach ($mTypeKeys as $i => $key): ?>
+                            <button type="button" class="m-chip<?php echo $i >= $mTypeChipsVisible ? ' cat-chip-more' : ''; ?>" data-value="<?php echo $key; ?>" aria-pressed="<?php echo $space_type === $key ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($mTypeChipLabels[$key] ?? $space_types[$key]); ?></button>
+                        <?php endforeach; ?>
+                        <button type="button" class="m-chip cat-chip-toggle" data-chips-toggle aria-expanded="<?php echo $mTypeSelectedHidden ? 'true' : 'false'; ?>"><span class="cat-chip-toggle-more">Ещё <?php echo count($mTypeKeys) - $mTypeChipsVisible; ?></span><span class="cat-chip-toggle-less">Свернуть</span> <?php echo rr_icon('chevron-down'); ?></button>
+                    </div>
                 </div>
 
                 <div class="filter-field">
@@ -252,6 +349,12 @@ $filterParams = array_filter($_GET, function ($k) {
                             <option value="<?php echo $i; ?>" <?php echo ($traffic_min == $i) ? 'selected' : ''; ?>><?php echo $trafficLabels[$i]; ?> и выше</option>
                         <?php endfor; ?>
                     </select>
+                    <div class="m-only cat-chips" data-chips-for="traffic_min" role="group" aria-label="Проходимость">
+                        <button type="button" class="m-chip" data-value="" aria-pressed="<?php echo $traffic_min <= 0 ? 'true' : 'false'; ?>">Любая</button>
+                        <?php for ($i = 2; $i <= 5; $i++): ?>
+                            <button type="button" class="m-chip" data-value="<?php echo $i; ?>" aria-pressed="<?php echo $traffic_min === $i ? 'true' : 'false'; ?>" aria-label="<?php echo $trafficLabels[$i]; ?><?php echo $i < 5 ? ' и выше' : ''; ?>"><?php echo rr_icon('star'); ?> <?php echo $i; ?><?php echo $i < 5 ? '+' : ''; ?></button>
+                        <?php endfor; ?>
+                    </div>
                 </div>
 
                 <div class="filter-field">
@@ -262,6 +365,12 @@ $filterParams = array_filter($_GET, function ($k) {
                             <option value="<?php echo htmlspecialchars($ah); ?>" <?php echo ($access_hours === $ah) ? 'selected' : ''; ?>><?php echo htmlspecialchars($ah); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <div class="m-only cat-chips" data-chips-for="access_hours" role="group" aria-label="Часы доступа">
+                        <button type="button" class="m-chip" data-value="" aria-pressed="<?php echo $access_hours === '' ? 'true' : 'false'; ?>">Любые</button>
+                        <?php foreach ($access_hours_options as $ah): ?>
+                            <button type="button" class="m-chip" data-value="<?php echo htmlspecialchars($ah); ?>" aria-pressed="<?php echo $access_hours === $ah ? 'true' : 'false'; ?>"><?php echo htmlspecialchars(str_replace([':00', '-'], ['', '–'], $ah)); ?></button>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
 
                 <div class="filter-field">
@@ -272,30 +381,36 @@ $filterParams = array_filter($_GET, function ($k) {
                         <option value="price_desc" <?php echo ($sort === 'price_desc') ? 'selected' : ''; ?>>Цена: по убыванию</option>
                         <option value="traffic_desc" <?php echo ($sort === 'traffic_desc') ? 'selected' : ''; ?>>Сначала проходимые</option>
                     </select>
+                    <div class="m-only cat-chips" data-chips-for="sort" role="group" aria-label="Сортировка">
+                        <?php foreach ($mSortLabels as $key => $label): ?>
+                            <button type="button" class="m-chip" data-value="<?php echo $key; ?>" aria-pressed="<?php echo $sort === $key ? 'true' : 'false'; ?>"><?php echo htmlspecialchars($label); ?></button>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
 
             <div class="filters-grid filters-grid-range">
                 <div class="filter-field">
                     <label>Цена от, ₽</label>
-                    <input type="number" name="min_price" placeholder="1000" min="0" value="<?php echo htmlspecialchars($min_price); ?>">
+                    <input type="number" name="min_price" placeholder="1000" min="0" inputmode="numeric" value="<?php echo htmlspecialchars($min_price); ?>">
                 </div>
                 <div class="filter-field">
                     <label>Цена до, ₽</label>
-                    <input type="number" name="max_price" placeholder="10000" min="0" value="<?php echo htmlspecialchars($max_price); ?>">
+                    <input type="number" name="max_price" placeholder="10000" min="0" inputmode="numeric" value="<?php echo htmlspecialchars($max_price); ?>">
                 </div>
                 <div class="filter-field">
                     <label>Площадь от, м²</label>
-                    <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" value="<?php echo htmlspecialchars($min_area); ?>">
+                    <input type="number" name="min_area" placeholder="0.5" min="0" step="0.1" inputmode="decimal" value="<?php echo htmlspecialchars($min_area); ?>">
                 </div>
                 <div class="filter-field">
                     <label>Площадь до, м²</label>
-                    <input type="number" name="max_area" placeholder="5" min="0" step="0.1" value="<?php echo htmlspecialchars($max_area); ?>">
+                    <input type="number" name="max_area" placeholder="5" min="0" step="0.1" inputmode="decimal" value="<?php echo htmlspecialchars($max_area); ?>">
                 </div>
             </div>
 
             <div class="filters-bottom-row">
                 <div class="filters-amenities">
+                    <span class="m-only cat-flabel">Удобства</span>
                     <label class="chip-checkbox">
                         <input type="checkbox" name="has_electricity" value="1" <?php echo $has_electricity ? 'checked' : ''; ?>> <?php echo rr_icon('bolt'); ?> Электричество
                     </label>
@@ -313,10 +428,40 @@ $filterParams = array_filter($_GET, function ($k) {
                     <button type="submit" class="btn-filter-primary"><?php echo rr_icon('search'); ?> Показать предложения</button>
                 </div>
             </div>
+            </div><!-- /.m-sheet-body -->
+            <div class="m-sheet-foot m-only">
+                <button type="submit" class="m-btn m-btn--block cat-fsheet-submit" id="catFilterSubmit" data-plural="предложение|предложения|предложений">Показать <?php echo (int)$total; ?> <?php echo rr_plural_ru((int)$total, 'предложение', 'предложения', 'предложений'); ?></button>
+            </div>
+            </div><!-- /.m-sheet -->
         </form>
+            <!-- Телефон: строка-призыв в «шапке» каталога; оператору — сколько контактов осталось -->
+            <div class="m-only cat-hero-row">
+                <a href="/pages/how_it_works.php" class="cat-hero-link">Найди место для автомата<br>за 5 минут <?php echo rr_icon('chevron-right'); ?></a>
+                <?php if ($mCredits !== null): ?>
+                    <a href="/pages/subscription.php" class="cat-credits-chip" aria-label="Доступно контактов: <?php echo (int)$mCredits['total_available']; ?>"><?php echo rr_icon('unlock'); ?> <?php echo (int)$mCredits['total_available']; ?></a>
+                <?php endif; ?>
+            </div>
         </div>
 
-        <div class="catalog-subtitle">Найдено локаций: <?php echo $total; ?></div>
+        <!-- Телефон: плитки категорий (тип помещения) — ссылки сохраняют остальные фильтры -->
+        <nav class="m-only cat-tiles" aria-label="Категории">
+            <a href="<?php echo htmlspecialchars($mCatalogUrl([], ['space_type', 'page'])); ?>" class="cat-tile<?php echo $space_type === '' ? ' is-on' : ''; ?>"<?php echo $space_type === '' ? ' aria-current="true"' : ''; ?>><span>Все</span><i><?php echo rr_icon('grid'); ?></i></a>
+            <?php foreach ($mTypeTiles as $key => $tile): ?>
+                <?php if (empty($mTypeCounts[$key]) && $space_type !== $key) continue; ?>
+                <a href="<?php echo htmlspecialchars($mCatalogUrl(['space_type' => $key], ['page'])); ?>" class="cat-tile<?php echo $space_type === $key ? ' is-on' : ''; ?>"<?php echo $space_type === $key ? ' aria-current="true"' : ''; ?>><span><?php echo htmlspecialchars($tile[0]); ?></span><i><?php echo $mIcon($tile[1]); ?></i></a>
+            <?php endforeach; ?>
+        </nav>
+
+        <!-- Телефон: «N локаций · город» и сортировка -->
+        <div class="m-only cat-sortrow">
+            <b class="cat-count"><?php echo (int)$total; ?> <?php echo rr_plural_ru((int)$total, 'локация', 'локации', 'локаций'); ?></b>
+            <?php if (count($topCityCounts) > 0): ?>
+                <button type="button" class="cat-sortrow-btn cat-sortrow-city" data-m-sheet-open="catCitySheet" aria-controls="catCitySheet"><?php echo rr_icon('map-pin'); ?><span><?php echo htmlspecialchars($city !== '' ? $city : 'Все города'); ?></span><?php echo rr_icon('chevron-down'); ?></button>
+            <?php endif; ?>
+            <button type="button" class="cat-sortrow-btn cat-sortrow-sort" data-m-sheet-open="catSortSheet" aria-controls="catSortSheet" aria-label="Сортировка: <?php echo htmlspecialchars($mSortLabels[$sort]); ?>"><span class="cat-sort-long"><?php echo htmlspecialchars($mSortLabels[$sort]); ?></span><span class="cat-sort-short" aria-hidden="true"><?php echo htmlspecialchars($mSortShort[$sort]); ?></span><?php echo rr_icon('chevron-down'); ?></button>
+        </div>
+
+        <div class="catalog-subtitle m-hide">Найдено локаций: <?php echo $total; ?></div>
 
         <!-- Быстрый выбор города -->
         <?php if (count($topCityCounts) > 0): ?>
@@ -326,6 +471,14 @@ $filterParams = array_filter($_GET, function ($k) {
                 }, ARRAY_FILTER_USE_KEY);
                 $cityLinkQs = http_build_query($cityLinkParams);
             ?>
+            <!-- На десктопе — строка чипов городов; на телефоне — шторка «Город» (из строки «N локаций · город»). -->
+            <div class="m-sheet cat-citysheet" id="catCitySheet" aria-labelledby="catCityTitle">
+            <div class="m-sheet-handle m-only" aria-hidden="true"></div>
+            <div class="m-sheet-head m-only">
+                <b id="catCityTitle">Город</b>
+                <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+            </div>
+            <div class="m-sheet-body">
             <div class="city-chip-row">
                 <a href="/pages/catalog.php<?php echo $cityLinkQs ? '?' . $cityLinkQs : ''; ?>" class="city-chip <?php echo $city === '' ? 'active' : ''; ?>">
                     Все города
@@ -336,7 +489,25 @@ $filterParams = array_filter($_GET, function ($k) {
                     </a>
                 <?php endforeach; ?>
             </div>
+            </div>
+            </div>
         <?php endif; ?>
+
+        <!-- Телефон: шторка сортировки -->
+        <div class="m-sheet m-only cat-sortsheet" id="catSortSheet" aria-labelledby="catSortTitle">
+            <div class="m-sheet-handle" aria-hidden="true"></div>
+            <div class="m-sheet-head">
+                <b id="catSortTitle">Сортировка</b>
+                <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+            </div>
+            <div class="m-sheet-body">
+                <ul class="m-menu">
+                    <?php foreach ($mSortLabels as $key => $label): ?>
+                        <li><a href="<?php echo htmlspecialchars($mCatalogUrl(['sort' => $key === 'newest' ? '' : $key], ['page'])); ?>" class="m-menu-item<?php echo $sort === $key ? ' is-accent' : ''; ?>"<?php echo $sort === $key ? ' aria-current="true"' : ''; ?>><span><?php echo htmlspecialchars($label); ?></span><?php if ($sort === $key) echo rr_icon('check'); ?></a></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        </div>
 
         <!-- Список локаций -->
         <?php if (count($locations) > 0): ?>
@@ -348,7 +519,7 @@ $filterParams = array_filter($_GET, function ($k) {
                     ?>
                     <div class="catalog-card">
                         <?php if ($is_operator): ?>
-                            <button type="button" class="favorite-btn<?php echo $isFavorited ? ' active' : ''; ?>" data-location-id="<?php echo $loc['id']; ?>" aria-pressed="<?php echo $isFavorited ? 'true' : 'false'; ?>" title="<?php echo $isFavorited ? 'Убрать из избранного' : 'В избранное'; ?>"><?php echo rr_icon('heart'); ?></button>
+                            <button type="button" class="favorite-btn<?php echo $isFavorited ? ' active' : ''; ?>" data-location-id="<?php echo $loc['id']; ?>" aria-pressed="<?php echo $isFavorited ? 'true' : 'false'; ?>" aria-label="В избранное" title="<?php echo $isFavorited ? 'Убрать из избранного' : 'В избранное'; ?>"><?php echo rr_icon('heart'); ?></button>
                         <?php endif; ?>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="catalog-card-link">
                             <?php if (!empty($loc['main_photo'])): ?>
@@ -367,7 +538,7 @@ $filterParams = array_filter($_GET, function ($k) {
                                 <?php if ($locHasFullAccess): ?>
                                     <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
                                 <?php else: ?>
-                                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city']); ?> <span class="address-locked">· точный адрес по подписке</span></div>
+                                    <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city']); ?> <span class="address-locked">· точный адрес по подписке</span><?php echo rr_icon('lock', 'm-only cat-lock'); ?></div>
                                 <?php endif; ?>
 
                                 <div class="meta-row">
@@ -383,6 +554,9 @@ $filterParams = array_filter($_GET, function ($k) {
                                 </div>
 
                                 <div class="badges">
+                                    <?php if ($loc['traffic_rating'] > 0): $tr = max(0, min(5, (int)$loc['traffic_rating'])); ?>
+                                        <span class="m-only cat-stars" role="img" aria-label="Проходимость: <?php echo $tr; ?> из 5"><?php echo str_repeat('★', $tr); ?><i><?php echo str_repeat('★', 5 - $tr); ?></i></span>
+                                    <?php endif; ?>
                                     <span class="id-badge">RR-<?php echo str_pad($loc['id'], 5, '0', STR_PAD_LEFT); ?></span>
                                     <?php if ($loc['has_electricity']): ?>
                                         <span class="amenity-badge electricity"><?php echo rr_icon('bolt'); ?></span>
@@ -405,7 +579,21 @@ $filterParams = array_filter($_GET, function ($k) {
 
             <!-- Пагинация -->
             <?php if ($total_pages > 1): ?>
-                <div class="pagination">
+                <!-- Телефон: компактный пейджер «‹ · 2 из 3 · ›» -->
+                <nav class="m-only cat-pager" aria-label="Страницы">
+                    <?php if ($page > 1): ?>
+                        <a href="<?php echo htmlspecialchars($mCatalogUrl($page - 1 > 1 ? ['page' => $page - 1] : [], ['page'])); ?>" class="cat-pager-btn" rel="prev"><?php echo rr_icon('chevron-left'); ?> Назад</a>
+                    <?php else: ?>
+                        <span class="cat-pager-btn is-disabled" aria-hidden="true"><?php echo rr_icon('chevron-left'); ?> Назад</span>
+                    <?php endif; ?>
+                    <span class="cat-pager-now"><b><?php echo $page; ?></b> из <?php echo $total_pages; ?></span>
+                    <?php if ($page < $total_pages): ?>
+                        <a href="<?php echo htmlspecialchars($mCatalogUrl(['page' => $page + 1])); ?>" class="cat-pager-btn" rel="next">Далее <?php echo rr_icon('chevron-right'); ?></a>
+                    <?php else: ?>
+                        <span class="cat-pager-btn is-disabled" aria-hidden="true">Далее <?php echo rr_icon('chevron-right'); ?></span>
+                    <?php endif; ?>
+                </nav>
+                <div class="pagination m-hide">
                     <?php if ($page > 1): ?>
                         <a href="?page=<?php echo $page-1; ?>&<?php echo http_build_query($filterParams); ?>">←</a>
                     <?php endif; ?>
@@ -423,14 +611,16 @@ $filterParams = array_filter($_GET, function ($k) {
             <?php endif; ?>
 
         <?php else: ?>
-            <div class="empty">
+            <div class="empty m-empty cat-empty">
                 <h3><?php echo rr_icon('frown'); ?> Ничего не найдено</h3>
                 <p>Попробуйте изменить параметры фильтра или <a href="/pages/add_location.php">добавьте свою локацию</a>.</p>
+                <a href="/pages/catalog.php" class="m-only m-btn cat-empty-reset"><?php echo rr_icon('refresh'); ?> Сбросить фильтры</a>
             </div>
         <?php endif; ?>
     </div>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/catalog.js"></script>
 </body>
 </html>

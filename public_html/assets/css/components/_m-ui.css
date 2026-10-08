@@ -1,0 +1,692 @@
+/* ===== ОБЩИЕ «КИРПИЧИКИ» МОБИЛЬНОЙ ВЕРСИИ (телефоны, ≤ 768px) =====
+   Единый набор классов, из которого собираются все телефонные экраны сайта: одинаковые
+   отступы, скругления, карточки, чипы, строки списков, кнопки, липкая кнопка действия и
+   «таблица → карточки». Страницы подключают их в разметке (класс m-…) и/или
+   используют как образец в своих pages/m/_m-*.css.
+
+   Всё, что меняет вид, — только внутри @media (max-width: 768px). Исключение — хелперы
+   видимости .m-only/.m-hide: они нужны именно для того, чтобы одна и та же разметка
+   вела себя по-разному на десктопе и на телефоне.
+   Цвета — только переменные темы (работает и в тёмной, и в светлой). */
+
+/* ---------- Видимость ---------- */
+@media (min-width: 769px) {
+    .m-only {
+        display: none !important;      /* только для телефонов */
+    }
+}
+@media (max-width: 768px) {
+    .m-hide {
+        display: none !important;      /* только для десктопа */
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* ---------- Страница и заголовки ---------- */
+    .m-page {
+        padding: 12px var(--m-gutter) 24px;
+    }
+    .m-page-title {
+        margin: 4px 0 12px;
+        font-size: 24px;
+        line-height: 1.2;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        color: var(--text);
+    }
+    .m-page-sub {
+        margin: -6px 0 14px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .m-section {
+        margin-top: 22px;
+    }
+    .m-section-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 10px;
+    }
+    .m-section-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--text);
+    }
+    .m-section-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 32px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    /* ---------- Верхняя панель страницы-детали («назад», заголовок, действия) ---------- */
+    .m-appbar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 52px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 0 8px;
+    }
+    .m-appbar-back,
+    .m-appbar-act {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 50%;
+        color: var(--text);
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .m-appbar-back .rr-icon,
+    .m-appbar-act .rr-icon {
+        width: 24px;
+        height: 24px;
+    }
+    .m-appbar-title {
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* ---------- Карточка ---------- */
+    .m-card {
+        display: block;
+        padding: 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        color: var(--text);
+        text-decoration: none;
+    }
+    .m-card + .m-card,
+    .m-card + .m-list {
+        margin-top: 10px;
+    }
+    .m-card-title {
+        margin: 0 0 6px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .m-card-meta {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .m-card.is-accent {
+        background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--bg-elevated);
+        border-color: rgba(var(--accent-rgb), 0.35);
+    }
+    .m-card.is-warning {
+        background: var(--warning-soft);
+        border-color: rgba(224, 169, 63, 0.4);
+    }
+    .m-card.is-danger {
+        background: var(--danger-soft);
+        border-color: rgba(255, 107, 107, 0.4);
+    }
+
+    /* ---------- Сетка карточек: 2 колонки (каталог, избранное) ---------- */
+    .m-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 10px;
+    }
+    .m-grid-2 > * {
+        min-width: 0;
+    }
+
+    /* ---------- Плитки-показатели (2 в ряд) ---------- */
+    .m-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    .m-stat {
+        padding: 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        text-align: center;
+    }
+    .m-stat b {
+        display: block;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.15;
+        color: var(--text);
+    }
+    .m-stat span {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        line-height: 1.25;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Чипы и фильтры-пилюли ---------- */
+    .m-chips {
+        display: flex;
+        gap: 8px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 2px var(--m-gutter);
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .m-chips::-webkit-scrollbar {
+        display: none;
+    }
+    .m-chips.is-wrap {
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+    }
+    .m-chip {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 40px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .m-chip .rr-icon {
+        width: 16px;
+        height: 16px;
+    }
+    .m-chip.is-on,
+    .m-chip[aria-pressed="true"] {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    /* ---------- Сегменты (вкладки внутри страницы) ---------- */
+    .m-seg {
+        display: flex;
+        padding: 3px;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .m-seg > * {
+        flex: 1 1 0;
+        min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 8px;
+        background: none;
+        border: 0;
+        border-radius: 11px;
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+    }
+    .m-seg > .is-on,
+    .m-seg > [aria-selected="true"] {
+        background: var(--bg-elevated);
+        color: var(--text);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* ---------- Список строк (заявки, уведомления, пункты меню кабинета) ---------- */
+    .m-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        overflow: hidden;
+    }
+    .m-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 60px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+    }
+    .m-list > li + li,
+    .m-list > .m-row + .m-row {
+        border-top: 1px solid var(--border);
+    }
+    a.m-row:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-row-ic {
+        flex: none;
+        width: 40px;
+        height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .m-row-ic .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .m-row-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .m-row-title {
+        display: block;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-row-sub {
+        display: block;
+        margin-top: 2px;
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--text-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-row-end {
+        flex: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .m-row-go {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        color: var(--text-faint);
+    }
+
+    /* ---------- Статус-плашка ---------- */
+    .m-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 9px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
+    .m-pill.is-info    { background: var(--info-soft);    color: var(--info); }
+    .m-pill.is-warning { background: var(--warning-soft); color: var(--warning); }
+    .m-pill.is-danger  { background: var(--danger-soft);  color: var(--danger); }
+    .m-pill.is-muted   { background: var(--bg-elevated-2); color: var(--text-muted); }
+
+    /* ---------- Кнопки ---------- */
+    .m-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 0 20px;
+        background: var(--accent);
+        border: 1px solid transparent;
+        border-radius: 14px;
+        color: #fff;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    .m-btn:active {
+        background: var(--accent-hover);
+    }
+    .m-btn .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .m-btn--block {
+        display: flex;
+        width: 100%;
+    }
+    .m-btn--ghost {
+        background: transparent;
+        border-color: var(--border-strong);
+        color: var(--text);
+    }
+    .m-btn--ghost:active {
+        background: var(--bg-elevated-2);
+    }
+    .m-btn--soft {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .m-btn--danger {
+        background: var(--danger);
+        color: #fff;
+    }
+    .m-btn--sm {
+        min-height: var(--m-tap);
+        padding: 0 16px;
+        font-size: 14px;
+        border-radius: 12px;
+    }
+    .m-btn[disabled],
+    .m-btn.is-disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+    .m-btn-row {
+        display: flex;
+        gap: 10px;
+    }
+    .m-btn-row > .m-btn {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    /* Круглая кнопка-иконка (избранное на фото карточки и т.п.). Зона нажатия 40px. */
+    .m-fab-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        background: rgba(0, 0, 0, 0.38);
+        border: 0;
+        border-radius: 50%;
+        color: #fff;
+        cursor: pointer;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+    }
+    .m-fab-ic .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .m-fab-ic.is-on {
+        background: #fff;
+        color: #ff5a6a;
+    }
+
+    /* ---------- Липкая кнопка действия внизу экрана ----------
+       Над нижней панелью (на странице с .m-no-tabbar — у самого низа). Странице с такой
+       кнопкой на <body> добавляют класс m-has-cta — освободить под неё место. */
+    .m-sticky-cta {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
+        z-index: 950;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px var(--m-gutter);
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.14);
+    }
+    body.m-no-tabbar .m-sticky-cta {
+        bottom: 0;
+        padding-bottom: calc(10px + var(--m-safe-b));
+    }
+    .m-sticky-cta .m-btn {
+        flex: 1 1 auto;
+    }
+    .m-sticky-cta-price {
+        flex: none;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.15;
+    }
+    .m-sticky-cta-price small {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    body.m-has-cta {
+        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b) + 76px);
+    }
+    body.m-has-cta.m-no-tabbar {
+        padding-bottom: calc(var(--m-safe-b) + 76px);
+    }
+
+    /* ---------- Таблица → карточки ----------
+       <table class="m-table-cards"> и в каждой <td> атрибут data-label="Название колонки".
+       Заголовок таблицы скрыт, каждая строка — карточка,
+       каждая ячейка — «подпись слева, значение справа». td.m-cell-full — на всю ширину,
+       td.m-cell-title — заголовок карточки без подписи, td[data-label=""] — без подписи. */
+    table.m-table-cards,
+    table.m-table-cards tbody,
+    table.m-table-cards tr,
+    table.m-table-cards td {
+        display: block;
+        width: 100%;
+    }
+    table.m-table-cards {
+        border: 0;
+        background: none;
+    }
+    table.m-table-cards thead {
+        display: none;       /* подписи колонок переехали в data-label каждой ячейки */
+    }
+    table.m-table-cards tr {
+        margin: 0 0 10px;
+        padding: 6px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    table.m-table-cards td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 0;
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        text-align: right;
+        font-size: 14px;
+        white-space: normal;
+        word-break: break-word;
+    }
+    table.m-table-cards td:last-child {
+        border-bottom: 0;
+    }
+    table.m-table-cards td::before {
+        content: attr(data-label);
+        flex: 0 0 38%;
+        max-width: 38%;
+        text-align: left;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    table.m-table-cards td[data-label=""]::before,
+    table.m-table-cards td:not([data-label])::before {
+        content: none;
+    }
+    table.m-table-cards td.m-cell-full {
+        display: block;
+        text-align: left;
+    }
+    table.m-table-cards td.m-cell-full::before {
+        display: block;
+        max-width: none;
+        margin-bottom: 4px;
+    }
+    table.m-table-cards td.m-cell-title {
+        display: block;
+        padding: 10px 0 6px;
+        font-size: 16px;
+        font-weight: 800;
+        text-align: left;
+    }
+    table.m-table-cards td.m-cell-title::before {
+        content: none;
+    }
+
+    /* ---------- Горизонтальная прокрутка (когда таблицу в карточки не перестроить:
+       календарь, длинные таблицы админки). Страница при этом не «ездит». ---------- */
+    .m-scroll-x {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+    .m-scroll-x > table {
+        min-width: 560px;
+    }
+    /* Галерея со «щёлкающей» прокруткой (фото локации) */
+    .m-snap-x {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .m-snap-x::-webkit-scrollbar {
+        display: none;
+    }
+    .m-snap-x > * {
+        flex: none;
+        scroll-snap-align: center;
+    }
+
+    /* ---------- Формы ---------- */
+    .m-field {
+        margin: 0 0 14px;
+    }
+    .m-field > label,
+    .m-label {
+        display: block;
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+    .m-field input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+    .m-field select,
+    .m-field textarea {
+        width: 100%;
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+    }
+    .m-field textarea {
+        padding: 12px 14px;
+        min-height: 96px;
+    }
+    .m-field-row {
+        display: flex;
+        gap: 10px;
+    }
+    .m-field-row > * {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+    .m-hint {
+        margin: 6px 0 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Пустое состояние ---------- */
+    .m-empty {
+        padding: 36px 20px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    .m-empty .rr-icon {
+        width: 44px;
+        height: 44px;
+        margin-bottom: 10px;
+        color: var(--text-faint);
+    }
+    .m-empty b {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 17px;
+        color: var(--text);
+    }
+
+    /* ---------- Мелочи ---------- */
+    .m-divider {
+        height: 1px;
+        margin: 14px 0;
+        background: var(--border);
+        border: 0;
+    }
+    .m-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .m-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+}

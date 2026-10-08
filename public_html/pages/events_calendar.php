@@ -41,7 +41,7 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Календарь выездов — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
     <!-- FullCalendar уже подключён глобально в header.php -->
@@ -54,13 +54,14 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="calendar-header">
         <div class="calendar-title-block">
             <a href="<?php echo $backLink; ?>" class="cal-back-link">← Назад</a>
-            <h1 class="calendar-title"><?php echo rr_icon('calendar'); ?> Выезды и обслуживание</h1>
+            <h1 class="calendar-title"><?php echo rr_icon('calendar'); ?> Выезды<span class="m-hide"> и обслуживание</span></h1>
             <p class="calendar-subtitle">Планирование, согласование и история обслуживания точек</p>
         </div>
         <div class="calendar-actions">
             <button class="action-btn" id="historyBtn"><?php echo rr_icon('file-text'); ?> История и экспорт</button>
             <button class="action-btn" id="refreshCalendarBtn">↻ Обновить</button>
             <button class="action-btn primary" id="newEventBtn"><?php echo rr_icon('plus-circle'); ?> Новый выезд</button>
+            <button type="button" class="cal-m-more m-only" data-m-sheet-open="calActionsSheet" aria-haspopup="dialog" aria-controls="calActionsSheet" aria-label="Другие действия"><?php echo rr_icon('more'); ?></button>
         </div>
     </div>
 
@@ -69,28 +70,28 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <div class="stat-icon today"><?php echo rr_icon('calendar'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="todayCount">0</div>
-                <div class="stat-label">Событий сегодня</div>
+                <div class="stat-label"><span class="m-hide">Событий сегодня</span><span class="m-only">Сегодня</span></div>
             </div>
         </div>
         <div class="stat-card" data-filter="pending" id="statPending">
             <div class="stat-icon pending"><?php echo rr_icon('clock'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="pendingCount">0</div>
-                <div class="stat-label">Ожидают подтверждения</div>
+                <div class="stat-label"><span class="m-hide">Ожидают подтверждения</span><span class="m-only">Ожидают</span></div>
             </div>
         </div>
         <div class="stat-card" data-filter="emergency" id="statEmergency">
             <div class="stat-icon emergency"><?php echo rr_icon('warning'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="emergencyCount">0</div>
-                <div class="stat-label">Срочных выездов</div>
+                <div class="stat-label"><span class="m-hide">Срочных выездов</span><span class="m-only">Срочные</span></div>
             </div>
         </div>
         <div class="stat-card" id="statCompleted">
             <div class="stat-icon completed"><?php echo rr_icon('check'); ?></div>
             <div class="stat-info">
                 <div class="stat-number" id="completedCount">0</div>
-                <div class="stat-label">Выполнено за месяц</div>
+                <div class="stat-label"><span class="m-hide">Выполнено за месяц</span><span class="m-only">Выполнено</span></div>
             </div>
         </div>
     </div>
@@ -99,9 +100,10 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         <div class="toolbar-left">
             <div class="cal-search-box">
                 <span class="search-icon"><?php echo rr_icon('search'); ?></span>
-                <input type="text" id="eventSearch" placeholder="Поиск по точке, городу, оператору...">
+                <input type="text" id="eventSearch" placeholder="Поиск по точке, городу, оператору..." enterkeyhint="search" autocomplete="off">
             </div>
         </div>
+        <button type="button" class="cal-m-filter-btn m-only" id="calFilterBtn" data-m-sheet-open="calFilterSheet" aria-haspopup="dialog" aria-controls="calFilterSheet" aria-label="Фильтры"><?php echo rr_icon('sliders'); ?><span class="cal-m-filter-lb">Фильтры</span><i class="cal-m-dot" hidden></i></button>
         <div class="toolbar-right">
             <select class="filter-select" id="typeFilter">
                 <option value="all">Все типы</option>
@@ -145,11 +147,46 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
         </aside>
 
         <main class="calendar-card">
+            <div class="cal-m-viewbar m-only">
+                <div class="m-seg" role="tablist" aria-label="Вид календаря">
+                    <button type="button" role="tab" data-cal-view="list" aria-selected="true"><?php echo rr_icon('list'); ?> Список</button>
+                    <button type="button" role="tab" data-cal-view="month" aria-selected="false"><?php echo rr_icon('grid'); ?> Месяц</button>
+                </div>
+                <button type="button" class="cal-m-today" data-cal-today>Сегодня</button>
+            </div>
             <div id="calendar"></div>
+            <section class="cal-m-day m-only" id="calDayList" aria-live="polite" hidden></section>
             <div class="loading-overlay" id="loadingOverlay">
                 <div class="spinner"></div>
             </div>
         </main>
+    </div>
+</div>
+
+<!-- ===== ТЕЛЕФОН: шторки фильтров и действий (на десктопе скрыты) ===== -->
+<div class="m-sheet m-only cal-m-sheet" id="calFilterSheet" role="dialog" aria-modal="true" aria-labelledby="calFilterTitle" aria-hidden="true">
+    <div class="m-sheet-handle" aria-hidden="true"></div>
+    <div class="m-sheet-head">
+        <b id="calFilterTitle" class="m-sheet-title">Фильтры</b>
+        <button type="button" class="m-sheet-link" id="calFilterReset">Сбросить</button>
+    </div>
+    <div class="m-sheet-body" id="calFilterChips"></div>
+    <div class="m-sheet-foot">
+        <button type="button" class="m-btn m-btn--block" data-m-sheet-close id="calFilterApply">Показать</button>
+    </div>
+</div>
+<div class="m-sheet m-only cal-m-sheet" id="calActionsSheet" role="dialog" aria-modal="true" aria-labelledby="calActionsTitle" aria-hidden="true">
+    <div class="m-sheet-handle" aria-hidden="true"></div>
+    <div class="m-sheet-head">
+        <b id="calActionsTitle" class="m-sheet-title">Выезды</b>
+        <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+    </div>
+    <div class="m-sheet-body">
+        <ul class="m-menu">
+            <li><button type="button" class="m-menu-item is-accent" data-cal-proxy="newEventBtn"><?php echo rr_icon('plus-circle'); ?><span>Запланировать выезд</span></button></li>
+            <li><button type="button" class="m-menu-item" data-cal-proxy="historyBtn"><?php echo rr_icon('file-text'); ?><span>История и экспорт</span><?php echo rr_icon('chevron-right', 'm-menu-go'); ?></button></li>
+            <li><button type="button" class="m-menu-item" data-cal-proxy="refreshCalendarBtn"><?php echo rr_icon('refresh'); ?><span>Обновить календарь</span></button></li>
+        </ul>
     </div>
 </div>
 
@@ -190,9 +227,19 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
                     <option value="removal">Демонтаж</option>
                 </select>
             </div>
-            <div class="cal-form-group">
+            <div class="cal-form-group m-hide">
                 <label class="cal-form-label" for="eventDatetime">Дата и время *</label>
                 <input type="datetime-local" id="eventDatetime" class="cal-form-control" required>
+            </div>
+            <div class="cal-form-group cal-dt-split m-only" data-dt-for="eventDatetime">
+                <div class="cal-dt-col">
+                    <label class="cal-form-label" for="eventDateM">Дата *</label>
+                    <input type="date" id="eventDateM" class="cal-form-control">
+                </div>
+                <div class="cal-dt-col">
+                    <label class="cal-form-label" for="eventTimeM">Время *</label>
+                    <input type="time" id="eventTimeM" class="cal-form-control">
+                </div>
             </div>
             <div class="cal-form-group">
                 <label class="emergency-toggle" for="isEmergency">
@@ -238,9 +285,19 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
             <button type="button" class="cal-close-btn" onclick="closeRescheduleModal()" aria-label="Закрыть">×</button>
         </div>
         <form id="rescheduleForm">
-            <div class="cal-form-group">
+            <div class="cal-form-group m-hide">
                 <label class="cal-form-label" for="rescheduleDatetime">Новая дата и время *</label>
                 <input type="datetime-local" id="rescheduleDatetime" class="cal-form-control" required>
+            </div>
+            <div class="cal-form-group cal-dt-split m-only" data-dt-for="rescheduleDatetime">
+                <div class="cal-dt-col">
+                    <label class="cal-form-label" for="rescheduleDateM">Новая дата *</label>
+                    <input type="date" id="rescheduleDateM" class="cal-form-control">
+                </div>
+                <div class="cal-dt-col">
+                    <label class="cal-form-label" for="rescheduleTimeM">Время *</label>
+                    <input type="time" id="rescheduleTimeM" class="cal-form-control">
+                </div>
             </div>
             <div id="rescheduleError" class="form-error-box" role="alert"></div>
             <div class="cal-modal-buttons">
@@ -299,9 +356,22 @@ $backLink = ($role === 'operator') ? '/pages/operator_dashboard.php' : '/pages/p
     <div class="menu-item danger" id="ctxDelete"><?php echo rr_icon('trash'); ?> Отменить выезд</div>
 </div>
 
+<script src="/assets/js/m/calendar.js"></script>
 <script>
 const ROLE = <?php echo json_encode($role); ?>;
 const USER_ID = <?php echo (int)$user_id; ?>;
+// Телефон (≤ 768px): список/компактный месяц, шторки — assets/js/m/calendar.js. На десктопе не вмешивается.
+const CalM = window.RRCalMobile || null;
+if (CalM) CalM.setup({
+    role: ROLE,
+    userId: USER_ID,
+    icons: <?php echo json_encode([
+        'clock' => rr_icon('clock'), 'pin' => rr_icon('map-pin'), 'warning' => rr_icon('warning'),
+        'user' => rr_icon('user'), 'plus' => rr_icon('plus-circle'), 'calendar' => rr_icon('calendar'),
+        'installation' => rr_icon('plus'), 'maintenance' => rr_icon('wrench'), 'restock' => rr_icon('bag'),
+        'repair' => rr_icon('tool'), 'removal' => rr_icon('trash'), 'check' => rr_icon('check'), 'edit' => rr_icon('edit'),
+    ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>
+});
 document.addEventListener('DOMContentLoaded', function () {
 
     // ============================================================
@@ -327,6 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 activeEvent = obj;
                 openDetailsModal(obj);
                 calendar.gotoDate(obj.start);
+                if (CalM) CalM.pickDate(obj.start);
             } else {
                 showToast('Событие не найдено — возможно, оно уже обработано', 'warning');
             }
@@ -439,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ============================================================
     calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'ru',
-        initialView: 'dayGridMonth',
+        initialView: CalM ? CalM.initialView('dayGridMonth') : 'dayGridMonth',
         firstDay: 1,
         height: 'auto',
         nowIndicator: true,
@@ -448,7 +519,11 @@ document.addEventListener('DOMContentLoaded', function () {
         dayMaxEvents: 4,
         fixedWeekCount: false,
         navLinkDayClick: false,
-        headerToolbar: {
+        headerToolbar: CalM ? CalM.initialToolbar({
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        }) : {
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
@@ -457,10 +532,18 @@ document.addEventListener('DOMContentLoaded', function () {
         views: {
             dayGridMonth: { titleFormat: { year: 'numeric', month: 'long' } },
             timeGridWeek: { titleFormat: { day: 'numeric', month: 'long', year: 'numeric' } },
-            timeGridDay: { titleFormat: { day: 'numeric', month: 'long', year: 'numeric' } }
+            timeGridDay: { titleFormat: { day: 'numeric', month: 'long', year: 'numeric' } },
+            listMonth: { titleFormat: { year: 'numeric', month: 'long' } }
         },
+        // Телефон: карточки в списке, пустое состояние, точки в месяце (на десктопе — стандартная отрисовка)
+        eventContent: function(arg) { return CalM ? CalM.eventContent(arg) : undefined; },
+        noEventsContent: function(arg) { return CalM ? CalM.noEventsContent(arg) : undefined; },
+        datesSet: function(info) { if (CalM) CalM.onDatesSet(info); },
+        eventsSet: function() { if (CalM) CalM.onEventsSet(); },
+        windowResize: function() { if (CalM) CalM.sync(); },
 
         dateClick: function(info) {
+            if (CalM && CalM.handleDateClick(info)) return; // телефон, вид «Месяц»: выбрать день
             const dateStr = info.dateStr;
             const itemsOnDate = getEventsForDate(dateStr);
             if (itemsOnDate.length > 0) {
@@ -582,12 +665,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 e.stopPropagation();
                 activeEvent = event;
+                // На телефоне долгое нажатие открывает шторку с деталями, а не мелкое контекстное меню
+                if (CalM && CalM.isPhone()) { openDetailsModal(event); return; }
                 showContextMenu(e, event);
             });
         }
     });
 
     calendar.render();
+    if (CalM) CalM.init(calendar, {
+        openDetails: function(obj) { activeEvent = obj; openDetailsModal(obj); },
+        openCreate: openCreateModal
+    });
 
     // ============================================================
     // 5. ФИЛЬТР ПО ОПЕРАТОРУ (только собственник) — заполняется из загруженных данных
@@ -638,6 +727,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('pendingCount').textContent = pendingEvents.length;
         document.getElementById('emergencyCount').textContent = emergencyEvents.length;
         document.getElementById('completedCount').textContent = completedThisMonth.length;
+        // Классы-признаки для телефона (заметные плитки «ожидают»/«срочные»); на десктопе без стилей
+        document.getElementById('statPending').classList.toggle('has-items', pendingEvents.length > 0);
+        document.getElementById('statEmergency').classList.toggle('has-items', emergencyEvents.length > 0);
     }
 
     function updateTodaySidebar() {
@@ -878,7 +970,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 html += `<div class="detail-item spaced"><div class="detail-label">Комментарий</div><div class="detail-value">${escapeHtml(props.comment)}</div></div>`;
             }
             html += renderPhotosBlock(props.photos);
-            html += `<div class="detail-actions"><button class="cal-btn-primary full" onclick="openRelatedPage()"><?php echo rr_icon('map-pin'); ?> Открыть точку</button></div>`;
+            html += `<div class="detail-actions"><button class="cal-btn-primary full cal-act-open" onclick="openRelatedPage()"><?php echo rr_icon('map-pin'); ?> Открыть точку</button></div>`;
             document.getElementById('detailsContent').innerHTML = html;
             detailsModal.classList.add('active');
             return;
@@ -943,22 +1035,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         html += `<div class="detail-actions">`;
-        html += `<button class="cal-btn-primary full" onclick="openRelatedPage()">${props.application_id ? '<?php echo rr_icon('message-circle'); ?> Открыть заявку' : '<?php echo rr_icon('map-pin'); ?> Открыть точку'}</button>`;
+        html += `<button class="cal-btn-primary full cal-act-open" onclick="openRelatedPage()">${props.application_id ? '<?php echo rr_icon('message-circle'); ?> <span class="m-hide">Открыть заявку</span><span class="m-only">В чат</span>' : '<?php echo rr_icon('map-pin'); ?> Открыть точку'}</button>`;
 
         const isRequester = String(props.requested_by) === String(USER_ID);
         const isPending = props.status === 'requested' || props.status === 'reviewing';
 
         if (isPending && !isRequester) {
-            html += `<button class="cal-btn-primary" onclick="confirmActiveEvent()"><?php echo rr_icon('check'); ?> Подтвердить</button>`;
+            html += `<button class="cal-btn-primary cal-act-confirm" onclick="confirmActiveEvent()"><?php echo rr_icon('check'); ?> Подтвердить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-primary" onclick="openRescheduleModal()"><?php echo rr_icon('edit'); ?> Изменить время</button>`;
+            html += `<button class="cal-btn-primary cal-act-resched" onclick="openRescheduleModal()"><?php echo rr_icon('edit'); ?> <span class="m-hide">Изменить время</span><span class="m-only">Другая дата</span></button>`;
         }
         if (props.status === 'confirmed') {
-            html += `<button class="cal-btn-primary" onclick="completeActiveEvent()"><?php echo rr_icon('check'); ?> Завершить</button>`;
+            html += `<button class="cal-btn-primary cal-act-complete" onclick="completeActiveEvent()"><?php echo rr_icon('check'); ?> Завершить</button>`;
         }
         if (props.status !== 'completed' && props.status !== 'cancelled') {
-            html += `<button class="cal-btn-danger" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить</button>`;
+            html += `<button class="cal-btn-danger cal-act-cancel" onclick="cancelActiveEvent()"><?php echo rr_icon('trash'); ?> Отменить</button>`;
         }
         html += `</div>`;
 

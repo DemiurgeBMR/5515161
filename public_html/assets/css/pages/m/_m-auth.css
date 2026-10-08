@@ -1,0 +1,713 @@
+/* ===== ВХОД, РЕГИСТРАЦИЯ, ВОССТАНОВЛЕНИЕ ПАРОЛЯ, 2FA, ПОДТВЕРЖДЕНИЕ ПОЧТЫ — ТЕЛЕФОНЫ (≤ 768px) =====
+   Экраны «как приложение»: сверху иконка и заголовок, форма без рамки-«карточки», поля 48px/16px,
+   подписи над полем, ошибки под полем, кнопка на всю ширину. Регистрация — мастер из двух шагов
+   с липкой кнопкой над нижней панелью.
+
+   Страницы ставят на <body> класс m-auth (форма настроек профиля — m-auth m-ep: у неё те же
+   поля и кнопки, её собственные правила — в _m-edit-profile.css). Всё внутри
+   @media (max-width: 768px): десктоп (≥ 769px) не меняется. Цвета — только переменные темы.
+   Поведение (ошибки под полями, прокрутка к активному полю) — assets/js/m/auth.js. */
+
+@media (max-width: 768px) {
+
+    /* Ссылки подвала («Подписка · Политика · Соглашение») — зона нажатия ≥ 32px */
+    body.m-auth .footer p.footer-legal-links a {
+        padding: 8px 2px;
+    }
+
+    /* ---------- Каркас страницы ---------- */
+    body.m-auth .register-form {
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 8px var(--m-gutter) 28px;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    /* Заголовок: иконка-«плитка» сверху, под ней заголовок 24/800 */
+    body.m-auth .register-form h2 {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        margin: 4px 0 8px;
+        text-align: left;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        color: var(--text);
+    }
+    body.m-auth .register-form h2 .rr-icon {
+        width: 52px;
+        height: 52px;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        vertical-align: baseline;
+    }
+    body.m-auth .register-form h2 + form {
+        margin-top: 14px;
+    }
+    body.m-auth .m-auth-sub,
+    body.m-auth .auth-note {
+        margin: 0 0 18px;
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    body.m-auth .auth-note-small {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+
+    /* «← Назад ко входу» */
+    body.m-auth .back-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        margin: 0 0 2px -6px;
+        padding: 0 10px 0 6px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-decoration: none;
+    }
+    body.m-auth .back-link:hover {
+        text-decoration: none;
+    }
+    body.m-auth .back-link:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- Сообщения ---------- */
+    body.m-auth .error,
+    body.m-auth .success {
+        position: relative;
+        margin: 0 0 16px;
+        padding: 12px 14px 12px 44px;
+        border-radius: 14px;
+        text-align: left;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    body.m-auth .error {
+        background: var(--danger-soft);
+        border: 1px solid rgba(255, 107, 107, 0.4);
+    }
+    body.m-auth .success {
+        background: var(--success-soft);
+        border: 1px solid rgba(76, 194, 106, 0.4);
+    }
+    body.m-auth .error::before,
+    body.m-auth .success::before {
+        content: "";
+        position: absolute;
+        left: 14px;
+        top: 12px;
+        width: 20px;
+        height: 20px;
+        -webkit-mask: center / contain no-repeat;
+        mask: center / contain no-repeat;
+    }
+    body.m-auth .error::before {
+        background: var(--danger);
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5v.01'/%3E%3C/svg%3E");
+    }
+    body.m-auth .success::before {
+        background: var(--success);
+        -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l3 3 5-6'/%3E%3C/svg%3E");
+        mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M8 12.5l3 3 5-6'/%3E%3C/svg%3E");
+    }
+    body.m-auth .success strong {
+        letter-spacing: 3px;
+    }
+
+    /* Ошибка под полем (assets/js/m/auth.js) */
+    body.m-auth .m-field-error {
+        margin: 6px 2px 0;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--danger);
+    }
+
+    /* ---------- Поля формы ---------- */
+    body.m-auth .form-row {
+        grid-template-columns: 1fr;
+        gap: 0;
+    }
+    body.m-auth .form-group {
+        margin: 0 0 14px;
+    }
+    body.m-auth .form-group label {
+        margin: 0 0 6px 2px;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--text-muted);
+    }
+    body.m-auth .form-group input,
+    body.m-auth .form-group textarea,
+    body.m-auth .form-group select {
+        min-height: 48px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        font-size: 16px;
+        text-overflow: ellipsis;
+    }
+    body.m-auth .form-group input:focus,
+    body.m-auth .form-group textarea:focus,
+    body.m-auth .form-group select:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+        outline: none;
+    }
+    body.m-auth .form-group input.is-invalid,
+    body.m-auth .form-group input[aria-invalid="true"] {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px var(--danger-soft);
+    }
+    body.m-auth .form-hint {
+        margin: 6px 2px 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    /* Подсказка «пароли совпадают» (rr-ui.js) резервирует место заранее — без скачка при вводе */
+    body.m-auth .form-hint.rr-match-hint[hidden] {
+        display: block;
+        visibility: hidden;
+    }
+
+    /* «Глазок» пароля — 44px */
+    body.m-auth .form-group .rr-pw-wrap > input.rr-pw-input {
+        padding-right: 54px;
+    }
+    body.m-auth .rr-pw-toggle {
+        right: 2px;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        border-radius: 12px;
+    }
+    body.m-auth .rr-pw-toggle .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    body.m-auth .rr-pw-toggle:hover {
+        background: none;
+        color: var(--text-muted);
+    }
+    body.m-auth .rr-pw-toggle[aria-pressed="true"],
+    body.m-auth .rr-pw-toggle[aria-pressed="true"]:hover {
+        color: var(--accent);
+    }
+
+    /* ---------- Кнопки ---------- */
+    body.m-auth .btn-submit {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.1;
+    }
+    body.m-auth .btn-submit:hover {
+        background: var(--accent);
+    }
+    body.m-auth .btn-submit:active {
+        background: var(--accent-hover);
+    }
+    body.m-auth .btn-submit .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    /* Вторичная кнопка («Прислать новый код») */
+    body.m-auth .btn-action.secondary {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 14px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 700;
+    }
+    body.m-auth .btn-action.secondary:hover {
+        background: transparent;
+    }
+    body.m-auth .btn-action.secondary:active {
+        background: var(--bg-elevated-2);
+    }
+    body.m-auth .auth-secondary-form {
+        margin-top: 10px;
+    }
+
+    /* Ссылки под формой («Забыли пароль?», «Зарегистрироваться») */
+    body.m-auth .auth-footer-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0 4px;
+        margin: 6px 0 0;
+        font-size: 15px;
+    }
+    body.m-auth .auth-footer-line:first-of-type {
+        margin-top: 8px;
+    }
+    body.m-auth .auth-footer-line a {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        padding: 0 6px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+    }
+
+    /* Ссылки-«следующее действие» в состояниях результата — крупные кнопки */
+    body.m-auth .auth-link-paragraph {
+        margin: 4px 0 0;
+    }
+    body.m-auth .auth-link-paragraph a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 800;
+        text-align: center;
+        text-decoration: none;
+    }
+    body.m-auth .auth-link-paragraph a:active {
+        background: var(--accent-hover);
+    }
+    /* Ссылка сброса, показанная прямо на экране (пока нет почты) */
+    body.m-auth .auth-link-break {
+        margin: 0 0 12px;
+        padding: 12px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        word-break: break-all;
+    }
+    body.m-auth .auth-link-break a {
+        color: var(--accent);
+    }
+
+    /* Код подтверждения (2FA): крупно, по центру, цифровая клавиатура */
+    body.m-auth input[name="code"] {
+        min-height: 56px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: 10px;
+        text-align: center;
+        text-indent: 10px;
+    }
+    body.m-auth input[name="code"]::placeholder {
+        letter-spacing: 6px;
+        font-weight: 600;
+    }
+
+    /* ---------- Регистрация ---------- */
+    body.m-auth .reg-page {
+        padding: 8px 0 8px;
+    }
+    body.m-auth .reg-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 560px;
+        padding: 0 var(--m-gutter);
+    }
+    body.m-auth .reg-hero {
+        margin: 4px 0 16px;
+        text-align: left;
+    }
+    body.m-auth .reg-badge {
+        display: none;               /* декоративная плашка — первый экран отдаём под форму */
+    }
+    body.m-auth .reg-hero h1 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    body.m-auth .reg-subtitle {
+        max-width: none;
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    /* Выбор роли — сегментированный переключатель с крупными целями */
+    body.m-auth .reg-role-picker {
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        margin: 0 0 16px;
+        padding: 4px;
+        background: var(--bg-elevated-2);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+    }
+    body.m-auth .reg-role-card {
+        justify-content: flex-start;
+        gap: 2px;
+        min-height: 80px;
+        padding: 8px 8px 10px;
+        background: transparent;
+        border: 2px solid transparent;
+        border-radius: 14px;
+        transition: none;
+    }
+    body.m-auth .reg-role-card:hover {
+        transform: none;
+        box-shadow: none;
+        border-color: transparent;
+    }
+    body.m-auth .reg-role-card.active,
+    body.m-auth .reg-role-card.active:hover {
+        background: var(--bg-elevated);
+        border-color: var(--accent);
+        box-shadow: var(--shadow-sm);
+    }
+    body.m-auth .reg-role-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        margin: 0 0 2px;
+        border-radius: 10px;
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+        font-size: 18px;
+    }
+    body.m-auth .reg-role-card.active .reg-role-icon {
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    body.m-auth .reg-role-title {
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+    body.m-auth .reg-role-text {
+        font-size: 12px;
+        line-height: 1.3;
+    }
+    body.m-auth .reg-role-card:has(input:focus-visible) {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+    }
+
+    /* Индикатор шагов — компактная строка */
+    body.m-auth .reg-steps {
+        justify-content: flex-start;
+        gap: 8px;
+        margin: 0 0 14px;
+    }
+    body.m-auth .reg-step {
+        flex-direction: row;
+        gap: 8px;
+    }
+    body.m-auth .reg-step-num {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+    }
+    body.m-auth .reg-step-num .rr-icon {
+        width: 14px;
+        height: 14px;
+    }
+    body.m-auth .reg-step-label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+    body.m-auth .reg-step-line {
+        flex: 1 1 auto;
+        width: auto;
+        margin: 0;
+    }
+    body.m-auth .reg-step.done .reg-step-num {
+        background: var(--success-soft);
+        border-color: var(--success);
+        color: var(--success);
+    }
+
+    /* Панели шагов — без рамки, прямо на фоне страницы */
+    body.m-auth .reg-panel {
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+    }
+    body.m-auth .reg-form.show-all .reg-panel {
+        margin-bottom: 8px;
+    }
+    body.m-auth .reg-panel h2 {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    body.m-auth .reg-panel-sub {
+        margin: 0 0 14px;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    /* «Что дальше» на последнем шаге — карточки-строки */
+    body.m-auth .reg-done-list {
+        gap: 8px;
+        margin: 10px 0 0;
+    }
+    body.m-auth .reg-done-list li {
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.45;
+    }
+    body.m-auth .reg-done-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 18px;
+    }
+
+    /* Согласия — строки ≥ 52px с крупным флажком */
+    body.m-auth .reg-consents {
+        gap: 8px;
+        margin-top: 16px;
+    }
+    body.m-auth .reg-consent {
+        align-items: center;
+        gap: 12px;
+        min-height: 52px;
+        padding: 10px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text);
+    }
+    body.m-auth .reg-consent input {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+    }
+    body.m-auth .reg-consent a {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+    }
+    body.m-auth .reg-consent:has(input:checked) {
+        border-color: rgba(var(--accent-rgb), 0.5);
+    }
+    body.m-auth .reg-consent.is-invalid {
+        border-color: var(--danger);
+    }
+    body.m-auth .reg-consents .m-field-error {
+        margin: -2px 4px 2px;
+    }
+
+    /* Липкая кнопка шага: над нижней панелью, всегда под большим пальцем */
+    body.m-auth .reg-panel-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
+        z-index: 950;
+        justify-content: center;
+        gap: 8px;
+        margin: 0;
+        padding: 10px var(--m-gutter);
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.14);
+    }
+    body.m-auth .reg-panel-actions > span:empty {
+        display: none;
+    }
+    body.m-auth .reg-panel-actions .btn-submit {
+        flex: 1 1 auto;
+        width: auto;
+        max-width: 520px;
+        padding: 0 12px;
+    }
+    body.m-auth .reg-btn-back {
+        flex: none;
+        min-height: 48px;
+        padding: 0 14px;
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: 700;
+    }
+    body.m-auth .reg-btn-back:hover {
+        border-color: var(--border-strong);
+        color: var(--text);
+    }
+    body.m-auth .reg-btn-back:active {
+        background: var(--bg-elevated-2);
+    }
+    /* После ошибки сервера показан весь мастер сразу — кнопка одна, «Назад» не нужна */
+    body.m-auth .reg-form.show-all .reg-panel[data-panel="1"] .reg-panel-actions,
+    body.m-auth .reg-form.show-all .reg-back {
+        display: none;
+    }
+    /* Экранная клавиатура открыта (нижней панели нет) — кнопка встаёт в поток под последним полем */
+    html.m-kb body.m-auth .reg-panel-actions {
+        position: static;
+        padding: 0;
+        margin-top: 16px;
+        background: none;
+        border: 0;
+        box-shadow: none;
+    }
+
+    body.m-auth .reg-login-link {
+        order: 4;
+        margin: 8px 0 0;
+        font-size: 15px;
+    }
+    body.m-auth .reg-login-link a {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        padding: 0 6px;
+        text-decoration: none;
+    }
+
+    /* Преимущества — после формы, компактным списком */
+    body.m-auth .reg-features {
+        order: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        margin: 12px 0 0;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        overflow: hidden;
+    }
+    body.m-auth .reg-feature {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        column-gap: 12px;
+        align-items: center;
+        padding: 12px 14px;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        text-align: left;
+    }
+    body.m-auth .reg-feature + .reg-feature {
+        border-top: 1px solid var(--border);
+    }
+    body.m-auth .reg-feature-icon {
+        grid-row: 1 / span 2;
+        width: 40px;
+        height: 40px;
+        margin: 0;
+        border-radius: 12px;
+        color: var(--accent);
+        font-size: 20px;
+    }
+    body.m-auth .reg-feature-title {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.25;
+    }
+    body.m-auth .reg-feature-text {
+        font-size: 13px;
+    }
+}
+
+/* Низкий экран (телефон лёжа): плотнее, без декоративной иконки в заголовке */
+@media (max-width: 768px) and (max-height: 480px) {
+    body.m-auth .register-form {
+        padding-top: 0;
+    }
+    body.m-auth .register-form h2 {
+        flex-direction: row;
+        align-items: center;
+        margin: 2px 0 6px;
+    }
+    body.m-auth .register-form h2 .rr-icon {
+        display: none;
+    }
+    body.m-auth .m-auth-sub,
+    body.m-auth .auth-note {
+        margin-bottom: 12px;
+    }
+    body.m-auth .form-group {
+        margin-bottom: 10px;
+    }
+    /* кнопка шага не липнет — иначе она съедает пол-экрана; встаёт в поток под полями */
+    body.m-auth .reg-panel-actions {
+        position: static;
+        justify-content: flex-start;
+        margin-top: 16px;
+        padding: 0;
+        background: none;
+        border: 0;
+        box-shadow: none;
+    }
+    body.m-auth .reg-panel-actions .btn-submit {
+        max-width: none;
+    }
+    body.m-auth.m-has-cta {
+        padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-b));
+    }
+    body.m-auth .reg-hero {
+        margin-bottom: 10px;
+    }
+    body.m-auth .reg-role-picker {
+        margin-bottom: 10px;
+    }
+    body.m-auth .reg-role-card {
+        min-height: 64px;
+    }
+    body.m-auth .reg-role-icon {
+        display: none;
+    }
+}

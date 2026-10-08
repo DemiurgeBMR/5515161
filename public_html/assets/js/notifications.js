@@ -56,6 +56,8 @@ $(document).ready(function () {
     }
 
     function updateBadge(count) {
+        // Счётчик в шторке «Профиль» мобильной панели (assets/js/rr-mobile.js)
+        if (window.RRMobile) window.RRMobile.setBadge('notif', count);
         if (!badge) return;
         if (count > 0) {
             badge.textContent = count > 99 ? '99+' : count;
@@ -147,6 +149,10 @@ $(document).ready(function () {
                 }
                 if (typeof data.unread_count === 'number') {
                     updateBadge(data.unread_count);
+                }
+                // Бейдж вкладки «Заявки» в нижней панели телефона — непрочитанные сообщения чатов
+                if (typeof data.unread_messages === 'number' && window.RRMobile) {
+                    window.RRMobile.setBadge('apps', data.unread_messages);
                 }
             },
             complete: function () {

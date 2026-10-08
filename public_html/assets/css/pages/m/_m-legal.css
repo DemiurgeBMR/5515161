@@ -1,0 +1,154 @@
+/* ===== ТЕЛЕФОНЫ: Политика и соглашение (pages/privacy_policy.php, terms.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css. */
+
+
+@media (max-width: 768px) {
+
+    .legal-page {
+        padding: 0 0 12px;
+    }
+    .legal-container {
+        max-width: none;
+        padding: 12px var(--m-gutter) 0;
+    }
+    .legal-container h1 {
+        align-items: flex-start;
+        gap: 10px;
+        margin: 4px 0 6px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+    }
+    .legal-container h1 .rr-icon {
+        width: 26px;
+        height: 26px;
+        margin-top: 1px;
+        color: var(--accent);
+    }
+    .legal-updated {
+        margin: 0 0 12px;
+        font-size: 13px;
+    }
+
+    /* ---------- Оглавление: липкая лента чипов под шапкой ---------- */
+    .legal-toc {
+        position: sticky;
+        top: calc(var(--m-header-h) + var(--m-safe-t));
+        z-index: 800;
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin: 0 calc(var(--m-gutter) * -1);
+        padding: 8px var(--m-gutter);
+        overflow-x: auto;
+        overflow-y: hidden;
+        background: var(--bg);
+        border: 0;
+        border-bottom: 1px solid var(--border);
+        border-radius: 0;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .legal-toc::-webkit-scrollbar {
+        display: none;
+    }
+    .legal-toc a {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+    .legal-toc a:hover {
+        color: var(--text);
+        text-decoration: none;
+    }
+    .legal-toc a.is-on {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    /* ---------- Текст: комфортное чтение ---------- */
+    .legal-container section {
+        margin: 0;
+        padding: 20px 0 6px;
+        scroll-margin-top: calc(var(--m-header-h) + var(--m-safe-t) + 62px);
+    }
+    .legal-container section + section {
+        border-top: 1px solid var(--border);
+    }
+    .legal-container h2,
+    .legal-container section:first-of-type h2 {
+        margin: 0 0 10px;
+        padding: 0;
+        border-top: 0;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    .legal-container p,
+    .legal-container li {
+        font-size: 16px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+    .legal-container p {
+        margin: 0 0 12px;
+    }
+    .legal-container ul {
+        margin: 0 0 14px;
+        padding-left: 20px;
+    }
+    .legal-container li {
+        margin-bottom: 8px;
+    }
+    .legal-container table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Реквизиты оператора */
+    .legal-placeholder {
+        padding: 14px 16px;
+        border-radius: 14px;
+    }
+    .legal-container .legal-placeholder li {
+        margin-bottom: 6px;
+        font-size: 15px;
+    }
+    .legal-container .legal-placeholder li:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Предупреждение — семантическая «жёлтая» плашка на цветах темы */
+    .legal-container p.legal-note {
+        margin-top: 14px;
+        padding: 12px 14px;
+        background: var(--warning-soft);
+        border: 1px solid rgba(224, 169, 63, 0.45);
+        border-radius: 14px;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    .legal-container p.legal-note .rr-icon {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        color: var(--warning);
+    }
+}

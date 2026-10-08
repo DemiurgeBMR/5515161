@@ -172,30 +172,39 @@ $current_event = $stmt->fetch();
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Чат по заявке — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-no-tabbar m-chat-screen">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
 <div class="chat-container">
-    <a href="<?php echo $backUrl; ?>" class="chat-back-link">← Назад к списку заявок</a>
+    <a href="<?php echo $backUrl; ?>" class="chat-back-link m-hide">← Назад к списку заявок</a>
 
     <div class="chat-card" id="chatCard">
 
         <!-- ================= ОСНОВНАЯ КОЛОНКА: ТРЕД ================= -->
         <div class="chat-main">
 
-            <!-- компактная шапка — видна только на мобилке -->
+            <!-- компактная шапка — видна только на мобилке (≤768px): «назад», собеседник,
+                 статус и локация, кнопка «ⓘ» открывает шторку деталей (#chatSidebar) -->
             <div class="chat-main-topbar">
-                <div class="who">
+                <a href="<?php echo $backUrl; ?>" class="chat-m-back m-only" data-chat-back aria-label="Назад к списку заявок"><?php echo rr_icon('chevron-left'); ?></a>
+                <div class="who" data-chat-details>
                     <div class="party-avatar"><?php echo htmlspecialchars(getInitials($other_party)); ?></div>
-                    <div class="name"><?php echo htmlspecialchars($other_party); ?></div>
+                    <div class="who-text">
+                        <div class="name"><?php echo htmlspecialchars($other_party); ?></div>
+                        <div class="who-sub m-only">
+                            <span class="m-pill chat-m-status status-<?php echo $displayStatus; ?>" id="mChatStatus"><?php echo $statusLabels[$displayStatus] ?? 'Ожидает'; ?></span>
+                            <span class="who-loc"><?php echo htmlspecialchars($application['location_title']); ?></span>
+                        </div>
+                    </div>
                 </div>
-                <button class="details-toggle-btn" id="detailsToggleBtn">
+                <button type="button" class="details-toggle-btn" id="detailsToggleBtn" aria-label="Детали заявки" aria-controls="chatSidebar" aria-expanded="false">
                     <span class="status-dot dot-<?php echo $displayStatus; ?>" id="detailsToggleDot"></span>
-                    Детали
+                    <span class="details-toggle-text">Детали</span>
+                    <?php echo rr_icon('info-circle', 'details-toggle-ic'); ?>
                 </button>
             </div>
 
@@ -216,7 +225,7 @@ $current_event = $stmt->fetch();
                             $prevDate = $msgDate;
                         ?>
                         <?php if ($showDateSeparator): ?>
-                            <div class="date-separator"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
+                            <div class="date-separator" data-date="<?php echo $msgDate; ?>"><span><?php echo formatDateSeparator($msgDate); ?></span></div>
                         <?php endif; ?>
                         <div class="message <?php echo $isOwn ? 'own' : ''; ?> <?php echo $isGrouped ? 'grouped' : ''; ?>">
                             <?php if (!$isOwn): ?>
@@ -225,7 +234,7 @@ $current_event = $stmt->fetch();
                             <div class="message-body">
                                 <?php if (!$isGrouped): ?>
                                     <div class="sender">
-                                        <?php echo htmlspecialchars($senderLabel); ?>
+                                        <span class="sender-name"><?php echo htmlspecialchars($senderLabel); ?></span>
                                         <span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span>
                                     </div>
                                 <?php endif; ?>
@@ -237,6 +246,9 @@ $current_event = $stmt->fetch();
                                         <?php endif; ?>
                                         <span class="read-receipt <?php echo $msg['is_read'] ? 'read' : ''; ?>" title="<?php echo $msg['is_read'] ? 'Прочитано' : 'Отправлено'; ?>"><?php echo $msg['is_read'] ? '✓✓' : '✓'; ?></span>
                                     </div>
+                                <?php elseif ($isGrouped): ?>
+                                    <!-- телефон: время у каждого пузыря (на десктопе у сгруппированных его нет) -->
+                                    <div class="msg-meta m-only"><span class="time"><?php echo date('H:i', strtotime($msg['created_at'])); ?></span></div>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -244,6 +256,11 @@ $current_event = $stmt->fetch();
                 <?php else: ?>
                     <div class="chat-empty"><span class="chat-empty-icon"><?php echo rr_icon('message-circle'); ?></span>Сообщений пока нет. Начните переписку первым.</div>
                 <?php endif; ?>
+            </div>
+
+            <!-- телефон: кнопка «к последним сообщениям» (assets/js/m/chat.js) -->
+            <div class="chat-m-jump m-only">
+                <button type="button" class="chat-m-jump-btn" id="chatJumpBtn" aria-label="К последним сообщениям" hidden><?php echo rr_icon('chevron-down'); ?><span class="chat-m-jump-count" hidden></span></button>
             </div>
 
             <!-- зарезервировано под индикатор "печатает..." (следующий шаг) -->
@@ -260,6 +277,7 @@ $current_event = $stmt->fetch();
                     </form>
                 <?php else: ?>
                     <div class="chat-closed">Чат закрыт. Заявка отменена.</div>
+                    <button type="button" class="chat-m-closed-btn m-only" data-chat-details><?php echo rr_icon('info-circle'); ?> Детали заявки</button>
                 <?php endif; ?>
             </div>
         </div>
@@ -268,11 +286,14 @@ $current_event = $stmt->fetch();
         <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
         <!-- ================= БОКОВАЯ ПАНЕЛЬ: КОНТЕКСТ ЗАЯВКИ ================= -->
+        <!-- На телефоне (≤768px) — нижняя шторка: открыта при классе .open (+ .show у #sidebarBackdrop).
+             Тот же механизм использует обучение (rr-tour.js, setChatSidebar) — классы не менять. -->
         <div class="chat-sidebar" id="chatSidebar">
 
             <!-- заголовок панели, только на мобилке -->
             <div class="sidebar-header">
-                <span class="sidebar-header-title">Детали заявки</span>
+                <span class="chat-sheet-handle m-only" aria-hidden="true"></span>
+                <span class="sidebar-header-title" id="chatSidebarTitle">Детали заявки</span>
                 <button class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Закрыть">×</button>
             </div>
 
@@ -290,6 +311,7 @@ $current_event = $stmt->fetch();
                         </div>
                     </div>
                 </div>
+                <a href="/pages/location.php?id=<?php echo $application['location_id']; ?>" class="m-only m-btn m-btn--ghost m-btn--sm m-btn--block chat-m-loc-btn"><?php echo rr_icon('map-pin'); ?> Открыть объявление</a>
             </div>
 
             <?php if ($canDecideAssignment): ?>
@@ -656,12 +678,16 @@ document.addEventListener('DOMContentLoaded', function() {
             '<div class="msg-meta"><span class="read-receipt' + (msg.is_read ? ' read' : '') + '">' + (msg.is_read ? '✓✓' : '✓') + '</span></div>' : '';
         div.innerHTML = avatarHtml +
                         '<div class="message-body">' +
-                            '<div class="sender">' + escapeHtml(senderLabel) + ' <span class="time">' + time + '</span></div>' +
+                            '<div class="sender"><span class="sender-name">' + escapeHtml(senderLabel) + '</span> <span class="time">' + time + '</span></div>' +
                             '<div class="text">' + escapeHtml(msg.message) + '</div>' +
                             receiptHtml +
                         '</div>';
         chatMessages.appendChild(div);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Телефон: прокрутка «как в мессенджере» (не уводить вниз, если читают историю) —
+        // assets/js/m/chat.js; на десктопе afterAppend() возвращает false и всё как раньше.
+        if (!(window.RRChatM && window.RRChatM.afterAppend(div, isOwn, msg))) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     function escapeHtml(text) {
@@ -772,6 +798,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (detailsToggleDot) {
             detailsToggleDot.className = 'status-dot dot-' + newStatus;
+        }
+        // статус-плашка в шапке чата на телефоне
+        var mChatStatus = document.getElementById('mChatStatus');
+        if (mChatStatus) {
+            mChatStatus.className = 'm-pill chat-m-status status-' + newStatus;
+            mChatStatus.textContent = label;
         }
 
         // Подсказка "видно только вам" нужна только для личного тега — не для
@@ -1092,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
+<script src="/assets/js/m/chat.js"></script>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

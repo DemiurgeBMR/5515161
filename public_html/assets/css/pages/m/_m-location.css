@@ -1,0 +1,972 @@
+/* ===== ТЕЛЕФОНЫ: Карточка локации (pages/location.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран «объявления» как в приложении: галерея на всю ширину (листается, счётчик «1/4», тап —
+   просмотр на весь экран), поверх неё «назад / поделиться / в избранное»; цена 24/800, название,
+   адрес, плашки; характеристики плитками; описание с «Показать полностью»; мини-карта; блок
+   собственника; похожие — лентой; липкая панель «цена + главное действие».
+   Разметка телефонных блоков — m-only в pages/location.php (на десктопе скрыты), поведение —
+   assets/js/m/location.js. Десктопные блоки, которые на телефоне показаны по-новому, скрыты здесь.
+   Всё ограничено body.m-loc — классы вроде .detail-card/.description встречаются и на других страницах. */
+
+@media (max-width: 768px) {
+
+    /* ---------- Каркас ---------- */
+    body.m-loc .location-detail {
+        max-width: none;
+        margin: 0;
+        padding: 0 0 8px;
+    }
+    /* Десктопные блоки, заменённые телефонными (то же содержимое — в m-only разметке) */
+    body.m-loc .location-detail > .back-link,
+    body.m-loc .detail-card > .verified-badge-photo,
+    body.m-loc .detail-card > .favorite-btn-photo,
+    body.m-loc .detail-card > .main-photo,
+    body.m-loc .detail-card > .gallery,
+    body.m-loc .detail-card > .info > .location-id-line,
+    body.m-loc .detail-card > .info > .title,
+    body.m-loc .detail-card > .info > .price,
+    body.m-loc .detail-card > .info > .address,
+    body.m-loc .detail-card > .info > .location-added-line,
+    body.m-loc .detail-card > .info > .space-type-block,
+    body.m-loc .detail-card > .info > .meta-tags,
+    body.m-loc .detail-card > .info > .badges-row,
+    body.m-loc .detail-card > .info > .specs,
+    body.m-loc .detail-card .description-heading,
+    body.m-loc .inquiry-sidebar {
+        display: none;
+    }
+    body.m-loc .detail-card {
+        background: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+    body.m-loc .detail-card > .info {
+        padding: 0 var(--m-gutter);
+    }
+
+    /* Флеш-сообщение, «Предпросмотр», ошибка разблокировки — карточками в цветах темы */
+    body.m-loc .location-detail > .flash-message,
+    body.m-loc .location-detail > .preview-notice {
+        margin: 12px var(--m-gutter) 0;
+        padding: 12px 14px;
+        background: var(--warning-soft);
+        color: var(--text);
+        border: 1px solid rgba(224, 169, 63, 0.4);
+        border-radius: 14px;
+        font-size: 14px;
+        line-height: 1.45;
+    }
+    body.m-loc .preview-notice .rr-icon {
+        vertical-align: -2px;
+    }
+    body.m-loc .preview-notice .preview-pill {
+        display: none;               /* статус — плашкой под названием */
+    }
+    body.m-loc .detail-card > .info > .error {
+        margin: 12px 0 0;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 107, 107, 0.4);
+        font-size: 14px;
+        line-height: 1.4;
+        text-align: left;
+    }
+
+    /* ---------- Галерея ---------- */
+    .m-loc-gallery {
+        position: relative;
+        height: min(75vw, 460px);
+        height: min(75vw, 56dvh, 460px);
+        overflow: hidden;
+        background: var(--bg-elevated-2);
+    }
+    .m-loc-strip {
+        display: flex;
+        gap: 2px;
+        height: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .m-loc-strip::-webkit-scrollbar {
+        display: none;
+    }
+    .m-loc-slide {
+        flex: 0 0 100%;
+        height: 100%;
+        min-height: 0;
+        margin: 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        border-radius: 0;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        cursor: zoom-in;
+    }
+    .m-loc-slide img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .m-loc-count {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        padding: 4px 10px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.3;
+        pointer-events: none;
+    }
+    .m-loc-count b {
+        font-weight: 800;
+    }
+    .m-loc-nophoto {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        background: linear-gradient(135deg, var(--accent-soft), transparent 70%), var(--bg-elevated-2);
+        color: var(--text-faint);
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .m-loc-nophoto .rr-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    /* «Назад / поделиться / в избранное» поверх фото */
+    body.m-loc .m-loc-appbar {
+        position: absolute;
+        z-index: 2;
+        top: 0;
+        left: 0;
+        right: 0;
+        min-height: 0;
+        margin: 0;
+        padding: 8px;
+        gap: 8px;
+        background: linear-gradient(rgba(0, 0, 0, 0.3), transparent);
+        pointer-events: none;
+    }
+    .m-loc-appbar > * {
+        pointer-events: auto;
+    }
+    .m-loc-appbar .m-loc-appbar-sp {
+        flex: 1 1 auto;
+        pointer-events: none;
+    }
+    body.m-loc .m-loc-appbar .m-appbar-back,
+    body.m-loc .m-loc-appbar .m-appbar-act {
+        width: var(--m-tap);
+        height: var(--m-tap);
+        background: rgba(0, 0, 0, 0.42);
+        color: #fff;
+        border-radius: 50%;
+        transform: none;
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+    }
+    body.m-loc .m-loc-appbar .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    body.m-loc .m-loc-appbar .m-appbar-back .rr-icon {
+        width: 26px;
+        height: 26px;
+    }
+    body.m-loc .m-loc-fav.active {
+        background: #fff;
+        color: #ff5a6a;
+    }
+    body.m-loc .m-loc-fav.active svg {
+        fill: currentColor;
+    }
+
+    /* ---------- Цена, название, адрес, плашки ---------- */
+    .m-loc-head {
+        padding: 14px 0 0;
+    }
+    .m-loc-price {
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: -0.3px;
+        color: var(--text);
+    }
+    .m-loc-price small {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: var(--text-muted);
+    }
+    .m-loc-title {
+        margin: 6px 0 0;
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .m-loc-addr {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        margin-top: 8px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+    }
+    .m-loc-addr .rr-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        margin-top: 2px;
+    }
+    .m-loc-lockhint {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 36px;
+        margin-top: 8px;
+        padding: 0 14px;
+        border-radius: 18px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+    .m-loc-lockhint .rr-icon {
+        width: 14px;
+        height: 14px;
+    }
+    .m-loc-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+    }
+    .m-loc-pills .m-pill .rr-icon {
+        width: 13px;
+        height: 13px;
+    }
+
+    /* ---------- Секции ---------- */
+    .m-loc-sec {
+        margin-top: 24px;
+        scroll-margin-top: calc(var(--m-header-h) + var(--m-safe-t) + 8px);
+    }
+    .m-loc-sec > .m-section-title {
+        margin: 0 0 10px;
+    }
+    body.m-loc .m-loc-sec-title {
+        margin: 24px 0 8px;
+    }
+
+    /* Характеристики: плитки 2 в ряд (подпись с иконкой + значение) */
+    .m-loc-specs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .m-loc-spec {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 3px;
+        min-height: 60px;
+        padding: 9px 12px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+    }
+    .m-loc-spec.is-wide {
+        grid-column: 1 / -1;
+    }
+    .m-loc-spec small {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.25;
+        color: var(--text-muted);
+    }
+    .m-loc-spec small .rr-icon {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        color: var(--accent);
+    }
+    .m-loc-spec b {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .m-loc-spec.is-off small .rr-icon {
+        color: var(--text-faint);
+    }
+    .m-loc-spec.is-off b {
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .m-loc-traffic {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+    .m-loc-traffic .m-loc-spec-tx {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    .m-loc-stars {
+        margin-right: 4px;
+        letter-spacing: 1px;
+        color: var(--border-strong);
+    }
+    .m-loc-stars .is-on {
+        color: var(--warning);
+    }
+    .m-loc-help {
+        flex: none;
+        width: var(--m-tap);
+        height: var(--m-tap);
+        margin: -4px -6px -4px 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: var(--accent-soft);
+        border: 0;
+        border-radius: 50%;
+        color: var(--accent);
+        cursor: pointer;
+    }
+    .m-loc-help .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    /* ---------- Описание: свёрнуто до ~6 строк, «Показать полностью» ---------- */
+    body.m-loc .detail-card .description {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    body.m-loc .detail-card .description p {
+        margin: 0 0 8px;
+    }
+    body.m-loc .detail-card .description h5 {
+        margin: 10px 0 4px;
+        font-size: 15px;
+    }
+    body.m-loc .detail-card .description.is-clamped {
+        max-height: 9.6em;           /* 6 строк по 1.6 */
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(#000 60%, transparent);
+        mask-image: linear-gradient(#000 60%, transparent);
+    }
+    .m-loc-more {
+        display: inline-flex;
+        align-items: center;
+        min-height: var(--m-tap);
+        margin: 2px 0 0;
+        padding: 0;
+        background: none;
+        border: 0;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .m-loc-more[hidden] {
+        display: none;
+    }
+    body.m-loc .m-loc-nodesc {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+        border-style: dashed;
+    }
+    .m-loc-nodesc > .rr-icon {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+    }
+    .m-loc-nodesc span {
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .m-loc-nodesc b {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 15px;
+        color: var(--text);
+    }
+
+    /* ---------- Мини-карта ---------- */
+    .m-loc-map {
+        position: relative;
+        display: block;
+        height: 160px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        /* «схема» на случай, если плитки не загрузились */
+        background:
+            linear-gradient(90deg, transparent 46%, var(--border) 46%, var(--border) 54%, transparent 54%) 0 0 / 120px 100%,
+            linear-gradient(transparent 44%, var(--border) 44%, var(--border) 52%, transparent 52%) 0 0 / 100% 90px,
+            var(--bg-elevated-2);
+        color: var(--text);
+        text-decoration: none;
+    }
+    .m-loc-map-tiles {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+    }
+    .m-loc-map-tiles img {
+        position: absolute;
+        display: block;
+        width: 256px;
+        height: 256px;
+        max-width: none;
+    }
+    .m-loc-map-tiles img.is-broken {
+        visibility: hidden;          /* плитка не загрузилась — видна «схема» фона */
+    }
+    :root:not([data-theme="light"]) .m-loc-map-tiles img {
+        filter: invert(0.92) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+    }
+    .m-loc-map-pin {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 40px;
+        height: 40px;
+        transform: translate(-50%, -88%);
+        color: var(--accent);
+        filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35));
+    }
+    .m-loc-map-pin .rr-icon {
+        width: 40px;
+        height: 40px;
+        fill: var(--bg-elevated);
+        stroke-width: 2.2;
+    }
+    .m-loc-map-attr {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        padding: 1px 6px;
+        border-top-left-radius: 8px;
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+        font-size: 12px;
+        line-height: 1.4;
+        opacity: 0.85;
+    }
+    .m-loc-map-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    .m-loc-map-addr {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+        overflow-wrap: anywhere;
+    }
+    .m-loc-map-row .m-btn {
+        flex: none;
+    }
+    /* Закрыто до разблокировки: размытая «схема» с замком */
+    .m-loc-map.is-locked {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        height: auto;
+        min-height: 110px;
+        padding: 16px;
+    }
+    .m-loc-map.is-locked::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, var(--bg-elevated) 30%, rgba(var(--accent-rgb), 0.06));
+        opacity: 0.88;
+    }
+    .m-loc-map-lock,
+    .m-loc-map-locktx {
+        position: relative;
+    }
+    .m-loc-map-lock {
+        flex: none;
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .m-loc-map-lock .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .m-loc-map-locktx {
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .m-loc-map-locktx b {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 16px;
+        color: var(--text);
+    }
+
+    /* ---------- Собственник ---------- */
+    body.m-loc .m-loc-owner {
+        padding: 16px;
+    }
+    .m-loc-owner-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .m-loc-ava {
+        flex: none;
+        width: 48px;
+        height: 48px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--accent);
+        color: #fff;
+        font-size: 20px;
+        font-weight: 800;
+    }
+    .m-loc-ava.is-locked {
+        background: var(--bg-elevated-2);
+        color: var(--text-muted);
+        border: 1px solid var(--border-strong);
+    }
+    .m-loc-ava .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .m-loc-owner-who {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .m-loc-owner-who b {
+        font-size: 16px;
+        font-weight: 800;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+    }
+    .m-loc-owner-who small {
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--text-muted);
+    }
+    .m-loc-open {
+        color: var(--accent);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .m-loc-open .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: -1px;
+    }
+    .m-loc-owner-tx {
+        margin: 12px 0 14px;
+        font-size: 14px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .m-loc-owner-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        margin: 12px 0 14px;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .m-loc-owner-stats b {
+        color: var(--text);
+    }
+    .m-loc-points {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 14px 0 16px;
+        padding: 0;
+        list-style: none;
+    }
+    .m-loc-points li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text);
+    }
+    .m-loc-points .rr-icon {
+        flex: none;
+        width: 18px;
+        height: 18px;
+        margin-top: 1px;
+        color: var(--accent);
+    }
+    body.m-loc .m-loc-owner .m-btn-row .m-btn {
+        padding: 0 12px;
+        font-size: 15px;
+        white-space: nowrap;
+    }
+    .m-loc-owner-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: var(--m-tap);
+        margin-top: 6px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+    }
+    .m-loc-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 16px;
+        margin: 18px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .m-loc-meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+    }
+    .m-loc-meta .rr-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    /* ---------- Похожие объявления — горизонтальная лента карточек ---------- */
+    body.m-loc .similar-listings-section {
+        margin: 28px 0 0;
+        padding: 0;
+        border-top: 0;
+    }
+    body.m-loc .similar-listings-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 var(--m-gutter) 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+    body.m-loc .similar-listings-title .rr-icon {
+        display: none;
+    }
+    body.m-loc .rec-grid {
+        display: flex;
+        gap: 10px;
+        padding: 2px var(--m-gutter) 6px;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scroll-padding: 0 var(--m-gutter);
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    body.m-loc .rec-grid::-webkit-scrollbar {
+        display: none;
+    }
+    body.m-loc .rec-card-link {
+        flex: 0 0 calc((100% - 10px) / 2.3);
+        max-width: 200px;
+        scroll-snap-align: start;
+    }
+    body.m-loc .rec-card {
+        background: var(--bg-elevated);
+        border-radius: var(--m-radius);
+        box-shadow: none;
+        transition: none;
+    }
+    body.m-loc .rec-card:hover,
+    body.m-loc .rec-card:hover img {
+        transform: none;
+    }
+    body.m-loc .rec-card img {
+        height: auto;
+        aspect-ratio: 4 / 3;
+        transition: none;
+    }
+    body.m-loc .rec-card .rec-body {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding: 8px 10px 10px;
+    }
+    body.m-loc .rec-card .rec-price {
+        order: -1;
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text);
+    }
+    body.m-loc .rec-card .rec-title {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        white-space: normal;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    body.m-loc .rec-card .rec-city {
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    body.m-loc .rec-card .rec-traffic {
+        display: flex;
+        align-items: center;
+        gap: 1px;
+        font-size: 12px;
+    }
+    body.m-loc .rec-card .rec-traffic .rr-icon {
+        width: 13px;
+        height: 13px;
+        margin-right: 3px;
+    }
+    body.m-loc .rec-card .rec-traffic .star.filled {
+        color: var(--warning);
+    }
+
+    /* Ссылки подвала: зона нажатия ≥ 32px (общее правило оболочки даёт 30px — см. отчёт исполнителя B) */
+    body.m-loc .footer p.footer-legal-links a {
+        padding: 8px 2px;
+    }
+
+    /* ---------- Липкая панель ---------- */
+    body.m-loc .m-loc-cta .m-btn {
+        min-width: 0;
+        white-space: nowrap;
+    }
+    body.m-loc .m-loc-cta .m-sticky-cta-price {
+        white-space: nowrap;
+    }
+    body.m-loc .m-loc-cta .m-sticky-cta-price small {
+        margin-top: 1px;
+    }
+
+    /* Всплывающие уведомления — над липкой панелью, а не поверх её кнопки */
+    body.m-loc.m-has-cta.m-no-tabbar .toast-container,
+    body.m-loc.m-has-cta.m-no-tabbar .rr-toast-container {
+        bottom: calc(var(--m-safe-b) + 84px);
+    }
+
+    /* Шторка подтверждения разблокировки */
+    .m-loc-sheet-tx {
+        margin: 0 0 4px;
+        font-size: 15px;
+        line-height: 1.45;
+        color: var(--text-muted);
+    }
+    .m-loc-sheet-tx b {
+        color: var(--text);
+    }
+
+    /* ---------- Памятка «Как оценить проходимость» (модалка → шторка, таблица → карточки) ---------- */
+    body.m-loc #trafficHelpModal h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 48px 6px 0;
+        font-size: 20px;
+        line-height: 1.25;
+    }
+    body.m-loc #trafficHelpModal .traffic-modal-subtitle {
+        margin: 0 0 14px;
+        font-size: 14px;
+    }
+    body.m-loc .m-loc-traffic-table {
+        margin: 0;
+    }
+    body.m-loc .m-loc-traffic-table td.m-cell-title {
+        border-bottom: 1px solid var(--border);
+    }
+    body.m-loc .m-loc-traffic-table .stars-demo {
+        margin-right: 6px;
+        color: var(--warning);
+        letter-spacing: 1px;
+    }
+    body.m-loc #trafficHelpModal .note {
+        margin-top: 4px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    body.m-loc #trafficHelpModal .traffic-modal-footnote {
+        text-align: left;
+    }
+
+    /* ---------- Просмотр фото на весь экран (assets/js/m/location.js) ---------- */
+    .m-loc-viewer {
+        position: fixed;
+        inset: 0;
+        z-index: 9000;
+        display: flex;
+        flex-direction: column;
+        background: #000;
+        color: #fff;
+    }
+    .m-loc-viewer[hidden] {
+        display: none;
+    }
+    .m-loc-viewer-bar {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: calc(6px + var(--m-safe-t)) 8px 6px 16px;
+    }
+    .m-loc-viewer-count {
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .m-loc-viewer-x {
+        width: var(--m-tap);
+        height: var(--m-tap);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        background: rgba(255, 255, 255, 0.14);
+        border: 0;
+        border-radius: 50%;
+        color: #fff;
+        cursor: pointer;
+    }
+    .m-loc-viewer-x .rr-icon {
+        width: 22px;
+        height: 22px;
+    }
+    .m-loc-viewer-strip {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior: contain;
+        scrollbar-width: none;
+    }
+    .m-loc-viewer-strip::-webkit-scrollbar {
+        display: none;
+    }
+    .m-loc-viewer-strip > div {
+        flex: 0 0 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        padding-bottom: var(--m-safe-b);
+    }
+    .m-loc-viewer-strip img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+}
+
+/* Альбомная ориентация телефона: низкий экран — фото лентой (видно соседние), галерея ≤ 56% высоты,
+   липкая панель компактнее */
+@media (max-width: 768px) and (orientation: landscape) {
+    .m-loc-gallery {
+        height: min(75vw, 46vh, 460px);
+        height: min(75vw, 46dvh, 460px);
+    }
+    .m-loc-slide {
+        flex: 0 0 auto;
+        width: auto;
+        aspect-ratio: 4 / 3;
+    }
+    .m-loc-slide:only-child {
+        flex: 1 0 100%;
+    }
+    body.m-loc .m-loc-cta {
+        padding-top: 6px;
+        padding-bottom: calc(6px + var(--m-safe-b));
+    }
+    body.m-loc .m-loc-cta .m-btn {
+        min-height: var(--m-tap);
+    }
+    body.m-loc.m-has-cta.m-no-tabbar {
+        padding-bottom: calc(var(--m-safe-b) + 64px);
+    }
+}
+
+@media (max-width: 360px) {
+    body.m-loc .m-loc-owner .m-btn-row .rr-icon {
+        display: none;
+    }
+    body.m-loc .m-loc-cta {
+        gap: 8px;
+    }
+    body.m-loc .m-loc-cta .m-btn {
+        padding: 0 14px;
+        font-size: 15px;
+    }
+    body.m-loc .m-loc-cta .m-sticky-cta-price {
+        font-size: 17px;
+    }
+}

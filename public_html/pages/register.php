@@ -108,11 +108,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Регистрация — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth m-has-cta">
     <?php include '../includes/header.php'; ?>
 
     <div class="reg-page">
@@ -184,26 +184,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Имя *</label>
-                            <input type="text" name="full_name" required placeholder="Иван Иванов" value="<?php echo htmlspecialchars($full_name); ?>">
+                            <label for="regName">Имя *</label>
+                            <input type="text" name="full_name" id="regName" required placeholder="Иван Иванов" autocomplete="name" enterkeyhint="next" value="<?php echo htmlspecialchars($full_name); ?>">
                         </div>
                         <div class="form-group">
-                            <label>Телефон (необязательно)</label>
-                            <input type="tel" name="phone" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" placeholder="+7 900 000-00-00" value="<?php echo htmlspecialchars($phone); ?>">
+                            <label for="regPhone">Телефон (необязательно)</label>
+                            <input type="tel" name="phone" id="regPhone" autocomplete="tel" inputmode="tel" enterkeyhint="next" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" placeholder="+7 900 000-00-00" value="<?php echo htmlspecialchars($phone); ?>">
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Email *</label>
-                        <input type="email" name="email" required placeholder="you@example.com" value="<?php echo htmlspecialchars($email); ?>">
+                        <label for="regEmail">Email *</label>
+                        <input type="email" name="email" id="regEmail" required placeholder="you@example.com" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" value="<?php echo htmlspecialchars($email); ?>">
                     </div>
                     <div class="form-group">
-                        <label>Пароль *</label>
-                        <input type="password" name="password" required autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                        <label for="regPassword">Пароль *</label>
+                        <input type="password" name="password" id="regPassword" required enterkeyhint="next" autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                         <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                     </div>
                     <div class="form-group">
-                        <label>Повторите пароль *</label>
-                        <input type="password" name="password_confirm" required autocomplete="new-password" data-rr-match="[name=password]" placeholder="Введите пароль ещё раз">
+                        <label for="regPasswordConfirm">Повторите пароль *</label>
+                        <input type="password" name="password_confirm" id="regPasswordConfirm" required enterkeyhint="done" autocomplete="new-password" data-rr-match="[name=password]" placeholder="Введите пароль ещё раз">
                     </div>
 
                     <div class="reg-panel-actions">
@@ -337,5 +337,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </script>
 
     <?php include '../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
 </body>
 </html>

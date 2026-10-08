@@ -73,7 +73,8 @@ if ($user_role === 'owner') {
         SELECT l.*,
                (SELECT photo_path FROM location_photos WHERE location_id = l.id AND is_main = 1 LIMIT 1) as main_photo,
                (SELECT COUNT(*) FROM location_revisions WHERE location_id = l.id AND status = 'pending') as pending_revisions_count,
-               EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active') as is_occupied
+               EXISTS (SELECT 1 FROM location_operators lo WHERE lo.location_id = l.id AND lo.status = 'active') as is_occupied,
+               (SELECT COUNT(*) FROM applications a WHERE a.location_id = l.id) as applications_count
         FROM locations l
         WHERE l.owner_id = ?
         ORDER BY l.created_at DESC
@@ -82,6 +83,8 @@ if ($user_role === 'owner') {
     $all_locations = $stmt_all->fetchAll();
     
     $total_locations = count($all_locations);
+    // Телефонная версия: четвёртая плитка показателей — просмотры всех объявлений
+    $total_views = array_sum(array_map('intval', array_column($all_locations, 'views')));
     foreach ($all_locations as $loc) {
         if ($loc['pending_revisions_count'] > 0) {
             $total_pending++;
@@ -226,6 +229,10 @@ if ($user_role === 'owner') {
     $stmt->execute([$user_id]);
     $unread_threads = $stmt->fetchAll();
     $unread_messages_count = count($unread_threads);
+
+    // Телефонная версия: общее число пунктов «Требует внимания» (видно и в свёрнутом блоке)
+    $attention_total = $broken_machines_count + $needs_service_machines_count + (int) $maintenance_due_count
+        + $pending_visits_count + $open_visits_count + $unread_messages_count;
 }
 
 } catch (PDOException $e) {
@@ -240,11 +247,11 @@ unset($_SESSION['flash']);
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Профиль — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-owner-cab">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="profile-wrapper">
@@ -253,6 +260,7 @@ unset($_SESSION['flash']);
             <div class="avatar" style="background: <?php echo htmlspecialchars($avatar_color, ENT_QUOTES); ?>;" onclick="openModal()" title="Сменить цвет аватара">
                 <?php echo $first_letter; ?>
                 <span class="hint"><?php echo rr_icon('refresh'); ?> Сменить цвет</span>
+                <span class="m-only pf-avatar-edit" aria-hidden="true"><?php echo rr_icon('edit'); ?></span>
             </div>
             <div class="user-info">
                 <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
@@ -279,23 +287,28 @@ unset($_SESSION['flash']);
                     <div class="number warning"><?php echo $total_pending ?? 0; ?></div>
                     <div class="label">На модерации</div>
                 </div>
+                <div class="stat-item m-only">
+                    <div class="number"><?php echo number_format($total_views ?? 0, 0, ',', ' '); ?></div>
+                    <div class="label">Просмотров</div>
+                </div>
             </div>
 
+<?php // Подписи в <span>: на телефоне кнопки — компактные плитки с короткими подписями (m-only), на десктопе — прежний текст. ?>
 <div class="profile-actions">
     <?php if ($user_role === 'owner'): ?>
-        <a href="/pages/add_location.php" class="btn-action primary"><?php echo rr_icon('plus-circle'); ?> Добавить локацию</a>
+        <a href="/pages/add_location.php" class="btn-action primary"><?php echo rr_icon('plus-circle'); ?> <span class="m-hide">Добавить локацию</span><span class="m-only">Добавить</span></a>
     <?php else: ?>
-        <a href="/pages/catalog.php" class="btn-action primary"><?php echo rr_icon('search'); ?> Найти локации</a>
+        <a href="/pages/catalog.php" class="btn-action primary"><?php echo rr_icon('search'); ?> <span class="m-hide">Найти локации</span><span class="m-only">Найти</span></a>
     <?php endif; ?>
-    <a href="/pages/edit_profile.php" class="btn-action secondary"><?php echo rr_icon('edit'); ?> Редактировать профиль</a>
-    <a href="/pages/events_calendar.php" class="btn-action secondary"><?php echo rr_icon('calendar'); ?> Выезды</a>
-    <a href="/pages/documents.php" class="btn-action secondary"><?php echo rr_icon('file-text'); ?> Документы</a>
-    <a href="/pages/owner_applications.php" class="btn-action secondary"><?php echo rr_icon('mail'); ?> Заявки</a>
-    <a href="/pages/owner_operators.php" class="btn-action secondary"><?php echo rr_icon('users'); ?> Мои операторы</a>
+    <a href="/pages/edit_profile.php" class="btn-action secondary pa-profile"><?php echo rr_icon('edit'); ?> <span class="m-hide">Редактировать профиль</span><span class="m-only">Профиль</span></a>
+    <a href="/pages/events_calendar.php" class="btn-action secondary pa-calendar"><?php echo rr_icon('calendar'); ?> <span>Выезды</span></a>
+    <a href="/pages/documents.php" class="btn-action secondary pa-docs"><?php echo rr_icon('file-text'); ?> <span>Документы</span></a>
+    <a href="/pages/owner_applications.php" class="btn-action secondary pa-apps"><?php echo rr_icon('mail'); ?> <span>Заявки</span></a>
+    <a href="/pages/owner_operators.php" class="btn-action secondary pa-operators"><?php echo rr_icon('users'); ?> <span class="m-hide">Мои операторы</span><span class="m-only">Операторы</span></a>
     <?php if ($user_role === 'operator'): ?>
-        <a href="/pages/subscription.php" class="btn-action secondary"><?php echo rr_icon('card'); ?> Подписка</a>
+        <a href="/pages/subscription.php" class="btn-action secondary"><?php echo rr_icon('card'); ?> <span>Подписка</span></a>
     <?php endif; ?>
-    <a href="/pages/logout.php" class="btn-action danger"><?php echo rr_icon('log-out'); ?> Выйти</a>
+    <a href="/pages/logout.php" class="btn-action danger"><?php echo rr_icon('log-out'); ?> <span>Выйти</span></a>
 </div>
         </aside>
 
@@ -307,7 +320,8 @@ unset($_SESSION['flash']);
 
             <?php if ($user_role === 'owner'): ?>
             <button type="button" class="attention-heading attention-toggle" id="attentionToggle" aria-expanded="true" aria-controls="attentionContent">
-                <?php echo rr_icon('bell'); ?> Требует внимания
+                <?php echo rr_icon('bell'); ?> <span class="attention-toggle-label">Требует внимания</span>
+                <?php if ($attention_total > 0): ?><span class="m-only attention-count"><?php echo (int) $attention_total; ?></span><?php endif; ?>
                 <span class="attention-toggle-chevron" id="attentionToggleChevron"><?php echo rr_icon('chevron-down'); ?></span>
             </button>
             <div id="attentionContent">
@@ -439,10 +453,10 @@ unset($_SESSION['flash']);
 
             <h2><?php echo rr_icon('list'); ?> Мои локации</h2>
 
-            <!-- Вкладки -->
+            <!-- Вкладки (на телефоне — чипы с горизонтальной прокруткой и счётчиками) -->
             <div class="tabs">
-                <a href="?filter=all" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">Все</a>
-                <a href="?filter=active" class="<?php echo $filter === 'active' ? 'active' : ''; ?>">Активные</a>
+                <a href="?filter=all" class="<?php echo $filter === 'all' ? 'active' : ''; ?>">Все<span class="count m-only"><?php echo (int) $total_locations; ?></span></a>
+                <a href="?filter=active" class="<?php echo $filter === 'active' ? 'active' : ''; ?>">Активные<span class="count m-only"><?php echo (int) $total_active; ?></span></a>
                 <a href="?filter=pending" class="<?php echo $filter === 'pending' ? 'active' : ''; ?>">
                     На модерации
                     <?php if ($total_pending > 0): ?>
@@ -471,28 +485,52 @@ unset($_SESSION['flash']);
 <?php if ($loc['pending_revisions_count'] > 0): ?>
     <!-- Здесь теперь проверяем, является ли локация новой -->
     <?php if (!$loc['is_moderated']): ?>
-        <span class="status-badge status-pending"><?php echo rr_icon('clock'); ?> На модерации (новая)</span>
+        <span class="status-badge status-pending m-pill is-warning"><?php echo rr_icon('clock'); ?> На модерации (новая)</span>
         <div class="status-hint">Объявление проверяется перед публикацией</div>
     <?php else: ?>
-        <span class="status-badge status-pending-changes"><?php echo rr_icon('clock'); ?> Ожидает модерации (правки)</span>
+        <span class="status-badge status-pending-changes m-pill is-warning"><?php echo rr_icon('clock'); ?> Ожидает модерации (правки)</span>
         <div class="status-hint">Текущая версия активна до проверки</div>
     <?php endif; ?>
 <?php elseif (!$loc['is_moderated']): ?>
     <!-- Сюда попадаем, если is_moderated=0 и ревизий нет (отозвано) -->
-    <span class="status-badge status-hidden"><?php echo rr_icon('file-text'); ?> Отозвано (черновик)</span>
+    <span class="status-badge status-hidden m-pill is-muted"><?php echo rr_icon('file-text'); ?> Отозвано (черновик)</span>
     <div class="status-hint">Вы отозвали правки, объявление не будет опубликовано</div>
 <?php elseif ($loc['is_occupied']): ?>
-    <span class="status-badge status-occupied"><?php echo rr_icon('lock'); ?> Занято оператором</span>
+    <span class="status-badge status-occupied m-pill is-info"><?php echo rr_icon('lock'); ?> Занято оператором</span>
     <div class="status-hint">Скрыто из каталога — за локацией закреплён оператор</div>
 <?php elseif ($loc['is_active']): ?>
-    <span class="status-badge status-active"><?php echo rr_icon('check'); ?> Активно</span>
+    <span class="status-badge status-active m-pill"><?php echo rr_icon('check'); ?> Активно</span>
 <?php else: ?>
-    <span class="status-badge status-hidden"><?php echo rr_icon('ban'); ?> Скрыто</span>
+    <span class="status-badge status-hidden m-pill is-muted"><?php echo rr_icon('ban'); ?> Скрыто</span>
 <?php endif; ?>
 </div>
                                 </div>
                             </a>
-<div class="card-actions">
+<?php
+    // Телефон: под карточкой — показатели и основное действие, остальные действия — в шторке «⋯»
+    // (это тот же блок .card-actions: на телефоне он превращается в шторку, на десктопе — прежний ряд кнопок).
+    $locSheetId = 'locActions' . (int) $loc['id'];
+    $appsCount = (int) $loc['applications_count'];
+?>
+<div class="m-only loc-m-bar">
+    <span class="loc-m-stats">
+        <span class="loc-m-stat" title="Просмотры"><?php echo rr_icon('eye'); ?> <?php echo number_format((int) $loc['views'], 0, ',', ' '); ?></span>
+        <span class="loc-m-stat<?php echo $appsCount > 0 ? ' has-apps' : ''; ?>" title="Заявки"><?php echo rr_icon('message-circle'); ?> <?php echo $appsCount; ?></span>
+    </span>
+    <?php if ($loc['pending_revisions_count'] > 0): ?>
+        <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="m-btn m-btn--sm m-btn--soft loc-m-main" data-rr-confirm="Отозвать правки и перейти к редактированию?" data-rr-confirm-ok="Отозвать"><?php echo rr_icon('edit'); ?> Изменить</a>
+    <?php else: ?>
+        <a href="/pages/edit_location.php?id=<?php echo $loc['id']; ?>" class="m-btn m-btn--sm m-btn--soft loc-m-main"><?php echo rr_icon('edit'); ?> Изменить</a>
+    <?php endif; ?>
+    <button type="button" class="loc-m-more" data-m-sheet-open="<?php echo $locSheetId; ?>" aria-haspopup="dialog" aria-controls="<?php echo $locSheetId; ?>" aria-label="Действия с объявлением"><?php echo rr_icon('more'); ?></button>
+</div>
+<div class="card-actions m-sheet" id="<?php echo $locSheetId; ?>" aria-label="Действия с объявлением">
+    <div class="m-sheet-handle m-only" aria-hidden="true"></div>
+    <div class="m-sheet-head m-only">
+        <b class="loc-sheet-title"><?php echo htmlspecialchars($loc['title']); ?></b>
+        <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+    </div>
+    <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" class="btn-action small btn-open m-only"><?php echo rr_icon('eye'); ?> Открыть объявление</a>
     <?php if ($loc['pending_revisions_count'] > 0): ?>
         <a href="/pages/owner_actions.php?action=withdraw_and_edit&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-withdraw" data-rr-confirm="Отозвать правки и перейти к редактированию?" data-rr-confirm-ok="Отозвать"><?php echo rr_icon('edit'); ?> Отозвать и редактировать</a>
         <a href="/pages/owner_actions.php?action=delete&id=<?php echo $loc['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-action small btn-delete" data-rr-confirm="Удалить объявление?" data-rr-confirm-ok="Удалить" data-rr-confirm-danger><?php echo rr_icon('trash'); ?> Удалить</a>
@@ -515,10 +553,14 @@ unset($_SESSION['flash']);
             <?php else: ?>
                 <div class="empty-locations">
                     <?php if ($filter === 'pending'): ?>
-                        <p><?php echo rr_icon('check'); ?> Нет локаций на модерации</p>
+                        <span class="m-only empty-loc-ic" aria-hidden="true"><?php echo rr_icon('check'); ?></span>
+                        <p class="empty-loc-title"><?php echo rr_icon('check'); ?> Нет локаций на модерации</p>
+                        <p class="m-only empty-loc-hint">Новые объявления и правки появятся здесь, пока их проверяет администратор.</p>
                         <p><a href="?filter=all">Посмотреть все локации</a></p>
                     <?php else: ?>
-                        <p>У вас пока нет добавленных локаций.</p>
+                        <span class="m-only empty-loc-ic" aria-hidden="true"><?php echo rr_icon('building'); ?></span>
+                        <p class="empty-loc-title">У вас пока нет добавленных локаций.</p>
+                        <p class="m-only empty-loc-hint">Опишите место — адрес, фото и цену, — и операторы найдут его в каталоге.</p>
                         <p><a href="/pages/add_location.php"><?php echo rr_icon('plus-circle'); ?> Добавить первую локацию</a></p>
                     <?php endif; ?>
                 </div>
@@ -555,6 +597,7 @@ unset($_SESSION['flash']);
     <script>
         function openModal() {
             document.getElementById('avatarModal').classList.add('active');
+            document.documentElement.classList.add('m-lock'); // телефон: страница под шторкой не прокручивается, тосты скрыты (на десктопе класс ни на что не влияет)
             const currentColor = <?php echo json_encode($avatar_color, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>;
             document.querySelectorAll('.color-item').forEach(el => {
                 el.classList.toggle('active', el.dataset.color === currentColor);
@@ -562,7 +605,9 @@ unset($_SESSION['flash']);
             document.getElementById('selectedColor').value = currentColor;
         }
         function closeModal() {
-            document.getElementById('avatarModal').classList.remove('active');
+            var modal = document.getElementById('avatarModal');
+            if (modal.classList.contains('active')) document.documentElement.classList.remove('m-lock');
+            modal.classList.remove('active');
         }
         function selectColor(el) {
             document.querySelectorAll('.color-item').forEach(item => item.classList.remove('active'));

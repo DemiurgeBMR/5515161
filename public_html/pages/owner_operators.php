@@ -13,7 +13,14 @@ $pdo = getDbConnection();
 
 // Получаем все активные закрепления собственника
 $stmt = $pdo->prepare("
-    SELECT lo.*, l.title as location_title, l.city, u.full_name as operator_name
+    SELECT lo.*, l.title as location_title, l.city, u.full_name as operator_name,
+           u.avatar_color as operator_color,
+           (SELECT a.id FROM applications a
+             WHERE a.owner_id = lo.owner_id AND a.operator_id = lo.operator_id AND a.location_id = lo.location_id
+             ORDER BY a.created_at DESC LIMIT 1) as application_id,
+           (SELECT a.id FROM applications a
+             WHERE a.owner_id = lo.owner_id AND a.operator_id = lo.operator_id
+             ORDER BY a.updated_at DESC LIMIT 1) as any_application_id
     FROM location_operators lo
     JOIN locations l ON lo.location_id = l.id
     JOIN users u ON lo.operator_id = u.id
@@ -38,20 +45,72 @@ $stmt = $pdo->prepare("
 ");
 $stmt->execute([$user_id]);
 $operators = $stmt->fetchAll();
+
+// ===== Телефонная версия: карточки по операторам (на десктопе — прежняя таблица) =====
+// Вендинги на закреплённых точках — только чтение, как в «Требует внимания» на profile.php.
+$machinesByLo = [];
+if ($assignments) {
+    $loIds = array_map('intval', array_column($assignments, 'id'));
+    $in = implode(',', array_fill(0, count($loIds), '?'));
+    $stmt = $pdo->prepare("
+        SELECT location_operator_id, machine_type, model, status, installed_at, last_service_at
+        FROM location_machines
+        WHERE location_operator_id IN ($in) AND status != 'removed'
+        ORDER BY id
+    ");
+    $stmt->execute($loIds);
+    foreach ($stmt->fetchAll() as $m) {
+        $machinesByLo[(int) $m['location_operator_id']][] = $m;
+    }
+}
+$byOperator = [];
+foreach ($assignments as $ass) {
+    $oid = (int) $ass['operator_id'];
+    if (!isset($byOperator[$oid])) {
+        $byOperator[$oid] = [
+            'name'  => (string) $ass['operator_name'],
+            'color' => preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) $ass['operator_color']) ? $ass['operator_color'] : '',
+            'chat'  => $ass['any_application_id'] ? (int) $ass['any_application_id'] : null,
+            'items' => [],
+        ];
+    }
+    $byOperator[$oid]['items'][] = $ass;
+}
+$machineTypeLabels = [
+    'snacks' => 'Снеки',
+    'drinks' => 'Напитки',
+    'coffee' => 'Кофе',
+    'combo'  => 'Комбо',
+    'other'  => 'Другое',
+];
+// Статус обслуживания вендинга: [модификатор m-pill, иконка, подпись] — те же правила, что на operator_locations.php
+$ooServiceState = function (array $m) {
+    if ($m['status'] === 'broken') return ['is-danger', 'warning', 'Сломан'];
+    if ($m['status'] === 'needs_service') return ['is-warning', 'wrench', 'Требует ремонта'];
+    $ref = $m['last_service_at'] ?: $m['installed_at'];
+    if (!$ref) return ['is-muted', 'clock', 'Нет данных об обслуживании'];
+    $days = (int) (new DateTime())->diff(new DateTime($ref))->days;
+    if (isServiceOverdue($days)) return ['is-warning', 'warning', 'Требует обслуживания · ' . $days . ' дн.'];
+    return ['', 'check', $days === 0 ? 'Обслужен сегодня' : 'Обслужен ' . $days . ' дн. назад'];
+};
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Мои операторы — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-owner-cab m-owner-ops">
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <div class="oo-container">
-    <a href="/pages/profile.php" class="back-link">← Назад</a>
-    <h2><?php echo rr_icon('users'); ?> Мои операторы</h2>
+    <div class="m-appbar m-only oo-appbar">
+        <a href="/pages/profile.php" class="m-appbar-back" onclick="if (history.length > 1) { history.back(); return false; }" aria-label="Назад"><?php echo rr_icon('chevron-left'); ?></a>
+        <h1 class="m-appbar-title">Мои операторы</h1>
+    </div>
+    <a href="/pages/profile.php" class="back-link m-hide">← Назад</a>
+    <h2 class="m-hide"><?php echo rr_icon('users'); ?> Мои операторы</h2>
     <p class="page-intro spaced">Операторы, закреплённые за вашими локациями.</p>
 
     <?php if (isset($_SESSION['flash'])): ?>
@@ -63,7 +122,7 @@ $operators = $stmt->fetchAll();
     <button class="btn-add" id="addAssignmentBtn"><?php echo rr_icon('plus-circle'); ?> Закрепить оператора</button>
 
     <?php if (count($assignments) > 0): ?>
-        <div class="assignments-table">
+        <div class="assignments-table m-hide">
             <table>
                 <thead>
                     <tr>
@@ -87,8 +146,77 @@ $operators = $stmt->fetchAll();
                 </tbody>
             </table>
         </div>
+
+        <?php // Телефон: карточка на оператора — его точки, вендинги и статус обслуживания; действия по точке — в шторке «⋯». ?>
+        <div class="assignments-table oo-m-list m-only">
+            <?php foreach ($byOperator as $op):
+                $opInitial = mb_strtoupper(mb_substr($op['name'] !== '' ? $op['name'] : 'О', 0, 1, 'UTF-8'), 'UTF-8');
+                $locCount = count($op['items']);
+            ?>
+                <article class="oo-m-card">
+                    <div class="oo-m-head">
+                        <span class="oo-m-av" aria-hidden="true"<?php echo $op['color'] ? ' style="background:' . htmlspecialchars($op['color'], ENT_QUOTES) . '"' : ''; ?>><?php echo htmlspecialchars($opInitial); ?></span>
+                        <div class="oo-m-who">
+                            <b class="oo-m-name"><?php echo htmlspecialchars($op['name']); ?></b>
+                            <span class="oo-m-sub">Оператор · <?php echo $locCount . ' ' . rr_plural_ru($locCount, 'точка', 'точки', 'точек'); ?></span>
+                        </div>
+                        <?php if ($op['chat']): ?>
+                            <a href="/pages/application_chat.php?application_id=<?php echo $op['chat']; ?>" class="m-btn m-btn--sm m-btn--soft oo-m-write"><?php echo rr_icon('message-circle'); ?> Написать</a>
+                        <?php endif; ?>
+                    </div>
+                    <ul class="oo-m-locs">
+                        <?php foreach ($op['items'] as $ass):
+                            $sheetId = 'ooActions' . (int) $ass['id'];
+                            $machines = $machinesByLo[(int) $ass['id']] ?? [];
+                            $chatId = $ass['application_id'] ?: $op['chat'];
+                        ?>
+                            <li class="oo-m-loc">
+                                <span class="oo-m-loc-ic" aria-hidden="true"><?php echo rr_icon('map-pin'); ?></span>
+                                <div class="oo-m-loc-main">
+                                    <a href="/pages/location.php?id=<?php echo (int) $ass['location_id']; ?>" class="oo-m-loc-title"><?php echo htmlspecialchars($ass['location_title']); ?></a>
+                                    <span class="oo-m-loc-sub"><?php echo htmlspecialchars($ass['city']); ?> · закреплён с <?php echo date('d.m.Y', strtotime($ass['created_at'])); ?></span>
+                                    <?php if ($machines): ?>
+                                        <?php foreach ($machines as $m):
+                                            [$pillMod, $pillIcon, $pillText] = $ooServiceState($m);
+                                        ?>
+                                            <span class="oo-m-machine"><?php echo rr_icon('square'); ?> <?php echo htmlspecialchars($machineTypeLabels[$m['machine_type']] ?? $m['machine_type']); ?><?php if (!empty($m['model'])): ?> · <?php echo htmlspecialchars($m['model']); ?><?php endif; ?></span>
+                                            <span class="m-pill <?php echo $pillMod; ?>"><?php echo rr_icon($pillIcon); ?> <?php echo htmlspecialchars($pillText); ?></span>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <span class="m-pill is-muted"><?php echo rr_icon('square'); ?> Вендинг ещё не указан</span>
+                                    <?php endif; ?>
+                                </div>
+                                <button type="button" class="oo-m-more" data-m-sheet-open="<?php echo $sheetId; ?>" aria-haspopup="dialog" aria-controls="<?php echo $sheetId; ?>" aria-label="Действия: <?php echo htmlspecialchars($ass['location_title']); ?>"><?php echo rr_icon('more'); ?></button>
+                                <div class="m-sheet" id="<?php echo $sheetId; ?>" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="<?php echo $sheetId; ?>T">
+                                    <div class="m-sheet-handle" aria-hidden="true"></div>
+                                    <div class="m-sheet-head">
+                                        <span class="m-sheet-who">
+                                            <b id="<?php echo $sheetId; ?>T"><?php echo htmlspecialchars($ass['location_title']); ?></b>
+                                            <small><?php echo htmlspecialchars($op['name']); ?></small>
+                                        </span>
+                                        <button type="button" class="m-sheet-x" data-m-sheet-close aria-label="Закрыть"><?php echo rr_icon('x'); ?></button>
+                                    </div>
+                                    <div class="m-sheet-body">
+                                        <ul class="m-menu">
+                                            <?php if ($chatId): ?>
+                                                <li><a href="/pages/application_chat.php?application_id=<?php echo (int) $chatId; ?>" class="m-menu-item"><?php echo rr_icon('message-circle'); ?><span>Написать оператору</span></a></li>
+                                            <?php endif; ?>
+                                            <li><a href="/pages/location.php?id=<?php echo (int) $ass['location_id']; ?>" class="m-menu-item"><?php echo rr_icon('eye'); ?><span>Открыть локацию</span></a></li>
+                                            <li><a href="/pages/events_calendar.php" class="m-menu-item"><?php echo rr_icon('calendar'); ?><span>Выезды в календаре</span></a></li>
+                                            <li><a href="/pages/service_history.php?location_id=<?php echo (int) $ass['location_id']; ?>" class="m-menu-item"><?php echo rr_icon('wrench'); ?><span>История обслуживания</span></a></li>
+                                            <li><button type="button" class="m-menu-item is-danger btn-unassign" data-id="<?php echo (int) $ass['id']; ?>"><?php echo rr_icon('x'); ?><span>Открепить оператора</span></button></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </article>
+            <?php endforeach; ?>
+        </div>
     <?php else: ?>
         <div class="empty">
+            <span class="m-only oo-empty-ic" aria-hidden="true"><?php echo rr_icon('users'); ?></span>
             <p>У вас пока нет закреплённых операторов.</p>
             <p>Нажмите «Закрепить оператора», чтобы назначить оператора на локацию.</p>
         </div>

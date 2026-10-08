@@ -104,15 +104,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Вход — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth">
     <?php include '../includes/header.php'; ?>
     
     <div class="register-form">
-        <h2>Вход в RR</h2>
+        <h2><?php echo rr_icon('user', 'm-only'); ?>Вход в RR</h2>
+        <div class="m-auth-sub m-only">Войдите, чтобы вести заявки и искать места для автоматов.</div>
         
         <?php if ($error): ?>
             <div class="error" role="alert"><?php echo htmlspecialchars($error); ?></div>
@@ -121,13 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST">
             <?php echo csrf_field(); ?>
             <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" required placeholder="ivan@example.com">
+                <label for="loginEmail">Email</label>
+                <input type="email" name="email" id="loginEmail" required placeholder="ivan@example.com" autocomplete="username" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next">
             </div>
 
             <div class="form-group">
-                <label>Пароль</label>
-                <input type="password" name="password" required autocomplete="current-password" placeholder="********">
+                <label for="loginPassword">Пароль</label>
+                <input type="password" name="password" id="loginPassword" required autocomplete="current-password" placeholder="********" enterkeyhint="go">
             </div>
 
             <button type="submit" class="btn-submit">Войти</button>
@@ -142,5 +143,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     
     <?php include '../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
 </body>
 </html>

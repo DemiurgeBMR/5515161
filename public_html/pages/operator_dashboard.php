@@ -216,16 +216,29 @@ $eventTypeLabels = [
     'repair'       => 'Ремонт',
     'removal'      => 'Демонтаж',
 ];
+
+// Телефон: «новичок» без точек и заявок — вместо нулевой статистики сверху
+// показываем дружелюбный первый шаг (кнопка «Найти локации»). На десктопе не используется.
+$isEmptyOperator = ($locations_count === 0 && $bookings_count === 0);
+// Телефон: цвет плашки статуса заявки в шторке «Активные заявки»
+$applicationStatusTone = [
+    'pending'     => 'is-warning',
+    'negotiating' => 'is-info',
+    'agreed'      => '',
+    'approved'    => '',
+    'rejected'    => 'is-danger',
+    'unassigned'  => 'is-muted',
+];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Кабинет арендатора — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-op-dash">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
     <div class="dashboard-wrapper">
@@ -233,6 +246,7 @@ $eventTypeLabels = [
             <div class="avatar"><?php echo mb_strtoupper(mb_substr($user_name, 0, 1, 'UTF-8')); ?></div>
             <div class="user-name"><?php echo htmlspecialchars($user_name); ?></div>
             <div class="user-role"><?php echo rr_icon('check'); ?> Арендатор</div>
+            <button type="button" class="m-only dash-m-profile" data-m-sheet-open="mMenuSheet" aria-haspopup="dialog" aria-controls="mMenuSheet" aria-label="Разделы кабинета"><?php echo rr_icon('chevron-right'); ?></button>
 
             <nav class="dashboard-nav">
                 <a href="/pages/operator_dashboard.php" class="active">
@@ -262,7 +276,7 @@ $eventTypeLabels = [
             </nav>
         </aside>
 
-        <main class="dashboard-main">
+        <main class="dashboard-main<?php echo $isEmptyOperator ? ' is-empty' : ''; ?>">
             <div class="welcome-text">
                 Добро пожаловать, <strong><?php echo htmlspecialchars($user_name); ?></strong>!
             </div>
@@ -287,7 +301,7 @@ $eventTypeLabels = [
                     <?php endif; ?>
                 </div>
                 <a href="/pages/subscription.php" class="credits-card-link">
-                    <?php echo $creditsSummary['total_available'] > 0 ? 'Смотреть тарифы' : 'Пополнить'; ?> →
+                    <span class="m-hide"><?php echo $creditsSummary['total_available'] > 0 ? 'Смотреть тарифы' : 'Пополнить'; ?> →</span><span class="m-only"><?php echo $creditsSummary['total_available'] > 0 ? 'Тарифы' : 'Пополнить'; ?></span>
                 </a>
             </div>
 
@@ -295,18 +309,22 @@ $eventTypeLabels = [
                 <div class="dash-stat-card clickable" onclick="openModal('locationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('locationsModal')">
                     <div class="number"><?php echo $locations_count; ?></div>
                     <div class="label">Активных точек</div>
+                    <span class="m-only dash-stat-ic"><?php echo rr_icon('map-pin'); ?></span>
                 </div>
                 <div class="dash-stat-card clickable" onclick="openModal('locationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('locationsModal')">
                     <div class="number"><?php echo number_format($total_rent, 0, ',', ' '); ?> ₽</div>
                     <div class="label">Аренда в месяц</div>
+                    <span class="m-only dash-stat-ic"><?php echo rr_icon('card'); ?></span>
                 </div>
                 <div class="dash-stat-card clickable" onclick="openModal('applicationsModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('applicationsModal')">
                     <div class="number"><?php echo $bookings_count; ?></div>
                     <div class="label">Активных заявок</div>
+                    <span class="m-only dash-stat-ic"><?php echo rr_icon('message-circle'); ?></span>
                 </div>
                 <div class="dash-stat-card clickable" onclick="openModal('machinesModal')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')openModal('machinesModal')">
                     <div class="number"><?php echo $vending_count; ?></div>
                     <div class="label">Размещено вендингов</div>
+                    <span class="m-only dash-stat-ic"><?php echo rr_icon('wrench'); ?></span>
                 </div>
             </div>
 
@@ -333,8 +351,15 @@ $eventTypeLabels = [
                 <?php endif; ?>
             </div>
 
-            <h3><?php echo rr_icon('bolt'); ?> Быстрые действия</h3>
+            <h3 class="dash-qa-title"><?php echo rr_icon('bolt'); ?> Быстрые действия</h3>
             <div class="quick-actions">
+                <?php if ($isEmptyOperator): ?>
+                    <div class="m-only dash-first-step">
+                        <span class="dash-first-step-ic"><?php echo rr_icon('search'); ?></span>
+                        <b>Найдите место для автомата</b>
+                        <span>Выберите локацию в каталоге и отправьте заявку собственнику — здесь появятся ваши заявки, точки и выезды.</span>
+                    </div>
+                <?php endif; ?>
                 <a href="/pages/catalog.php" class="btn"><?php echo rr_icon('search'); ?> Найти локации</a>
             </div>
 
@@ -344,9 +369,9 @@ $eventTypeLabels = [
             <?php else: ?>
                 <div class="attention-groups">
                     <?php if ($maintenance_due_count > 0): ?>
-                        <div class="attention-group">
+                        <div class="attention-group att-maint" data-m-acc>
                             <div class="attention-group-head">
-                                <span><?php echo rr_icon('warning'); ?> Обслуживание (<?php echo $maintenance_due_count; ?>)</span>
+                                <span><?php echo rr_icon('warning'); ?> Обслуживание <span class="m-hide">(<?php echo $maintenance_due_count; ?>)</span><span class="m-only m-pill att-n"><?php echo $maintenance_due_count; ?></span></span>
                                 <a href="/pages/operator_locations.php">Все точки →</a>
                             </div>
                             <ul class="attention-list">
@@ -363,9 +388,9 @@ $eventTypeLabels = [
                     <?php endif; ?>
 
                     <?php if ($pending_visits_count > 0): ?>
-                        <div class="attention-group">
+                        <div class="attention-group att-pending" data-m-acc>
                             <div class="attention-group-head">
-                                <span><?php echo rr_icon('calendar'); ?> Ждут подтверждения (<?php echo $pending_visits_count; ?>)</span>
+                                <span><?php echo rr_icon('calendar'); ?> Ждут подтверждения <span class="m-hide">(<?php echo $pending_visits_count; ?>)</span><span class="m-only m-pill att-n"><?php echo $pending_visits_count; ?></span></span>
                                 <a href="/pages/events_calendar.php">Календарь →</a>
                             </div>
                             <ul class="attention-list">
@@ -384,9 +409,9 @@ $eventTypeLabels = [
                     <?php endif; ?>
 
                     <?php if ($open_visits_count > 0): ?>
-                        <div class="attention-group">
+                        <div class="attention-group att-open" data-m-acc>
                             <div class="attention-group-head">
-                                <span><?php echo rr_icon('clock'); ?> Ожидают завершения (<?php echo $open_visits_count; ?>)</span>
+                                <span><?php echo rr_icon('clock'); ?> Ожидают завершения <span class="m-hide">(<?php echo $open_visits_count; ?>)</span><span class="m-only m-pill att-n"><?php echo $open_visits_count; ?></span></span>
                                 <a href="/pages/events_calendar.php">Календарь →</a>
                             </div>
                             <ul class="attention-list">
@@ -404,9 +429,9 @@ $eventTypeLabels = [
                     <?php endif; ?>
 
                     <?php if ($unread_messages_count > 0): ?>
-                        <div class="attention-group">
+                        <div class="attention-group att-unread" data-m-acc>
                             <div class="attention-group-head">
-                                <span><?php echo rr_icon('message-circle'); ?> Ждут ответа (<?php echo $unread_messages_count; ?>)</span>
+                                <span><?php echo rr_icon('message-circle'); ?> Ждут ответа <span class="m-hide">(<?php echo $unread_messages_count; ?>)</span><span class="m-only m-pill att-n"><?php echo $unread_messages_count; ?></span></span>
                                 <a href="/pages/operator_applications.php">Все заявки →</a>
                             </div>
                             <ul class="attention-list">
@@ -433,25 +458,25 @@ $eventTypeLabels = [
             <button class="close-btn" onclick="closeModal('locationsModal')" aria-label="Закрыть">&times;</button>
             <h3><?php echo rr_icon('map-pin'); ?> Мои активные точки</h3>
             <?php if ($active_locations): ?>
-                <table>
+                <table class="m-table-cards dash-m-table">
                     <thead>
                         <tr><th>Локация</th><th>Город</th><th>Аренда/мес</th><th>Вендингов</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($active_locations as $loc): ?>
                             <tr>
-                                <td><a href="/pages/operator_locations.php#ol-loc-<?php echo $loc['lo_id']; ?>"><?php echo htmlspecialchars($loc['title']); ?></a></td>
-                                <td><?php echo htmlspecialchars($loc['city']); ?></td>
-                                <td><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
-                                <td><?php echo (int) $loc['machines_count']; ?></td>
+                                <td class="m-cell-title"><a href="/pages/operator_locations.php#ol-loc-<?php echo $loc['lo_id']; ?>"><?php echo htmlspecialchars($loc['title']); ?></a></td>
+                                <td data-label="Город"><?php echo htmlspecialchars($loc['city']); ?></td>
+                                <td data-label="Аренда/мес"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽</td>
+                                <td data-label="Вендингов"><?php echo (int) $loc['machines_count']; ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colspan="2"><strong>Итого</strong></td>
-                            <td><strong><?php echo number_format($total_rent, 0, ',', ' '); ?> ₽</strong></td>
-                            <td><strong><?php echo $vending_count; ?></strong></td>
+                            <td colspan="2" class="m-cell-title"><strong>Итого</strong></td>
+                            <td data-label="Аренда/мес"><strong><?php echo number_format($total_rent, 0, ',', ' '); ?> ₽</strong></td>
+                            <td data-label="Вендингов"><strong><?php echo $vending_count; ?></strong></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -467,7 +492,7 @@ $eventTypeLabels = [
             <button class="close-btn" onclick="closeModal('applicationsModal')" aria-label="Закрыть">&times;</button>
             <h3><?php echo rr_icon('list'); ?> Активные заявки</h3>
             <?php if ($active_applications): ?>
-                <table>
+                <table class="m-table-cards dash-m-table">
                     <thead>
                         <tr><th>Локация</th><th>Собственник</th><th>Статус</th><th>Дата</th></tr>
                     </thead>
@@ -478,10 +503,10 @@ $eventTypeLabels = [
                                 : ($app['operator_tag'] ?: 'pending');
                         ?>
                             <tr>
-                                <td><a href="/pages/application_chat.php?application_id=<?php echo $app['id']; ?>"><?php echo htmlspecialchars($app['title']); ?>, <?php echo htmlspecialchars($app['city']); ?></a></td>
-                                <td><?php echo htmlspecialchars($app['owner_name']); ?></td>
-                                <td><?php echo htmlspecialchars($applicationStatusLabels[$appDisplayStatus] ?? $appDisplayStatus); ?></td>
-                                <td><?php echo date('d.m.Y', strtotime($app['created_at'])); ?></td>
+                                <td class="m-cell-title"><a href="/pages/application_chat.php?application_id=<?php echo $app['id']; ?>"><?php echo htmlspecialchars($app['title']); ?>, <?php echo htmlspecialchars($app['city']); ?></a></td>
+                                <td data-label="Собственник"><?php echo htmlspecialchars($app['owner_name']); ?></td>
+                                <td data-label="Статус"><span class="m-pill <?php echo $applicationStatusTone[$appDisplayStatus] ?? 'is-muted'; ?>"><?php echo htmlspecialchars($applicationStatusLabels[$appDisplayStatus] ?? $appDisplayStatus); ?></span></td>
+                                <td data-label="Дата"><?php echo date('d.m.Y', strtotime($app['created_at'])); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -498,17 +523,17 @@ $eventTypeLabels = [
             <button class="close-btn" onclick="closeModal('machinesModal')" aria-label="Закрыть">&times;</button>
             <h3><?php echo rr_icon('wrench'); ?> Размещённые вендинги</h3>
             <?php if ($active_machines): ?>
-                <table>
+                <table class="m-table-cards dash-m-table">
                     <thead>
                         <tr><th>Локация</th><th>Тип</th><th>Модель</th><th>Обслуживание</th></tr>
                     </thead>
                     <tbody>
                         <?php foreach ($active_machines as $m): ?>
                             <tr>
-                                <td><a href="/pages/operator_locations.php#ol-loc-<?php echo $m['lo_id']; ?>"><?php echo htmlspecialchars($m['title']); ?>, <?php echo htmlspecialchars($m['city']); ?></a></td>
-                                <td><?php echo htmlspecialchars($machineTypeLabelsShort[$m['machine_type']] ?? $m['machine_type']); ?></td>
-                                <td><?php echo htmlspecialchars($m['model'] ?: '—'); ?></td>
-                                <td>
+                                <td class="m-cell-title"><a href="/pages/operator_locations.php#ol-loc-<?php echo $m['lo_id']; ?>"><?php echo htmlspecialchars($m['title']); ?>, <?php echo htmlspecialchars($m['city']); ?></a></td>
+                                <td data-label="Тип"><?php echo htmlspecialchars($machineTypeLabelsShort[$m['machine_type']] ?? $m['machine_type']); ?></td>
+                                <td data-label="Модель"><?php echo htmlspecialchars($m['model'] ?: '—'); ?></td>
+                                <td data-label="Обслуживание">
                                     <?php if ($m['is_due']): ?>
                                         <span class="service-badge service-due"><?php echo rr_icon('warning'); ?> Требует обслуживания</span>
                                     <?php else: ?>
@@ -545,6 +570,8 @@ $eventTypeLabels = [
             }
         });
     </script>
+
+    <script src="/assets/js/m/operator-dashboard.js"></script>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
 </body>

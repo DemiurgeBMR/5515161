@@ -1,0 +1,375 @@
+/* ===== ТЕЛЕФОНЫ: История обслуживания (pages/service_history.php, оператор и собственник) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран-подстраница: m-appbar («назад», заголовок, «Экспорт» → шторка с CSV/PDF), ряд чипов
+   (кнопка «Фильтры» → шторка с датами/точкой/источником, типы событий — ссылками), лента карточек
+   (тип цветной плашкой, дата, точка, комментарий, исполнитель, источник, фото).
+   Форма фильтров (.filters-bar) и блок экспорта (.export-bar) на телефоне — шторки .m-sheet
+   (на десктопе — прежние блоки). Таблица (десктоп) скрыта .m-hide, лента — .m-only. */
+
+@media (max-width: 768px) {
+
+    .history-container {
+        max-width: none;
+        margin: 0;
+        padding: 0 var(--m-gutter) 24px;
+    }
+    .history-container > .back-link,
+    .history-container > h2 {
+        display: none;          /* то же самое — в m-appbar */
+    }
+
+    /* ---------- Верхняя панель ---------- */
+    .sh-appbar {
+        gap: 2px;
+        padding: 0 4px;
+    }
+    .sh-appbar .m-appbar-back .rr-icon {
+        vertical-align: 0;
+    }
+    .sh-export-open {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--m-tap);
+        padding: 0 12px;
+        background: none;
+        border: 0;
+        border-radius: 12px;
+        color: var(--accent);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .sh-export-open .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+    .sh-export-open:active {
+        background: var(--bg-elevated-2);
+    }
+    @media (max-width: 360px) {
+        .sh-export-open {
+            width: var(--m-tap);
+            justify-content: center;
+            padding: 0;
+        }
+        .sh-export-lb {
+            display: none;      /* узкий экран: заголовок важнее — остаётся иконка (aria-label «Экспорт») */
+        }
+    }
+
+    /* ---------- Чипы ---------- */
+    .sh-chips {
+        margin-bottom: 10px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+    .sh-chips .rr-icon {
+        vertical-align: 0;
+    }
+    .sh-chip-n {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    /* ---------- Шторка фильтров (форма .filters-bar) ---------- */
+    form.filters-bar.m-sheet {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-content: start;
+        gap: 0 10px;
+        margin: 0;
+        padding: 0 18px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-strong);
+        border-bottom: 0;
+        border-radius: 22px 22px 0 0;
+        box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
+    }
+    form.filters-bar.m-sheet > .m-sheet-handle,
+    form.filters-bar.m-sheet > .m-sheet-head,
+    form.filters-bar.m-sheet > .sh-btn-filter {
+        grid-column: 1 / -1;
+    }
+    form.filters-bar.m-sheet > .m-sheet-head {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0 -18px;
+        padding: 6px 12px 10px 18px;
+        background: var(--bg-elevated);
+    }
+    form.filters-bar.m-sheet .m-sheet-link {
+        text-decoration: none;
+    }
+    form.filters-bar.m-sheet .m-sheet-link + .m-sheet-x {
+        margin-left: 4px;
+    }
+    form.filters-bar.m-sheet > .m-sheet-handle {
+        margin-bottom: 0;
+    }
+    .filters-bar .filter-group {
+        grid-column: 1 / -1;
+        gap: 6px;
+        margin-bottom: 14px;
+        min-width: 0;
+    }
+    /* «С даты» и «По дату» — рядом */
+    .filters-bar > .m-sheet-head + .filter-group,
+    .filters-bar > .m-sheet-head + .filter-group + .filter-group {
+        grid-column: auto;
+    }
+    .filters-bar .filter-group label {
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .filters-bar .filter-group input,
+    .filters-bar .filter-group select {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        padding: 0 12px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 16px;
+    }
+    /* Кнопка «Применить» — крупная, на всю ширину, прилипает к нижнему краю шторки */
+    .filters-bar .sh-btn-filter {
+        position: sticky;
+        bottom: calc(12px + var(--m-safe-b));
+        z-index: 1;
+        width: 100%;
+        height: auto;
+        min-height: 52px;
+        margin: 4px 0 calc(12px + var(--m-safe-b));
+        padding: 0 20px;
+        border-radius: 14px;
+        font-family: inherit;
+        font-size: 16px;
+        font-weight: 800;
+        box-shadow: 0 0 0 14px var(--bg-elevated);
+    }
+    .filters-bar .sh-btn-filter:active {
+        background: var(--accent-hover);
+    }
+
+    /* ---------- Шторка экспорта (.export-bar) ---------- */
+    .export-bar.m-sheet {
+        gap: 10px;
+        margin: 0;
+        padding: 0 18px calc(18px + var(--m-safe-b));
+        overflow-y: auto;
+    }
+    .export-bar.m-sheet > .m-sheet-head {
+        margin: 0 -18px;
+    }
+    .sh-export-hint {
+        margin: -4px 0 4px;
+        font-size: 14px;
+        line-height: 1.4;
+        color: var(--text-muted);
+    }
+    .export-bar .btn-export {
+        justify-content: center;
+        gap: 8px;
+        min-height: 52px;
+        padding: 0 16px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 14px;
+        font-size: 16px;
+        font-weight: 700;
+    }
+    .export-bar .btn-export .rr-icon {
+        width: 20px;
+        height: 20px;
+        color: var(--accent);
+        vertical-align: 0;
+    }
+    .export-bar .btn-export:hover {
+        border-color: var(--border-strong);
+        color: var(--text);
+    }
+    .export-bar .btn-export:active {
+        background: var(--bg-elevated-2);
+    }
+
+    /* ---------- Итог ---------- */
+    .summary-line {
+        margin: 2px 0 10px;
+        font-size: 13px;
+    }
+
+    /* ---------- Лента ---------- */
+    .sh-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .sh-item {
+        display: flex;
+        gap: 12px;
+        padding: 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+    }
+    .sh-item-ic {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .sh-item-ic .rr-icon {
+        width: 20px;
+        height: 20px;
+        vertical-align: 0;
+    }
+    .sh-item-ic.is-info    { background: var(--info-soft);       color: var(--info); }
+    .sh-item-ic.is-warning { background: var(--warning-soft);    color: var(--warning); }
+    .sh-item-ic.is-danger  { background: var(--danger-soft);     color: var(--danger); }
+    .sh-item-ic.is-muted   { background: var(--bg-elevated-2);   color: var(--text-muted); }
+    .sh-item-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .sh-item-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+    .sh-item-top .m-pill .rr-icon {
+        width: 13px;
+        height: 13px;
+        vertical-align: 0;
+    }
+    .sh-item-date {
+        margin-left: auto;
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .sh-item-title {
+        margin-top: 2px;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .sh-item-city {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .sh-item-city .rr-icon,
+    .sh-item-meta .rr-icon {
+        width: 14px;
+        height: 14px;
+    }
+    .sh-item-comment {
+        margin: 4px 0 0;
+        padding: 8px 10px;
+        background: var(--bg-elevated-2);
+        border-radius: 10px;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    .sh-item-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin-top: 2px;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .sh-item-photos {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 6px;
+    }
+    .sh-item-photos a {
+        display: block;
+        width: 64px;
+        height: 64px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--bg-elevated-2);
+    }
+    .sh-item-photos img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* ---------- Пусто ---------- */
+    .history-container > .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        padding: 30px 18px 22px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: var(--m-radius);
+        font-size: 15px;
+        line-height: 1.45;
+    }
+    .sh-empty-ic {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--accent-soft);
+        color: var(--accent);
+    }
+    .sh-empty-ic .rr-icon {
+        width: 26px;
+        height: 26px;
+        vertical-align: 0;
+    }
+    .history-container > .empty .m-btn--ghost {
+        color: var(--text);
+    }
+
+    /* Ссылки подвала — не ниже 32px (общий подвал; см. запрос координатору в отчёте) */
+    body.m-pg-svc-hist .footer p.footer-legal-links a {
+        padding-top: 7px;
+        padding-bottom: 7px;
+    }
+}

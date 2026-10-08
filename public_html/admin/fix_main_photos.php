@@ -59,14 +59,14 @@ $remaining = (int) $pdo->query("SELECT COUNT(*) FROM ($affectedSql) t")->fetchCo
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Починка главных фото — Админ-панель RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="admin-container">
+    <div class="admin-container adm-tool">
         <h1><?php echo rr_icon('camera'); ?> Починка главных фото</h1>
 
         <div class="nav-admin">
@@ -86,7 +86,7 @@ $remaining = (int) $pdo->query("SELECT COUNT(*) FROM ($affectedSql) t")->fetchCo
             <div class="success" role="status"><?php echo htmlspecialchars($batchResult); ?></div>
         <?php endif; ?>
 
-        <p>Локаций без главного фото: <strong><?php echo $remaining; ?></strong></p>
+        <p class="adm-count">Локаций без главного фото: <strong><?php echo $remaining; ?></strong></p>
 
         <?php if ($remaining > 0): ?>
             <form method="POST">
@@ -95,7 +95,7 @@ $remaining = (int) $pdo->query("SELECT COUNT(*) FROM ($affectedSql) t")->fetchCo
                 <button type="submit" class="btn-submit">Исправить все ( <?php echo $remaining; ?> )</button>
             </form>
         <?php else: ?>
-            <p><?php echo rr_icon('check'); ?> У всех локаций с фото есть главное.</p>
+            <p class="adm-done"><?php echo rr_icon('check'); ?> У всех локаций с фото есть главное.</p>
         <?php endif; ?>
 
         <p class="admin-link-paragraph"><a href="/admin/index.php">← В админку</a></p>

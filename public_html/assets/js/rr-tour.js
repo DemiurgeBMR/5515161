@@ -60,8 +60,15 @@
          closest   — подняться от найденного элемента к ближайшему предку по селектору
          also      — второй селектор: подсвечиваем объединение двух блоков
          placement — предпочтительная сторона карточки: bottom | top | right | left
-         open      — раскрыть на время шага: 'account' (меню аккаунта в шапке) или
-                     'chatSidebar' (панель деталей чата — на телефоне это выезжающая шторка)
+         open      — раскрыть на время шага: 'account' (меню аккаунта в шапке; на телефоне —
+                     шторка «Профиль» нижней панели) или 'chatSidebar' (панель деталей чата —
+                     на телефоне это выезжающая шторка)
+         only      — 'phone' | 'desktop': шаг показывается только на телефоне (≤ 768px) или
+                     только на широком экране (фильтруется при загрузке страницы)
+         phone     — {…}: поля шага, которые на телефоне заменяют основные (target, text, …)
+         dock      — для шторки на телефоне: 'top' | 'bottom' | 'auto' — к какому краю прижать
+                     карточку (по умолчанию низ; 'auto' — к краю, дальнему от цели; нужно для
+                     целей, закреплённых у низа экрана: нижняя панель, шторка меню)
          title, text (абзацы через пустую строку), items (список: строка или
          [жирное начало, продолжение]), ordered (нумерованный список)
        Без target шаг показывается по центру экрана. */
@@ -72,7 +79,12 @@
     var FINAL_STEP = {
         target: '#rrTourRestart', open: 'account', placement: 'left',
         title: 'Это всё!',
-        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».'
+        text: 'Если что-то забудете — вернуться к обучению можно в любой момент: меню аккаунта → «Обучение». Подробное описание всех шагов есть и на странице «Как это работает».',
+        // На телефоне меню аккаунта — шторка вкладки «Профиль» нижней панели
+        phone: {
+            target: '#rrTourRestartM', dock: 'auto', placement: 'top',
+            text: 'Если что-то забудете — вернуться к обучению можно в любой момент: вкладка «Профиль» внизу экрана → «Обучение по сайту». Подробное описание всех шагов есть и на странице «Как это работает».'
+        }
     };
 
     // Календарь выездов одинаков для обеих ролей — различаются только пара фраз.
@@ -90,7 +102,14 @@
                         ['Новый выезд', 'запросить визит: выберите точку, тип (обслуживание, пополнение, ремонт, установка, демонтаж), дату и время. ' + (isOwner ? 'Нужен хотя бы один закреплённый оператор.' : 'Нужна хотя бы одна закреплённая за вами точка.')],
                         ['История и экспорт', 'журнал всех выездов и обслуживания; его можно выгрузить в CSV (Excel) или PDF'],
                         ['Обновить', 'перечитать календарь']
-                    ]
+                    ],
+                    phone: {
+                        text: 'Календарь — общее место, где вы и ' + (isOwner ? 'оператор' : 'собственник') + ' согласуете установку автомата и обслуживание.',
+                        items: [
+                            ['Новый выезд', 'запросить визит: точка, тип (обслуживание, пополнение, ремонт, установка, демонтаж), дата и время. ' + (isOwner ? 'Нужен хотя бы один закреплённый оператор.' : 'Нужна хотя бы одна закреплённая за вами точка.')],
+                            ['⋯', 'история и экспорт (CSV, PDF) и обновление календаря']
+                        ]
+                    }
                 },
                 {
                     target: '.calendar-stats', placement: 'bottom',
@@ -100,17 +119,23 @@
                 {
                     target: '.calendar-toolbar', placement: 'bottom',
                     title: 'Поиск и фильтры',
-                    text: 'Ищите по названию точки, городу' + (isOwner ? ' или оператору' : '') + ' и фильтруйте по типу выезда, статусу и срочности' + (isOwner ? ' — а также по конкретному оператору' : '') + '.'
+                    text: 'Ищите по названию точки, городу' + (isOwner ? ' или оператору' : '') + ' и фильтруйте по типу выезда, статусу и срочности' + (isOwner ? ' — а также по конкретному оператору' : '') + '.',
+                    phone: { text: 'Ищите по названию точки, городу' + (isOwner ? ' или оператору' : '') + '. Кнопка «Фильтры» открывает шторку: тип выезда, статус, срочность' + (isOwner ? ', оператор' : '') + '.' }
                 },
                 {
                     target: '.today-sidebar', placement: 'right',
                     title: 'Сегодня',
-                    text: 'Слева — события сегодняшнего дня: время, точка и статус. Удобно открыть утром, чтобы понять, что запланировано.'
+                    text: 'Слева — события сегодняшнего дня: время, точка и статус. Удобно открыть утром, чтобы понять, что запланировано.',
+                    phone: { placement: 'bottom', text: 'Вверху — события сегодняшнего дня: время, точка и статус. Удобно открыть утром, чтобы понять, что запланировано.' }
                 },
                 {
                     target: ['.calendar-card .fc-header-toolbar', '.calendar-card'], placement: 'bottom',
                     title: 'Календарь',
-                    text: 'Стрелки и «Сегодня» листают период, кнопки «Месяц», «Неделя», «День» меняют вид.\n\nНажмите на событие в сетке — откроется карточка: там можно подтвердить время, предложить другое, завершить выезд или отменить его.'
+                    text: 'Стрелки и «Сегодня» листают период, кнопки «Месяц», «Неделя», «День» меняют вид.\n\nНажмите на событие в сетке — откроется карточка: там можно подтвердить время, предложить другое, завершить выезд или отменить его.',
+                    phone: {
+                        target: ['.cal-m-viewbar', '.calendar-card'],
+                        text: '«Список» — выезды месяца карточками, «Месяц» — сетка с точками: нажмите на день, и под ней появятся его выезды. Стрелки листают месяцы.\n\nНажмите на карточку — откроется шторка: подтвердить время, предложить другое, завершить выезд, отменить или перейти в чат.'
+                    }
                 },
                 {
                     title: 'Как согласуется выезд',
@@ -145,7 +170,20 @@
                             ['Документы', 'шаблон договора размещения'],
                             ['Подписка', 'пополнение контактов'],
                             ['Настройки', 'профиль, пароль, уведомления']
-                        ]
+                        ],
+                        // На телефоне бокового меню нет — разделы собраны в нижней панели
+                        phone: {
+                            target: '#mTabbar', dock: 'auto', placement: 'top', pad: 2,
+                            title: 'Нижняя панель',
+                            text: 'Внизу экрана — главные разделы, всегда под рукой:',
+                            items: [
+                                ['Каталог', 'поиск локаций и карта'],
+                                ['Избранное', 'места, которые вы сохранили'],
+                                ['Заявки', 'переписка с собственниками; число на значке — непрочитанные сообщения'],
+                                ['Выезды', 'календарь установки и обслуживания'],
+                                ['Профиль', 'всё остальное: мои точки, документы, подписка, настройки, обучение, выход']
+                            ]
+                        }
                     },
                     {
                         target: '.credits-card', placement: 'bottom',
@@ -164,7 +202,7 @@
                         text: 'Всё срочное собирается здесь: новые сообщения, визиты, которые нужно подтвердить, и точки, где пора провести обслуживание. Если блок пуст — всё под контролем.'
                     },
                     {
-                        target: '#notificationBellBtn', placement: 'bottom',
+                        target: '#notificationBellBtn', placement: 'bottom', phone: { pad: 3 },
                         title: 'Уведомления',
                         text: 'Колокольчик загорится, когда придёт сообщение от собственника, ответ по заявке или изменится время визита. Какие уведомления получать — настраивается в разделе «Настройки».'
                     },
@@ -188,7 +226,12 @@
                     {
                         target: '.filters-grid', placement: 'bottom',
                         title: 'Фильтры',
-                        text: 'Сузьте выдачу по городу, типу помещения, проходимости, цене и площади. Ниже можно отметить нужные удобства — электричество, Wi-Fi, воду.\n\nПосле изменений нажмите «Показать предложения».'
+                        text: 'Сузьте выдачу по городу, типу помещения, проходимости, цене и площади. Ниже можно отметить нужные удобства — электричество, Wi-Fi, воду.\n\nПосле изменений нажмите «Показать предложения».',
+                        // На телефоне фильтры лежат в шторке — подсвечиваем кнопку, которая её открывает
+                        phone: {
+                            target: '.cat-fbtn', pad: 4,
+                            text: 'Кнопка справа от поиска открывает фильтры: город, тип помещения, цена, площадь, проходимость, удобства и сортировка. На кнопке — число включённых фильтров.\n\nВыберите нужное и нажмите «Показать N предложений». Типы помещений есть и плитками под поиском — одно касание.'
+                        }
                     },
                     {
                         target: '.catalog-card', placement: 'right',
@@ -198,7 +241,8 @@
                     {
                         target: '.catalog-card .favorite-btn', placement: 'bottom', pad: 6,
                         title: 'Избранное',
-                        text: 'Сердечко сохраняет локацию, чтобы вернуться к ней позже. Все сохранённые — в меню аккаунта → «Избранное».'
+                        text: 'Сердечко сохраняет локацию, чтобы вернуться к ней позже. Все сохранённые — в меню аккаунта → «Избранное».',
+                        phone: { text: 'Сердечко сохраняет локацию, чтобы вернуться к ней позже. Все сохранённые — во вкладке «Избранное» внизу экрана.' }
                     },
                     {
                         title: 'Как связаться с собственником',
@@ -223,7 +267,12 @@
                         closest: '.admin-table', placement: 'bottom',
                         title: 'Мои заявки и чаты',
                         text: 'Каждая заявка на аренду — отдельный чат с собственником. В списке видны локация, собственник, статус и дата, а кнопка «Чат» открывает переписку.\n\n' +
-                              'Заявка появляется здесь, когда вы отправляете её со страницы локации.'
+                              'Заявка появляется здесь, когда вы отправляете её со страницы локации.',
+                        phone: {
+                            target: ['#oaList .oa-card', '#oaList', '.m-empty'], closest: '',
+                            text: 'Каждая заявка на аренду — отдельный чат с собственником. Карточка показывает фото локации, собственника, статус, последнее сообщение и число непрочитанных. Нажмите на карточку — откроется переписка.\n\n' +
+                                  'Заявка появляется здесь, когда вы отправляете её со страницы локации.'
+                        }
                     }
                 ]
             },
@@ -231,7 +280,7 @@
                 name: 'Чат',
                 page: '/pages/application_chat.php',
                 entry: '/pages/operator_applications.php',
-                via: '.btn-view[href*="application_chat.php?application_id="]',
+                via: '.btn-view[href*="application_chat.php?application_id="], a.oa-card[href*="application_chat.php?application_id="]',
                 demoNote: CHAT_DEMO_NOTE,
                 nextLabel: 'Мои точки →',
                 steps: [
@@ -327,10 +376,23 @@
                             ['Выезды', 'календарь установки и обслуживания автоматов'],
                             ['Документы', 'шаблон договора размещения'],
                             ['Редактировать профиль', 'имя, пароль, уведомления']
-                        ]
+                        ],
+                        // На телефоне разделы кабинета собраны в нижней панели
+                        phone: {
+                            target: '#mTabbar', dock: 'auto', placement: 'top', pad: 2,
+                            title: 'Нижняя панель',
+                            text: 'Главные разделы — внизу экрана, всегда под рукой:',
+                            items: [
+                                ['Места', 'ваши объявления'],
+                                ['Заявки', 'сообщения от операторов; число на значке — непрочитанные'],
+                                ['Добавить', 'новая локация'],
+                                ['Выезды', 'календарь установки и обслуживания автоматов'],
+                                ['Профиль', 'мои операторы, документы, настройки, обучение, выход']
+                            ]
+                        }
                     },
                     {
-                        target: '#attentionToggle', also: '#attentionContent', placement: 'bottom',
+                        target: '#attentionToggle', also: '#attentionContent', placement: 'bottom', phone: { also: '' },
                         title: 'Требует внимания',
                         text: 'Здесь появляется всё срочное: новые сообщения операторов, визиты, которые нужно подтвердить или завершить, сломанные автоматы и те, что требуют ремонта или обслуживания. Если блок пуст — всё под контролем. Его можно свернуть.'
                     },
@@ -340,7 +402,7 @@
                         text: 'Ниже — ваши объявления. Вкладки «Все», «Активные» и «На модерации» помогают быстро найти нужное. У каждой карточки есть кнопки: редактировать, скрыть из каталога, удалить.'
                     },
                     {
-                        target: '#notificationBellBtn', placement: 'bottom',
+                        target: '#notificationBellBtn', placement: 'bottom', phone: { pad: 3 },
                         title: 'Уведомления',
                         text: 'Колокольчик загорится, когда оператор напишет вам, попросит закрепить его за локацией или предложит время визита. Какие уведомления получать — настраивается в «Редактировать профиль».'
                     },
@@ -381,7 +443,7 @@
                         text: 'Добавьте до пяти фото (JPG, PNG или WEBP, до 5 МБ каждое): хорошие снимки заметно повышают шансы на заявку. Отметьте «Главное» — это фото станет обложкой карточки.'
                     },
                     {
-                        target: '#locationForm .btn-submit', placement: 'top',
+                        target: '#locationForm .btn-submit', placement: 'top', dock: 'auto',
                         title: 'Отправьте на проверку',
                         text: 'Остальные поля заполняйте по желанию, затем нажмите «Опубликовать локацию». Объявление уйдёт на модерацию, а в каталоге появится после проверки администратором. Статус виден в вашем профиле.'
                     },
@@ -407,7 +469,9 @@
                         closest: '.admin-table', placement: 'bottom',
                         title: 'Заявки и чаты',
                         text: 'Когда оператора заинтересует ваша локация, он напишет вам — так появляется заявка и отдельный чат. В списке видны локация, оператор, статус и дата, а кнопка «Чат» открывает переписку.\n\n' +
-                              'О новом сообщении сообщит колокольчик.'
+                              'О новом сообщении сообщит колокольчик.',
+                        // На телефоне каждая заявка — карточка: подсвечиваем первую, а не весь список
+                        phone: { closest: 'tr' }
                     }
                 ]
             },
@@ -415,7 +479,7 @@
                 name: 'Чат',
                 page: '/pages/application_chat.php',
                 entry: '/pages/owner_applications.php',
-                via: '.btn-view[href*="application_chat.php?application_id="]',
+                via: '.btn-view[href*="application_chat.php?application_id="], a.oa-card[href*="application_chat.php?application_id="]',
                 demoNote: CHAT_DEMO_NOTE,
                 nextLabel: 'Мои операторы →',
                 steps: [
@@ -485,6 +549,23 @@
     var chapters = TOURS[state.role];
     if (!chapters) return;
 
+    // Телефон (≤ 768px) — «режим приложения»: нижняя панель вместо бокового меню (assets/css/layout/_mobile-shell.css).
+    function isPhone() {
+        return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+    }
+    // Шаги «только для телефона/десктопа» отбираются один раз при загрузке страницы.
+    (function () {
+        var phone = isPhone();
+        chapters = chapters.map(function (ch) {
+            var copy = {};
+            Object.keys(ch).forEach(function (k) { copy[k] = ch[k]; });
+            copy.steps = ch.steps.filter(function (st) {
+                return !st.only || (st.only === 'phone') === phone;
+            });
+            return copy;
+        });
+    })();
+
     var totalSteps = chapters.reduce(function (sum, ch) { return sum + ch.steps.length; }, 0);
     var currentPath = window.location.pathname;
 
@@ -497,8 +578,72 @@
         return node;
     }
 
-    function isMobile() {
-        return window.matchMedia('(max-width: 600px)').matches;
+    // «Шторка»: карточка прижата к низу экрана, а подсвеченный элемент
+    // прокручивается выше неё. Нужна на узких экранах и на низких (телефон в
+    // горизонтальном положении) — там карточке рядом с элементом просто не хватает места.
+    function useSheet() {
+        var box = visibleBox();
+        return box.width <= 600 || box.height <= 480;
+    }
+
+    // Реально видимая область экрана. window.innerWidth/innerHeight — размер
+    // «раскладочной» области: если страница шире экрана (на узком телефоне какой-то
+    // блок выпирает), она расширяется (354 px при экране 320 px), и всё, что
+    // позиционируется по ней, уезжает за видимый край — вплоть до недоступной
+    // кнопки «Далее». visualViewport даёт то, что человек видит на самом деле (и
+    // учитывает увеличение пальцами и экранную клавиатуру).
+    function visibleBox() {
+        var vv = window.visualViewport;
+        if (vv) return { left: vv.offsetLeft, top: vv.offsetTop, width: vv.width, height: vv.height };
+        return { left: 0, top: 0, width: document.documentElement.clientWidth || window.innerWidth, height: window.innerHeight };
+    }
+
+    // Карточка по центру видимой области (шаг без цели, приглашение).
+    function positionCentered(pop) {
+        var box = visibleBox();
+        pop.style.right = '';
+        pop.style.bottom = '';
+        pop.style.width = '';
+        pop.style.left = (box.left + box.width / 2) + 'px';
+        pop.style.top = (box.top + box.height / 2) + 'px';
+        pop.style.maxWidth = Math.max(0, box.width - 24) + 'px';
+        pop.style.maxHeight = Math.max(0, box.height - 24) + 'px';
+    }
+
+    // «Шторка» у нижнего (или, для целей у низа экрана, у верхнего) края видимой области.
+    function positionSheet(pop, atTop) {
+        var box = visibleBox();
+        pop.style.right = 'auto';
+        pop.style.maxWidth = 'none';
+        pop.style.maxHeight = '';
+        pop.style.left = (box.left + 12) + 'px';
+        pop.style.width = Math.max(0, box.width - 24) + 'px';
+        if (atTop) {
+            pop.style.bottom = 'auto';
+            pop.style.top = (box.top + 12) + 'px';
+        } else {
+            pop.style.top = 'auto';
+            pop.style.bottom = Math.max(0, window.innerHeight - (box.top + box.height)) + 12 + 'px';
+        }
+    }
+
+    // Элемент закреплён на экране (нижняя панель, шторка меню): страницей его не прокрутить.
+    function isFixedNode(node) {
+        for (var p = node; p && p !== document.documentElement; p = p.parentElement) {
+            if (window.getComputedStyle(p).position === 'fixed') return true;
+        }
+        return false;
+    }
+
+    // К какому краю прижать карточку-шторку на этом шаге.
+    function dockAtTop(step, rect) {
+        if (step.dock === 'top') return true;
+        if (step.dock === 'auto' && rect) return rect.top + rect.height / 2 > visibleBox().height / 2;
+        return false;
+    }
+
+    function resetPopInline(pop) {
+        ['left', 'top', 'right', 'bottom', 'width', 'maxWidth', 'maxHeight'].forEach(function (prop) { pop.style[prop] = ''; });
     }
 
     function isVisible(node) {
@@ -539,6 +684,11 @@
     // Меню аккаунта в шапке: открываем на шаге «Это всё!», чтобы показать, где
     // живёт пункт «Обучение». Разметка и классы — includes/header.php.
     function setAccountMenu(open) {
+        // На телефоне меню аккаунта — шторка «Профиль» нижней панели (includes/mobile_nav.php)
+        if (isPhone() && window.RRMobile) {
+            if (open) window.RRMobile.openSheet('mMenuSheet'); else window.RRMobile.closeSheet('mMenuSheet');
+            return;
+        }
         var dropdown = document.getElementById('accountMenuDropdown');
         var btn = document.getElementById('accountMenuBtn');
         if (!dropdown || !btn) return;
@@ -654,8 +804,14 @@
     // после пропуска.
     var epoch = 0;
 
+    // Шаг с учётом телефонных переопределений (step.phone заменяет одноимённые поля).
     function currentStep() {
-        return chapters[run.ci].steps[run.si];
+        var step = chapters[run.ci].steps[run.si];
+        if (!step.phone || !isPhone()) return step;
+        var merged = {};
+        Object.keys(step).forEach(function (k) { merged[k] = step[k]; });
+        Object.keys(step.phone).forEach(function (k) { merged[k] = step.phone[k]; });
+        return merged;
     }
 
     function globalIndex() {
@@ -678,6 +834,11 @@
         var closeBtn = el('button', 'rr-tour-x', '×');
         closeBtn.type = 'button';
         closeBtn.setAttribute('aria-label', 'Закрыть обучение');
+
+        // Свернуть текст карточки, чтобы увидеть подсвеченное под ней (только в «шторке»).
+        var foldBtn = el('button', 'rr-tour-fold', '▾');
+        foldBtn.type = 'button';
+        foldBtn.hidden = true;
 
         var progress = el('div', 'rr-tour-progress');
         var count = el('span');
@@ -706,6 +867,7 @@
         actions.appendChild(nextBtn);
 
         pop.appendChild(closeBtn);
+        pop.appendChild(foldBtn);
         pop.appendChild(progress);
         pop.appendChild(title);
         pop.appendChild(body);
@@ -717,14 +879,20 @@
         var r = {
             ci: ci, si: 0, layer: layer, spot: spot, pop: pop,
             count: count, barFill: barFill, title: title, body: body,
-            skipBtn: skipBtn, prevBtn: prevBtn, nextBtn: nextBtn,
-            target: null, busy: false, raf: 0, timers: [], opened: null, demo: false
+            skipBtn: skipBtn, prevBtn: prevBtn, nextBtn: nextBtn, foldBtn: foldBtn, spacer: null,
+            // На низком экране (телефон лёжа) карточка сразу свёрнута: развёрнутая она закрыла бы почти всё.
+            folded: window.innerHeight <= 480,
+            target: null, busy: false, raf: 0, resizeRaf: 0, timers: [], opened: null, demo: false
         };
 
         closeBtn.addEventListener('click', skipTour);
         skipBtn.addEventListener('click', skipTour);
         prevBtn.addEventListener('click', prevStep);
         nextBtn.addEventListener('click', nextStep);
+        foldBtn.addEventListener('click', function () {
+            r.folded = !r.folded;
+            layoutStep(true);
+        });
         return r;
     }
 
@@ -734,7 +902,11 @@
         if (!run) {
             run = buildRun(ci);
             document.body.appendChild(run.layer);
-            window.addEventListener('resize', schedulePlace);
+            window.addEventListener('resize', onResize);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', onResize);
+                window.visualViewport.addEventListener('scroll', schedulePlace);
+            }
             window.addEventListener('scroll', schedulePlace, true);
             window.addEventListener('load', schedulePlace);
             openDialog({
@@ -819,8 +991,7 @@
 
         // Цель и позиция
         run.target = findTarget(step);
-        if (run.target) ensureVisible(run.target, step);
-        placeNow();
+        layoutStep(true);
         // Картинки и шрифты могут сдвинуть вёрстку уже после показа шага.
         clearTimers();
         [120, 400].forEach(function (ms) { run.timers.push(setTimeout(placeNow, ms)); });
@@ -855,13 +1026,15 @@
 
     // Прокручиваем страницу так, чтобы цель была на виду целиком и не пряталась
     // под карточкой (на телефоне карточка — «шторка» внизу экрана).
-    function ensureVisible(node, step) {
+    function ensureVisible(node, step, sheet) {
         scrollNestedContainers(node);
+        if (isFixedNode(node)) return;
         var rect = targetRect(step, node);
-        var vh = window.innerHeight;
+        var vh = visibleBox().height;
         var margin = 16;
-        var sheet = isMobile() ? Math.min(run.pop.offsetHeight, vh * 0.55) + 24 : 0;
-        var visibleBottom = vh - sheet - margin;
+        // Под шторкой тоже должно быть место для прокрутки — см. setSpacer().
+        var sheetH = sheet ? run.pop.offsetHeight + 24 : 0;
+        var visibleBottom = vh - sheetH - margin;
         if (rect.top >= margin && rect.bottom <= visibleBottom) return;
 
         var avail = visibleBottom - margin;
@@ -882,72 +1055,127 @@
         });
     }
 
+    // Поворот экрана / изменение размера окна меняет режим карточки (шторка ↔ сбоку)
+    // — нужна полная раскладка с прокруткой к цели, а не только пересчёт позиции.
+    function onResize() {
+        if (!run || run.resizeRaf) return;
+        run.resizeRaf = window.requestAnimationFrame(function () {
+            if (!run) return;
+            run.resizeRaf = 0;
+            layoutStep(true);
+        });
+    }
+
+    // Режим карточки для текущего шага: по центру (нет цели), «шторка» или у цели сбоку.
+    // Состояние карточки определяется ДО измерения её высоты — от неё зависят и
+    // запас для прокрутки, и положение подсвеченного элемента.
+    function applyMode() {
+        var node = run.target && isVisible(run.target) ? run.target : null;
+        var sheet = !!node && useSheet();
+        run.layer.classList.toggle('rr-tour-dim', !node);
+        run.spot.style.opacity = node ? '1' : '0';
+        run.pop.classList.toggle('is-center', !node);
+        run.pop.classList.toggle('is-sheet', sheet);
+        run.pop.classList.toggle('is-folded', sheet && run.folded);
+        run.foldBtn.hidden = !sheet;
+        run.foldBtn.textContent = run.folded ? '▴' : '▾';
+        run.foldBtn.setAttribute('aria-expanded', run.folded ? 'false' : 'true');
+        var label = run.folded ? 'Показать текст подсказки' : 'Свернуть текст — посмотреть, что подсвечено';
+        run.foldBtn.title = label;
+        run.foldBtn.setAttribute('aria-label', label);
+        return { node: node, sheet: sheet };
+    }
+
+    // Пустой блок в конце страницы высотой с шторку. Без него на коротких страницах
+    // (и у элементов внизу страницы) прокрутить подсвеченное выше шторки просто
+    // некуда — оно оказывалось под ней целиком.
+    function setSpacer(height) {
+        if (height > 0 && !run.spacer) {
+            run.spacer = el('div', 'rr-tour-spacer');
+            run.spacer.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(run.spacer);
+        }
+        if (run.spacer) {
+            var value = Math.round(height) + 'px';
+            if (run.spacer.style.height !== value) run.spacer.style.height = value;
+        }
+    }
+
+    // Полная раскладка шага: режим → запас для прокрутки → прокрутка к цели → позиция.
+    function layoutStep(scrollToTarget) {
+        var mode = applyMode();
+        setSpacer(mode.sheet && !isFixedNode(mode.node) ? run.pop.offsetHeight + 24 : 0);
+        if (scrollToTarget && mode.node) ensureVisible(mode.node, currentStep(), mode.sheet);
+        placeNow();
+    }
+
     function placeNow() {
         if (!run) return;
         var step = currentStep();
         var pop = run.pop, spot = run.spot;
-        var node = run.target && isVisible(run.target) ? run.target : null;
+        var mode = applyMode();
+        var node = mode.node;
         var rect = node ? targetRect(step, node) : null;
-        var mobile = isMobile();
+        setSpacer(mode.sheet && !isFixedNode(node) ? pop.offsetHeight + 24 : 0);
 
-        run.layer.classList.toggle('rr-tour-dim', !rect);
-        spot.style.opacity = rect ? '1' : '0';
-        pop.classList.toggle('is-center', !rect);
-        pop.classList.toggle('is-sheet', !!rect && mobile);
-
-        if (!rect || mobile) {
-            pop.style.left = '';
-            pop.style.top = '';
-            if (!rect) return;
+        if (!rect) {
+            positionCentered(pop);
+            return;
+        }
+        if (mode.sheet) {
+            positionSheet(pop, dockAtTop(step, rect));
+        } else {
+            resetPopInline(pop);
         }
 
         var pad = step.pad != null ? step.pad : 8;
-        spot.style.left = (rect.left - pad) + 'px';
+        // Рамка подсветки не должна вылезать за видимую область по горизонтали (блок на всю ширину экрана)
+        var vbox = visibleBox();
+        var spotLeft = Math.max(vbox.left + 2, rect.left - pad);
+        var spotRight = Math.min(vbox.left + vbox.width - 2, rect.right + pad);
+        spot.style.left = spotLeft + 'px';
         spot.style.top = (rect.top - pad) + 'px';
-        spot.style.width = (rect.width + pad * 2) + 'px';
+        spot.style.width = Math.max(0, spotRight - spotLeft) + 'px';
         spot.style.height = (rect.height + pad * 2) + 'px';
-        if (mobile) return;
+        if (mode.sheet) return;
 
-        var vw = window.innerWidth, vh = window.innerHeight;
+        var box = visibleBox();
+        var vw = box.width, vh = box.height;
         var gap = 14, margin = 12;
         var pw = pop.offsetWidth, ph = pop.offsetHeight;
-        var space = {
-            bottom: vh - rect.bottom - pad,
-            top: rect.top - pad,
-            right: vw - rect.right - pad,
-            left: rect.left - pad
-        };
         var order = ['bottom', 'top', 'right', 'left'];
         if (step.placement) order.unshift(step.placement);
 
-        var side = null;
-        for (var i = 0; i < order.length; i++) {
-            var need = (order[i] === 'bottom' || order[i] === 'top') ? ph : pw;
-            if (space[order[i]] >= need + gap + margin) { side = order[i]; break; }
-        }
-        if (!side) {
-            // Нигде не помещается целиком — берём сторону с наибольшим запасом.
-            side = order.reduce(function (best, s) { return space[s] > space[best] ? s : best; }, order[0]);
-        }
-
-        var left, top;
-        if (side === 'bottom') {
-            top = rect.bottom + pad + gap;
-            left = rect.left + rect.width / 2 - pw / 2;
-        } else if (side === 'top') {
-            top = rect.top - pad - gap - ph;
-            left = rect.left + rect.width / 2 - pw / 2;
-        } else if (side === 'right') {
-            left = rect.right + pad + gap;
-            top = rect.top + rect.height / 2 - ph / 2;
-        } else {
-            left = rect.left - pad - gap - pw;
-            top = rect.top + rect.height / 2 - ph / 2;
-        }
-        left = Math.max(margin, Math.min(left, vw - pw - margin));
-        top = Math.max(margin, Math.min(top, vh - ph - margin));
-        pop.style.left = left + 'px';
-        pop.style.top = top + 'px';
+        // Для каждой стороны считаем итоговое положение карточки (с поправкой на края
+        // экрана) и то, насколько она при этом закрывает подсвеченный блок. Берём первую
+        // сторону без перекрытия, а если такой нет (блок огромный) — с наименьшим.
+        var candidates = order.map(function (side) {
+            var left, top;
+            if (side === 'bottom') {
+                top = rect.bottom + pad + gap;
+                left = rect.left + rect.width / 2 - pw / 2;
+            } else if (side === 'top') {
+                top = rect.top - pad - gap - ph;
+                left = rect.left + rect.width / 2 - pw / 2;
+            } else if (side === 'right') {
+                left = rect.right + pad + gap;
+                top = rect.top + rect.height / 2 - ph / 2;
+            } else {
+                left = rect.left - pad - gap - pw;
+                top = rect.top + rect.height / 2 - ph / 2;
+            }
+            left = Math.max(box.left + margin, Math.min(left, box.left + vw - pw - margin));
+            top = Math.max(box.top + margin, Math.min(top, box.top + vh - ph - margin));
+            var overlapX = Math.max(0, Math.min(left + pw, rect.right + pad) - Math.max(left, rect.left - pad));
+            var overlapY = Math.max(0, Math.min(top + ph, rect.bottom + pad) - Math.max(top, rect.top - pad));
+            return { left: left, top: top, overlap: overlapX * overlapY };
+        });
+        var best = candidates[0];
+        candidates.forEach(function (c) {
+            if (c.overlap < best.overlap - 1) best = c;
+        });
+        pop.style.left = best.left + 'px';
+        pop.style.top = best.top + 'px';
     }
 
     function nextStep() {
@@ -1049,11 +1277,17 @@
         if (!run) return;
         clearTimers();
         if (run.raf) window.cancelAnimationFrame(run.raf);
-        window.removeEventListener('resize', schedulePlace);
+        if (run.resizeRaf) window.cancelAnimationFrame(run.resizeRaf);
+        window.removeEventListener('resize', onResize);
+        if (window.visualViewport) {
+            window.visualViewport.removeEventListener('resize', onResize);
+            window.visualViewport.removeEventListener('scroll', schedulePlace);
+        }
         window.removeEventListener('scroll', schedulePlace, true);
         window.removeEventListener('load', schedulePlace);
         if (run.opened) OPENERS[run.opened](false);
         if (run.layer.parentNode) run.layer.parentNode.removeChild(run.layer);
+        if (run.spacer && run.spacer.parentNode) run.spacer.parentNode.removeChild(run.spacer);
         run = null;
         closeDialog();
     }
@@ -1101,7 +1335,11 @@
         swallowClicks(layer);
         document.body.appendChild(layer);
 
-        welcome = { layer: layer, pop: pop };
+        var fit = function () { positionCentered(pop); };
+        fit();
+        window.addEventListener('resize', fit);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
+        welcome = { layer: layer, pop: pop, fit: fit };
         openDialog({ pop: pop, onEscape: skipTour });
 
         closeBtn.addEventListener('click', skipTour);
@@ -1113,6 +1351,8 @@
     function removeWelcome() {
         if (!welcome) return;
         if (welcome.layer.parentNode) welcome.layer.parentNode.removeChild(welcome.layer);
+        window.removeEventListener('resize', welcome.fit);
+        if (window.visualViewport) window.visualViewport.removeEventListener('resize', welcome.fit);
         welcome = null;
         if (!run) closeDialog();
     }
@@ -1125,15 +1365,26 @@
         var node = el('div', 'rr-tour-pill');
         node.setAttribute('role', 'region');
         node.setAttribute('aria-label', 'Обучение');
-        node.appendChild(el('span', 'rr-tour-pill-text', 'Вы не закончили обучение'));
+        var inner = el('div', 'container rr-tour-pill-inner');
+        inner.appendChild(el('span', 'rr-tour-pill-text', 'Вы не закончили обучение'));
         var goBtn = el('button', 'rr-tour-btn rr-tour-btn-primary', 'Продолжить');
         goBtn.type = 'button';
         var stopBtn = el('button', 'rr-tour-btn', 'Пропустить');
         stopBtn.type = 'button';
         stopBtn.title = 'Пропустить обучение — позже его можно пройти заново из меню аккаунта';
-        node.appendChild(goBtn);
-        node.appendChild(stopBtn);
-        document.body.appendChild(node);
+        inner.appendChild(goBtn);
+        inner.appendChild(stopBtn);
+        node.appendChild(inner);
+        // Полоса в потоке страницы — сразу над содержимым, как баннер подтверждения
+        // почты. Плавающая плашка поверх страницы закрывала бы то, что внизу
+        // (например, поле ввода сообщения в чате).
+        var main = document.getElementById('main-content');
+        if (main && main.parentNode) {
+            main.parentNode.insertBefore(node, main);
+        } else {
+            node.classList.add('is-floating');
+            document.body.appendChild(node);
+        }
         pill = node;
 
         goBtn.addEventListener('click', function () {
@@ -1195,6 +1446,11 @@
         var trigger = e.target.closest('[data-rr-tour-start]');
         if (!trigger) return;
         e.preventDefault();
+        if (isPhone() && window.RRMobile && window.RRMobile.closeAll) {
+            // Шторку «Профиль» закрываем до старта: обучение может перейти на другую страницу
+            window.RRMobile.closeAll(function () { startTour(null); });
+            return;
+        }
         setAccountMenu(false);
         startTour(null);
     });

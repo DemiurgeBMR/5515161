@@ -53,9 +53,14 @@ if ($action === 'list') {
     $countStmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND read_at IS NULL");
     $countStmt->execute([$user_id]);
 
+    // Непрочитанные сообщения чатов — бейдж вкладки «Заявки» в нижней панели телефона.
+    $msgStmt = $pdo->prepare("SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND is_read = 0");
+    $msgStmt->execute([$user_id]);
+
     echo json_encode([
-        'notifications' => $notifications,
-        'unread_count'  => (int) $countStmt->fetchColumn(),
+        'notifications'   => $notifications,
+        'unread_count'    => (int) $countStmt->fetchColumn(),
+        'unread_messages' => (int) $msgStmt->fetchColumn(),
     ]);
     exit;
 }

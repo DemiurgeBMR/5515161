@@ -172,46 +172,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Редактирование профиля — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-auth m-ep m-has-cta">
     <?php include __DIR__ . '/../includes/header.php'; ?>
 
-    <div class="ep-page">
+    <div class="ep-page" data-ep-initial="<?php echo ($notifSuccess !== '' || $notifError !== '') ? 'notif' : 'profile'; ?>">
         <a href="/pages/profile.php" onclick="history.back(); return false;" class="back-link">← Назад</a>
         <h1 class="ep-title"><?php echo rr_icon('edit'); ?> Настройки аккаунта</h1>
 
+        <!-- Вкладки только для телефона: их показывает assets/js/m/edit-profile.js -->
+        <div class="ep-tabs m-seg m-only" role="tablist" aria-label="Разделы настроек" hidden>
+            <button type="button" role="tab" data-ep-tab="profile" aria-selected="true">Профиль</button>
+            <button type="button" role="tab" data-ep-tab="notif" aria-selected="false">Уведомления</button>
+        </div>
+
         <?php if ($error): ?>
-            <div class="error" role="alert"><?php echo $error; ?></div>
+            <div class="error ep-pane-main" role="alert"><?php echo $error; ?></div>
         <?php endif; ?>
         <?php if ($success): ?>
-            <div class="success" role="status"><?php echo htmlspecialchars($success); ?></div>
+            <div class="success ep-pane-main" role="status"><?php echo htmlspecialchars($success); ?></div>
         <?php endif; ?>
 
-        <form method="POST" class="ep-form">
+        <form method="POST" class="ep-form ep-pane-main" id="epMainForm">
             <?php echo csrf_field(); ?>
 
             <div class="ep-card">
                 <h2 class="ep-card-title"><?php echo rr_icon('users'); ?> Личные данные</h2>
                 <div class="form-group">
-                    <label>Имя *</label>
-                    <input type="text" name="full_name" required value="<?php echo htmlspecialchars($user['full_name']); ?>">
+                    <label for="epName">Имя *</label>
+                    <input type="text" name="full_name" id="epName" required autocomplete="name" value="<?php echo htmlspecialchars($user['full_name']); ?>">
                 </div>
                 <div class="form-group">
-                    <label>Телефон</label>
-                    <input type="tel" name="phone" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
+                    <label for="epPhone">Телефон</label>
+                    <input type="tel" name="phone" id="epPhone" autocomplete="tel" inputmode="tel" maxlength="<?php echo PHONE_MAX_LENGTH; ?>" pattern="^\+?[0-9\s\-\(\)]{10,20}$" title="Только цифры и + ( ) -, от 10 до 15 цифр" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>">
                 </div>
                 <div class="form-group">
-                    <label>Email *</label>
-                    <input type="email" name="email" required value="<?php echo htmlspecialchars($user['email']); ?>">
+                    <label for="epEmail">Email *</label>
+                    <input type="email" name="email" id="epEmail" required autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" value="<?php echo htmlspecialchars($user['email']); ?>">
                     <?php if ($user['is_verified']): ?>
                         <span class="ep-field-hint ep-field-hint-ok"><?php echo rr_icon('check'); ?> Подтверждён</span>
                     <?php else: ?>
                         <span class="ep-field-hint ep-field-hint-warn">
-                            <?php echo rr_icon('mail'); ?> Не подтверждён — ссылка есть в шапке сайта,
-                            <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>">получить новую</a>
+                            <span class="m-hide"><?php echo rr_icon('mail'); ?> Не подтверждён — ссылка есть в шапке сайта,
+                            <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>">получить новую</a></span>
+                            <span class="ep-hint-m m-only"><?php echo rr_icon('mail'); ?> Email не подтверждён
+                                <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>">Получить новую ссылку</a></span>
                         </span>
                     <?php endif; ?>
                 </div>
@@ -222,13 +230,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <p class="ep-card-hint">Оставьте эти два поля пустыми, если не хотите менять пароль.</p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Новый пароль</label>
-                        <input type="password" name="password" autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
+                        <label for="epNewPassword">Новый пароль</label>
+                        <input type="password" name="password" id="epNewPassword" autocomplete="new-password" minlength="<?php echo PASSWORD_MIN_LENGTH; ?>" pattern="^(?=.*[A-Za-zА-Яа-яЁё])(?=.*[0-9])(?=.*[^A-Za-zА-Яа-яЁё0-9]).{<?php echo PASSWORD_MIN_LENGTH; ?>,}$" title="<?php echo htmlspecialchars(PASSWORD_HINT); ?>" placeholder="<?php echo htmlspecialchars(PASSWORD_HINT); ?>">
                         <small class="form-hint"><?php echo htmlspecialchars(PASSWORD_HINT); ?></small>
                     </div>
                     <div class="form-group">
-                        <label>Подтверждение</label>
-                        <input type="password" name="password_confirm" autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
+                        <label for="epNewPasswordConfirm">Подтверждение</label>
+                        <input type="password" name="password_confirm" id="epNewPasswordConfirm" autocomplete="new-password" data-rr-match="[name=password]" placeholder="Повторите пароль">
                     </div>
                 </div>
             </div>
@@ -247,22 +255,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
 
             <div class="ep-card ep-card-confirm">
                 <h2 class="ep-card-title"><?php echo rr_icon('check'); ?> Подтверждение</h2>
+                <p class="ep-card-hint m-only">Любое изменение данных подтверждается текущим паролем.</p>
                 <div class="form-group">
-                    <label>Текущий пароль *</label>
-                    <input type="password" name="current_password" required autocomplete="current-password" placeholder="Введите текущий пароль, чтобы сохранить изменения">
+                    <label for="epCurrentPassword">Текущий пароль *</label>
+                    <input type="password" name="current_password" id="epCurrentPassword" required autocomplete="current-password" placeholder="Введите текущий пароль, чтобы сохранить изменения">
                 </div>
                 <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
             </div>
         </form>
 
         <?php if ($notifError): ?>
-            <div class="error" role="alert"><?php echo htmlspecialchars($notifError); ?></div>
+            <div class="error ep-pane-notif" role="alert"><?php echo htmlspecialchars($notifError); ?></div>
         <?php endif; ?>
         <?php if ($notifSuccess): ?>
-            <div class="success" role="status"><?php echo htmlspecialchars($notifSuccess); ?></div>
+            <div class="success ep-pane-notif" role="status"><?php echo htmlspecialchars($notifSuccess); ?></div>
         <?php endif; ?>
 
-        <form method="POST" class="ep-form">
+        <form method="POST" class="ep-form ep-pane-notif" id="epNotifForm">
             <?php echo csrf_field(); ?>
             <input type="hidden" name="update_notification_prefs" value="1">
             <div class="ep-card">
@@ -278,8 +287,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить настройки уведомлений</button>
             </div>
         </form>
+
+        <!-- Липкие кнопки «Сохранить» — только телефон, по одной на вкладку (формы связаны атрибутом form) -->
+        <div class="ep-cta ep-cta-main m-sticky-cta m-only">
+            <button type="submit" form="epMainForm" class="m-btn m-btn--block"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
+        </div>
+        <div class="ep-cta ep-cta-notif m-sticky-cta m-only">
+            <button type="submit" form="epNotifForm" class="m-btn m-btn--block"><?php echo rr_icon('save'); ?> Сохранить уведомления</button>
+        </div>
     </div>
 
     <?php include __DIR__ . '/../includes/footer.php'; ?>
+    <script src="/assets/js/m/auth.js" defer></script>
+    <script src="/assets/js/m/edit-profile.js" defer></script>
 </body>
 </html>

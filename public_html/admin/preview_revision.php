@@ -99,16 +99,29 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
     }
     return htmlspecialchars($value);
 }
+
+// Для телефона: сколько полей изменено (изменённые показываются первыми).
+$changedCount = 0;
+$firstUnchanged = null;
+foreach ($fieldLabels as $field => $label) {
+    if (($location[$field] ?? null) != ($newData[$field] ?? null)) {
+        $changedCount++;
+    } elseif ($firstUnchanged === null) {
+        $firstUnchanged = $field;
+    }
+}
+$unchangedCount = count($fieldLabels) - $changedCount;
+$photoChangeCount = count($newData['delete_photos'] ?? []) + count($newData['new_photos'] ?? []);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Просмотр ревизии — RR</title>
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-no-tabbar m-has-cta">
     <?php include __DIR__ . '/../includes/header.php'; ?>
     
     <div class="changes-container">
@@ -121,6 +134,9 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                 Создана: <?php echo date('d.m.Y H:i', strtotime($revision['created_at'])); ?>
             </p>
             
+            <?php if ($changedCount > 0 || $photoChangeCount > 0): ?>
+                <div class="m-only adm-group adm-group-changed">Изменено: <?php echo $changedCount; ?> <?php echo rr_plural_ru($changedCount, 'поле', 'поля', 'полей'); ?><?php echo $photoChangeCount > 0 ? ' · фото: ' . $photoChangeCount : ''; ?></div>
+            <?php endif; ?>
             <?php
             // Сравниваем поля
             $hasAnyChange = false;
@@ -130,7 +146,10 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                 $isChanged = ($oldValue != $newValue);
                 if ($isChanged) $hasAnyChange = true;
                 ?>
-                <div class="change-row">
+                <?php if ($field === $firstUnchanged): ?>
+                    <div class="m-only adm-group adm-group-same">Без изменений: <?php echo $unchangedCount; ?></div>
+                <?php endif; ?>
+                <div class="change-row<?php echo $isChanged ? ' is-changed' : ''; ?>">
                     <div class="change-label"><?php echo $label; ?></div>
                     <div class="change-values">
                         <?php if ($isChanged): ?>
@@ -161,7 +180,7 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
             $hasPhotoChanges = !empty($deleteIds) || !empty($newPhotoPaths);
             ?>
             <?php if ($hasPhotoChanges): ?>
-                <div class="change-row photo-row">
+                <div class="change-row photo-row is-changed">
                     <div class="change-label full-width"><?php echo rr_icon('camera'); ?> Фотографии</div>
                     <div class="photo-section">
                         <?php if (!empty($newPhotoPaths)): ?>
@@ -206,9 +225,9 @@ function formatValue($field, $value, $spaceTypes, $boolValues) {
                 </div>
             <?php endif; ?>
 
-            <div class="change-actions">
-                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve" data-rr-confirm="Одобрить эту ревизию?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
-                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject" data-rr-confirm="Отклонить эту ревизию?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
+            <div class="change-actions m-sticky-cta">
+                <a href="/admin/actions.php?action=approve_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-approve m-btn" data-rr-confirm="Одобрить эту ревизию?" data-rr-confirm-ok="Одобрить"><?php echo rr_icon('check'); ?> Одобрить</a>
+                <a href="/admin/actions.php?action=reject_revision&revision_id=<?php echo $revision['id']; ?>&csrf=<?php echo urlencode(csrf_token()); ?>" class="btn-reject m-btn" data-rr-confirm="Отклонить эту ревизию?" data-rr-confirm-ok="Отклонить"><?php echo rr_icon('x'); ?> Отклонить</a>
             </div>
         </div>
     </div>

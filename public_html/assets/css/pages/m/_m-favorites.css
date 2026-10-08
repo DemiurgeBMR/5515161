@@ -1,0 +1,81 @@
+/* ===== ТЕЛЕФОНЫ: Избранное оператора (pages/operator_favorites.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   «Избранное» — вкладка нижней панели: заголовок 24/800 и счётчик, сетка 2 колонки теми же
+   карточками, что в каталоге (их вид — в _m-catalog.css: .catalog-grid .catalog-card …),
+   сердце снимает карточку; пустое состояние — .m-empty с кнопкой «Найти локации». */
+
+@media (max-width: 768px) {
+
+    .m-pg-favorites .fav-page {
+        padding: 12px var(--m-gutter) 24px;
+    }
+    .m-pg-favorites .fav-page > h2 {
+        margin: 4px 0 4px;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        color: var(--text);
+    }
+    .m-pg-favorites .fav-page > h2 .rr-icon {
+        width: 22px;
+        height: 22px;
+        color: #ff5a6a;
+        fill: currentColor;
+        vertical-align: -3px;
+    }
+    .fav-count {
+        margin: 0 0 14px;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    /* «Занято» / «Недоступно» — плашкой на фото, как «Проверено» в каталоге */
+    .m-pg-favorites .catalog-grid .catalog-card .occupied-pill {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 1;
+        gap: 3px;
+        padding: 3px 8px 3px 6px;
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.62);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .m-pg-favorites .catalog-grid .catalog-card .occupied-pill .rr-icon {
+        width: 12px;
+        height: 12px;
+    }
+
+    /* Пустое состояние */
+    .m-pg-favorites .fav-empty {
+        margin-top: 12px;
+        padding: 40px 20px 32px;
+        border-radius: var(--m-radius);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+    }
+    .m-pg-favorites .fav-empty > .rr-icon {
+        color: #ff5a6a;
+        opacity: 0.85;
+    }
+    .m-pg-favorites .fav-empty p {
+        max-width: 300px;
+        margin: 0 auto 16px;
+        font-size: 14px;
+        line-height: 1.45;
+    }
+    .m-pg-favorites .fav-empty p:last-child {
+        margin-bottom: 0;
+    }
+    .m-pg-favorites .fav-empty .m-btn {
+        color: #fff;
+        text-decoration: none;
+    }
+}

@@ -19,12 +19,22 @@ $stmt = $pdo->query("
     LIMIT 6
 ");
 $latest_locations = $stmt->fetchAll();
+
+// Телефон (≤768px): призыв внизу главной зависит от роли (гость — сдать место, собственник — добавить, оператор — каталог)
+$mRole = isset($_SESSION['user_id']) ? ($_SESSION['user_role'] ?? null) : null;
+if ($mRole === 'owner') {
+    $mCta = ['Есть ещё свободное место?', 'Добавьте его — операторы вендинга увидят его в каталоге и на карте.', '/pages/add_location.php', 'Добавить место'];
+} elseif ($mRole === 'operator' || $mRole === 'admin') {
+    $mCta = ['Ищете точку для автомата?', 'Фильтры по городу, цене, проходимости и типу помещения — в каталоге.', '/pages/catalog.php', 'Открыть каталог'];
+} else {
+    $mCta = ['Есть свободное место?', 'Разместите его на RR — операторы вендинга сами найдут вас и напишут.', '/pages/register.php?role=owner', 'Сдать место'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?php echo SITE_NAME; ?> — площадки для вендинговых автоматов</title>
     <meta name="description" content="Riveg Rent — площадка для аренды мест под вендинговые автоматы. Собственники помещений размещают локации, операторы вендинга находят точки для установки.">
     <meta property="og:type" content="website">
@@ -33,7 +43,7 @@ $latest_locations = $stmt->fetchAll();
     <meta property="og:url" content="<?php echo htmlspecialchars(SITE_URL); ?>/">
     <link rel="stylesheet" href="/assets/css/style.css">
 </head>
-<body>
+<body class="m-pg-home">
     <?php include 'includes/header.php'; ?>
     
     <main>
@@ -41,6 +51,11 @@ $latest_locations = $stmt->fetchAll();
         <section class="hero">
             <h1>Найди место для вендинга за 5 минут</h1>
             <p>RR — маркетплейс аренды площадей под автоматы</p>
+            <!-- Телефон: поиск по каталогу прямо с главной -->
+            <form class="m-only home-search" action="/pages/catalog.php" method="GET" role="search">
+                <?php echo rr_icon('search'); ?>
+                <input type="search" name="q" placeholder="Город, тип помещения, район…" enterkeyhint="search" autocomplete="off" aria-label="Поиск локаций">
+            </form>
             <div class="cta-buttons">
                 <a href="/pages/register.php?role=owner" class="btn btn-primary">Сдам место</a>
                 <a href="/pages/register.php?role=operator" class="btn btn-secondary">Хочу найти место</a>
@@ -51,6 +66,9 @@ $latest_locations = $stmt->fetchAll();
         <section class="home-locations-preview">
             <h2><?php echo rr_icon('flame'); ?> Свежие предложения</h2>
             <?php if (count($latest_locations) > 0): ?>
+                <a href="/pages/catalog.php" class="m-only m-section-link home-all-link">Все <?php echo rr_icon('chevron-right'); ?></a>
+            <?php endif; ?>
+            <?php if (count($latest_locations) > 0): ?>
                 <div class="home-location-grid">
                     <?php foreach ($latest_locations as $loc): ?>
                         <a href="/pages/location.php?id=<?php echo $loc['id']; ?>" style="text-decoration: none; color: inherit; display: block;">
@@ -60,6 +78,7 @@ $latest_locations = $stmt->fetchAll();
                                 <?php else: ?>
                                     <img src="/assets/images/placeholder.jpg" alt="Нет фото">
                                 <?php endif; ?>
+                                <span class="m-only home-verified"><?php echo rr_icon('check'); ?> Проверено</span>
                                 <div class="info">
                                     <div class="title"><?php echo htmlspecialchars($loc['title']); ?></div>
                                     <div class="address"><?php echo rr_icon('map-pin'); ?> <?php echo htmlspecialchars($loc['city'] . ', ' . $loc['address']); ?></div>
@@ -79,11 +98,21 @@ $latest_locations = $stmt->fetchAll();
                                             </span>
                                         <?php endif; ?>
                                     </div>
-                                                                        <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                                                        <div class="home-card-date" style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
                                         <?php echo rr_icon('calendar'); ?> <?php echo formatDateRu($loc['updated_at']); ?>
                                     </div>
                                     
-                                    <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ / мес</div>
+                                    <div class="price"><?php echo number_format($loc['price_month'], 0, ',', ' '); ?> ₽ <span class="home-price-unit">/ мес</span></div>
+                                    <div class="m-only home-card-row">
+                                        <?php if ($loc['traffic_rating'] > 0): $tr = max(0, min(5, (int)$loc['traffic_rating'])); ?>
+                                            <span class="cat-stars" role="img" aria-label="Проходимость: <?php echo $tr; ?> из 5"><?php echo str_repeat('★', $tr); ?><i><?php echo str_repeat('★', 5 - $tr); ?></i></span>
+                                        <?php endif; ?>
+                                        <span class="home-amen">
+                                            <?php if ($loc['has_electricity']) echo rr_icon('bolt'); ?>
+                                            <?php if ($loc['has_wifi']) echo rr_icon('wifi'); ?>
+                                            <?php if ($loc['has_water']) echo rr_icon('droplet'); ?>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </a>
@@ -98,6 +127,26 @@ $latest_locations = $stmt->fetchAll();
                     <p>Станьте первым! <a href="/pages/add_location.php" style="color: #e94560;">Добавьте своё место</a></p>
                 </div>
             <?php endif; ?>
+        </section>
+
+        <!-- Телефон: «Как это работает» — три шага полосой с прокруткой -->
+        <section class="m-only home-steps" aria-labelledby="homeStepsTitle">
+            <div class="m-section-head">
+                <h2 class="m-section-title" id="homeStepsTitle">Как это работает</h2>
+                <a href="/pages/how_it_works.php" class="m-section-link">Подробнее <?php echo rr_icon('chevron-right'); ?></a>
+            </div>
+            <ol class="home-steps-list">
+                <li class="home-step"><span class="home-step-n">1</span><b>Найдите место</b><span>Каталог и карта с фильтрами по городу, цене и проходимости.</span></li>
+                <li class="home-step"><span class="home-step-n">2</span><b>Откройте контакт</b><span>Точный адрес и собственник — за один контакт, дальше чат по заявке.</span></li>
+                <li class="home-step"><span class="home-step-n">3</span><b>Поставьте автомат</b><span>Договоритесь об условиях и согласуйте выезд в календаре.</span></li>
+            </ol>
+        </section>
+
+        <!-- Телефон: призыв к действию -->
+        <section class="m-only home-cta">
+            <b class="home-cta-title"><?php echo htmlspecialchars($mCta[0]); ?></b>
+            <p><?php echo htmlspecialchars($mCta[1]); ?></p>
+            <a href="<?php echo htmlspecialchars($mCta[2]); ?>" class="m-btn m-btn--block"><?php echo htmlspecialchars($mCta[3]); ?></a>
         </section>
     </main>
     

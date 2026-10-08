@@ -1,0 +1,293 @@
+/* ===== ТЕЛЕФОНЫ: Уведомления (pages/notifications.php) =====
+   Только правила для экранов ≤ 768px — внутри @media (max-width: 768px). Десктоп не трогаем.
+   Файл подключается после всех остальных стилей, поэтому при равной специфичности побеждает он.
+   Общие классы (.m-card, .m-chip, .m-btn, .m-sheet, .m-table-cards …) — components/_m-ui.css.
+
+   Экран: заголовок 24/800 + заметная кнопка «Прочитать всё» → категории чипами в одну
+   горизонтально прокручиваемую ленту → лента строк (как .m-list/.m-row), сгруппированная по дням:
+   каждая группа — скруглённая карточка, строка — значок типа, текст до 3 строк, время, точка
+   «не прочитано». Пустая лента — .m-empty (значок, заголовок, одна кнопка). */
+
+@media (max-width: 768px) {
+
+    .notifications-page {
+        max-width: none;
+        margin: 0;
+        padding: 12px var(--m-gutter) 24px;
+    }
+
+    /* ---------- Шапка ---------- */
+    .notif-page-head {
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin: 4px 0 0;
+        min-height: var(--m-tap);
+    }
+    .notif-page-head h2 {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+        letter-spacing: -0.2px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .notif-page-head h2 .rr-icon {
+        display: none;
+    }
+    .notif-mark-all {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: var(--m-tap);
+        padding: 0 14px;
+        background: var(--accent-soft);
+        border: 1px solid rgba(var(--accent-rgb), 0.35);
+        border-radius: 12px;
+        color: var(--accent);
+        font-size: 14px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    .notif-mark-all:hover {
+        text-decoration: none;
+    }
+    .notif-mark-all:active {
+        background: rgba(var(--accent-rgb), 0.25);
+    }
+    .notif-m-ic {
+        display: inline-flex;
+    }
+    .notif-m-ic .rr-icon {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2.4;
+    }
+    .notif-m-sub {
+        margin: 2px 0 12px;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    /* ---------- Категории: чипы в одну прокручиваемую ленту ---------- */
+    .notif-tabs {
+        flex-wrap: nowrap;
+        gap: 8px;
+        margin: 0 calc(var(--m-gutter) * -1) 4px;
+        padding: 2px var(--m-gutter) 6px;
+        border-bottom: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .notif-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .notif-tabs a {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 40px;
+        padding: 0 14px;
+        background: var(--bg-input);
+        border: 1px solid var(--border-strong);
+        border-radius: 20px;
+        color: var(--text);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1;
+    }
+    .notif-tabs a:hover {
+        color: var(--text);
+    }
+    .notif-tabs a .rr-icon {
+        width: 16px;
+        height: 16px;
+        color: var(--text-muted);
+    }
+    .notif-tabs a.active {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    .notif-tabs a.active .rr-icon {
+        color: var(--accent);
+    }
+
+    /* ---------- Лента: группы по дням ---------- */
+    .notif-list {
+        gap: 0;
+    }
+    .notif-day-divider {
+        margin: 16px 4px 8px;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        color: var(--text-muted);
+    }
+    .notif-day-divider:first-child {
+        margin-top: 10px;
+    }
+    .notif-item {
+        position: relative;
+        align-items: flex-start;
+        gap: 12px;
+        min-height: 64px;
+        margin: 0;
+        padding: 12px 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-top-width: 0;
+        border-radius: 0;
+        opacity: 1;
+        transition: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    /* Первая строка группы — верхние скругления, последняя — нижние */
+    .notif-day-divider + .notif-item {
+        border-top-width: 1px;
+        border-top-left-radius: var(--m-radius);
+        border-top-right-radius: var(--m-radius);
+    }
+    .notif-item:last-child,
+    .notif-item:has(+ .notif-day-divider) {
+        border-bottom-left-radius: var(--m-radius);
+        border-bottom-right-radius: var(--m-radius);
+    }
+    .notif-item.unread {
+        border-left: 1px solid var(--border);
+        background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.08), transparent 70%), var(--bg-elevated);
+    }
+    .notif-item:not(.unread) {
+        opacity: 1;
+    }
+    .notif-item:hover {
+        background: var(--bg-elevated);
+    }
+    .notif-item.unread:hover {
+        background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.08), transparent 70%), var(--bg-elevated);
+    }
+    .notif-item:active,
+    .notif-item.unread:active {
+        background: var(--bg-elevated-2);
+    }
+    .notif-item[data-link=""] {
+        cursor: default;
+    }
+
+    /* Значок типа: плитка 40×40, цвет — по категории */
+    .notif-item-icon {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        line-height: 1;
+    }
+    .notif-item-icon .rr-icon {
+        width: 20px;
+        height: 20px;
+    }
+    .notif-cat-visits .notif-item-icon      { background: var(--info-soft);    color: var(--info); }
+    .notif-cat-assignment .notif-item-icon  { background: var(--success-soft); color: var(--success); }
+    .notif-cat-maintenance .notif-item-icon,
+    .notif-cat-moderation .notif-item-icon  { background: var(--warning-soft); color: var(--warning); }
+    .notif-cat-system .notif-item-icon      { background: var(--bg-elevated-2); color: var(--text-muted); }
+    .notif-type-emergency_event .notif-item-icon,
+    .notif-type-machine_broken .notif-item-icon,
+    .notif-type-event_cancelled .notif-item-icon,
+    .notif-type-assignment_rejected .notif-item-icon,
+    .notif-type-revision_rejected .notif-item-icon {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
+
+    .notif-item-body {
+        padding-top: 1px;
+    }
+    .notif-item-message {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        font-size: 15px;
+        line-height: 1.38;
+        color: var(--text);
+        overflow-wrap: anywhere;
+    }
+    .notif-item.unread .notif-item-message {
+        font-weight: 600;
+    }
+    .notif-item-time {
+        margin-top: 4px;
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+    .notif-item-dot {
+        width: 10px;
+        height: 10px;
+        margin-top: 6px;
+        box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
+    }
+
+    /* ---------- Пустая лента ---------- */
+    .notif-empty {
+        margin-top: 12px;
+        padding: 36px 20px;
+        background: var(--bg-elevated);
+        border: 1px dashed var(--border-strong);
+        border-radius: var(--m-radius);
+        font-size: 14px;
+        line-height: 1.45;
+    }
+    .notif-empty-ic {
+        display: block;
+    }
+    .notif-empty .m-btn {
+        display: flex;
+        width: fit-content;
+        margin: 18px auto 0;
+    }
+
+    /* ---------- Страницы ---------- */
+    .notif-pagination {
+        gap: 8px;
+        margin-top: 18px;
+    }
+    .notif-pagination a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: var(--m-tap);
+        min-height: var(--m-tap);
+        padding: 0 10px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--text);
+        font-size: 15px;
+        font-weight: 700;
+    }
+    .notif-pagination a.active {
+        border-color: transparent;
+    }
+}
+
+/* Совсем узкий экран: кнопка «Прочитать всё» без значка, заголовок чуть меньше */
+@media (max-width: 359px) {
+    .notif-page-head h2 {
+        font-size: 22px;
+    }
+    .notif-m-ic {
+        display: none !important;
+    }
+}
