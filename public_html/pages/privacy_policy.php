@@ -54,13 +54,8 @@ require_once __DIR__ . '/../config.php';
                     <li>ИНН: 910211871400</li>
                     <li>ОГРНИП: 315910200375457</li>
                     <li>Юридический адрес: г. Симферополь, ул. Полюсная, д. 49</li>
-                    <li>Email для обращений по вопросам персональных данных: <em>[укажите контактный email]</em></li>
+                    <li>Email для обращений по вопросам персональных данных: <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a></li>
                 </ul>
-                <p class="legal-note">
-                    <?php echo rr_icon('warning'); ?> Укажите контактный email оператора в этом разделе и в
-                    разделе 14 до публикации сайта — без него документ не содержит обязательного для 152-ФЗ
-                    способа связи с оператором персональных данных.
-                </p>
             </section>
 
             <section id="terms">
@@ -234,7 +229,7 @@ require_once __DIR__ . '/../config.php';
                 <h2>14. Контакты</h2>
                 <p>
                     По всем вопросам, связанным с обработкой персональных данных, можно обратиться по адресу:
-                    <em>[укажите контактный email оператора]</em>.
+                    <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>.
                 </p>
             </section>
         </div>

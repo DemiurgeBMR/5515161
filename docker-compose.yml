@@ -18,6 +18,7 @@ services:
       SMTP_ENCRYPTION: ${SMTP_ENCRYPTION:-tls}
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-}
       TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
     volumes:
       - uploads:/var/www/html/public_html/uploads

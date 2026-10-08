@@ -203,7 +203,7 @@ require_once __DIR__ . '/../config.php';
                     <li>ИНН: 910211871400</li>
                     <li>ОГРНИП: 315910200375457</li>
                     <li>Юридический адрес: г. Симферополь, ул. Полюсная, д. 49</li>
-                    <li>Email для обращений: <em>[укажите контактный email]</em></li>
+                    <li>Email для обращений: <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a></li>
                 </ul>
                 <p>
                     Вопросы обработки персональных данных регулируются отдельным документом — см.
