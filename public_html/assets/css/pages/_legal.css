@@ -68,7 +68,7 @@
 }
 .legal-placeholder {
     background: var(--bg-elevated, #16161c);
-    border: 1px dashed var(--border-strong, #3a3a45);
+    border: 1px solid var(--border-strong, #3a3a45);
     border-radius: 10px;
     padding: 14px 20px;
     list-style: none;

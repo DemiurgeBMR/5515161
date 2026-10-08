@@ -67,6 +67,8 @@ define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
 define('SMTP_ENCRYPTION', getenv('SMTP_ENCRYPTION') ?: 'tls');
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: SMTP_USER);
 define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: SITE_NAME);
+// Контактный email для обращений (политика ПД, пользовательское соглашение).
+define('CONTACT_EMAIL', getenv('CONTACT_EMAIL') ?: 'no-reply@riveg-rent.ru');
 
 /** Настроена ли реальная отправка почты на этом окружении. */
 function rr_mail_configured() {
