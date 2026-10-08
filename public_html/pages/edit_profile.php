@@ -65,15 +65,112 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_notification_p
     }
 }
 
+// Двухфакторная аутентификация — отдельная форма со своими шагами: включение
+// сначала проверяет, что код реально доходит на почту (иначе можно заблокировать
+// себя, указав недоступный адрес), а включение/отключение подтверждается паролем.
+$tfaError = '';
+$tfaSuccess = '';
+$tfaHandled = $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tfa_action']);
+
+if ($tfaHandled) {
+    $tfaAction = $_POST['tfa_action'];
+    $tfaPassword = $_POST['tfa_password'] ?? '';
+
+    $sendTfaSetupCode = function () use ($pdo, $user_id, &$user, &$tfaError) {
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expires = date('Y-m-d H:i:s', time() + 10 * 60);
+        $pdo->prepare("UPDATE users SET two_factor_code = ?, two_factor_code_expires = ? WHERE id = ?")
+            ->execute([$code, $expires, $user_id]);
+        $user['two_factor_code'] = $code;
+        $user['two_factor_code_expires'] = $expires;
+        $_SESSION['tfa_setup_pending'] = true;
+        unset($_SESSION['tfa_setup_attempts']);
+
+        if (rr_mail_configured() && !rr_send_email(
+            $user['email'],
+            'Код для включения двухфакторной защиты — ' . SITE_NAME,
+            '<p>Код для включения двухфакторной защиты на ' . htmlspecialchars(SITE_NAME) . ': <strong style="font-size:20px">' . htmlspecialchars($code) . '</strong></p>'
+                . '<p>Код действует 10 минут. Если вы не включали двухфакторную защиту — просто проигнорируйте это письмо.</p>'
+        )) {
+            $tfaError = 'Не удалось отправить письмо с кодом. Проверьте адрес почты и попробуйте ещё раз.';
+            unset($_SESSION['tfa_setup_pending']);
+            return false;
+        }
+        return true;
+    };
+
+    if (!csrf_verify($_POST['csrf_token'] ?? '')) {
+        $tfaError = 'Не удалось подтвердить запрос, обновите страницу и попробуйте ещё раз.';
+    } elseif ($tfaAction === 'start' || $tfaAction === 'disable') {
+        if ($user['two_factor_enabled'] && $tfaAction === 'start') {
+            $tfaError = 'Двухфакторная защита уже включена.';
+        } elseif (!$user['two_factor_enabled'] && $tfaAction === 'disable') {
+            $tfaError = 'Двухфакторная защита и так выключена.';
+        } elseif ($tfaAction === 'start' && !$user['is_verified']) {
+            $tfaError = 'Сначала подтвердите email — код будет приходить на него.';
+        } elseif (!rr_check_rate_limit($pdo, 'tfa_password:' . $user_id, 5, 600)) {
+            $tfaError = 'Слишком много попыток. Попробуйте через несколько минут.';
+        } elseif ($tfaPassword === '' || !password_verify($tfaPassword, $user['password'])) {
+            $tfaError = 'Неверный текущий пароль.';
+        } elseif ($tfaAction === 'start') {
+            if (!rr_check_rate_limit($pdo, 'tfa_setup_send:' . $user_id, 3, 600)) {
+                $tfaError = 'Слишком много запросов кода. Попробуйте через несколько минут.';
+            } else {
+                $sendTfaSetupCode();
+            }
+        } else {
+            $pdo->prepare("UPDATE users SET two_factor_enabled = 0, two_factor_code = NULL, two_factor_code_expires = NULL WHERE id = ?")
+                ->execute([$user_id]);
+            $user['two_factor_enabled'] = 0;
+            $tfaSuccess = 'Двухфакторная защита отключена. Вход снова только по паролю.';
+        }
+    } elseif (empty($_SESSION['tfa_setup_pending']) || $user['two_factor_enabled']) {
+        $tfaError = 'Начните включение заново: введите пароль и нажмите «Прислать код».';
+    } elseif ($tfaAction === 'resend') {
+        if (!rr_check_rate_limit($pdo, 'tfa_setup_send:' . $user_id, 3, 600)) {
+            $tfaError = 'Слишком много запросов кода. Попробуйте через несколько минут.';
+        } else {
+            $sendTfaSetupCode();
+        }
+    } elseif ($tfaAction === 'cancel') {
+        $pdo->prepare("UPDATE users SET two_factor_code = NULL, two_factor_code_expires = NULL WHERE id = ?")
+            ->execute([$user_id]);
+        unset($_SESSION['tfa_setup_pending'], $_SESSION['tfa_setup_attempts']);
+    } elseif ($tfaAction === 'confirm') {
+        $entered = trim($_POST['tfa_code'] ?? '');
+        $attempts = (int) ($_SESSION['tfa_setup_attempts'] ?? 0);
+        $codeOk = !empty($user['two_factor_code'])
+            && strtotime($user['two_factor_code_expires']) > time();
+
+        if ($attempts >= 5) {
+            $pdo->prepare("UPDATE users SET two_factor_code = NULL, two_factor_code_expires = NULL WHERE id = ?")
+                ->execute([$user_id]);
+            unset($_SESSION['tfa_setup_pending'], $_SESSION['tfa_setup_attempts']);
+            $tfaError = 'Слишком много неверных кодов. Запросите новый код.';
+        } elseif (!$codeOk) {
+            $tfaError = 'Код устарел — нажмите «Прислать новый код».';
+        } elseif (!hash_equals($user['two_factor_code'], $entered)) {
+            $_SESSION['tfa_setup_attempts'] = $attempts + 1;
+            $tfaError = 'Неверный код.';
+        } else {
+            $pdo->prepare("UPDATE users SET two_factor_enabled = 1, two_factor_code = NULL, two_factor_code_expires = NULL WHERE id = ?")
+                ->execute([$user_id]);
+            $user['two_factor_enabled'] = 1;
+            unset($_SESSION['tfa_setup_pending'], $_SESSION['tfa_setup_attempts']);
+            $tfaSuccess = 'Двухфакторная защита включена. При следующем входе после пароля попросим код из письма.';
+        }
+    }
+}
+$tfaPending = !$user['two_factor_enabled'] && !empty($_SESSION['tfa_setup_pending']);
+
 // Обработка отправки формы
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_prefs'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_prefs']) && !$tfaHandled) {
     $full_name = trim($_POST['full_name'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
     $current_password = $_POST['current_password'] ?? '';
-    $two_factor_enabled = isset($_POST['two_factor_enabled']) ? 1 : 0;
 
     $errors = [];
 
@@ -119,8 +216,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
         try {
             $emailChanged = $email !== $user['email'];
 
-            $params = [$full_name, $phone, $email, $two_factor_enabled];
-            $sql = "UPDATE users SET full_name = ?, phone = ?, email = ?, two_factor_enabled = ?";
+            $params = [$full_name, $phone, $email];
+            $sql = "UPDATE users SET full_name = ?, phone = ?, email = ?";
 
             if (!empty($password)) {
                 $sql .= ", password = ?";
@@ -128,7 +225,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             }
             // Смена email — это по сути новый адрес, его снова нужно подтвердить.
             if ($emailChanged) {
-                $sql .= ", is_verified = 0";
+                $sql .= ", is_verified = 0, two_factor_code = NULL, two_factor_code_expires = NULL";
+                unset($_SESSION['tfa_setup_pending'], $_SESSION['tfa_setup_attempts']);
             }
 
             $sql .= " WHERE id = ?";
@@ -158,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
             $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
             $stmt->execute([$user_id]);
             $user = $stmt->fetch();
+            $tfaPending = !$user['two_factor_enabled'] && !empty($_SESSION['tfa_setup_pending']);
 
         } catch (PDOException $e) {
             error_log('edit_profile.php: ' . $e->getMessage());
@@ -241,20 +340,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 </div>
             </div>
 
-            <div class="ep-card">
-                <h2 class="ep-card-title"><?php echo rr_icon('lock'); ?> Безопасность входа</h2>
-                <label class="ep-toggle">
-                    <input type="checkbox" name="two_factor_enabled" <?php echo $user['two_factor_enabled'] ? 'checked' : ''; ?>>
-                    <span class="ep-toggle-track"><span class="ep-toggle-thumb"></span></span>
-                    <span class="ep-toggle-label">
-                        Двухфакторная аутентификация
-                        <small><?php echo rr_mail_configured()
-                            ? 'При входе дополнительно потребуется код, который придёт на email.'
-                            : 'При входе дополнительно потребуется код — пока показывается на экране, письма ещё не настроены.'; ?></small>
-                    </span>
-                </label>
-            </div>
-
             <div class="ep-card ep-card-confirm">
                 <h2 class="ep-card-title"><?php echo rr_icon('check'); ?> Подтверждение</h2>
                 <p class="ep-card-hint m-only">Любое изменение данных подтверждается текущим паролем.</p>
@@ -265,6 +350,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                 <button type="submit" class="btn-submit"><?php echo rr_icon('save'); ?> Сохранить изменения</button>
             </div>
         </form>
+
+        <div class="ep-form ep-pane-main" id="security">
+            <div class="ep-card">
+                <h2 class="ep-card-title"><?php echo rr_icon('lock'); ?> Двухфакторная защита входа</h2>
+
+                <?php if ($tfaError): ?>
+                    <div class="error" role="alert"><?php echo htmlspecialchars($tfaError); ?></div>
+                <?php endif; ?>
+                <?php if ($tfaSuccess): ?>
+                    <div class="success" role="status"><?php echo htmlspecialchars($tfaSuccess); ?></div>
+                <?php endif; ?>
+
+                <?php if ($user['two_factor_enabled']): ?>
+                    <p class="ep-card-hint">
+                        <span class="ep-field-hint ep-field-hint-ok"><?php echo rr_icon('check'); ?> Включена.</span>
+                        После пароля при каждом входе нужно вводить код, который приходит на <?php echo htmlspecialchars($user['email']); ?>.
+                    </p>
+                    <form method="POST" action="/pages/edit_profile.php#security">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="tfa_action" value="disable">
+                        <div class="form-group">
+                            <label for="tfaDisablePassword">Текущий пароль</label>
+                            <input type="password" name="tfa_password" id="tfaDisablePassword" required autocomplete="current-password" placeholder="Введите пароль, чтобы отключить">
+                        </div>
+                        <button type="submit" class="btn-action danger block">Отключить двухфакторную защиту</button>
+                    </form>
+
+                <?php elseif ($tfaPending): ?>
+                    <p class="ep-card-hint">Шаг 2 из 2. Введите код из письма — после этого защита включится.</p>
+                    <?php if (rr_mail_configured()): ?>
+                        <div class="success" role="status">
+                            Код отправлен на <?php echo htmlspecialchars($user['email']); ?> и действует 10 минут.
+                            Если письма нет — загляните в «Спам».
+                        </div>
+                    <?php elseif (!empty($user['two_factor_code'])): ?>
+                        <div class="success" role="status">
+                            Отправка писем на сайте не настроена, поэтому код показан здесь:
+                            <strong class="auth-code-display"><?php echo htmlspecialchars($user['two_factor_code']); ?></strong>
+                        </div>
+                    <?php endif; ?>
+                    <form method="POST" action="/pages/edit_profile.php#security">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="tfa_action" value="confirm">
+                        <div class="form-group">
+                            <label for="tfaSetupCode">Код из письма</label>
+                            <input type="text" name="tfa_code" id="tfaSetupCode" required inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" autocomplete="one-time-code" autofocus>
+                        </div>
+                        <button type="submit" class="btn-submit">Подтвердить и включить</button>
+                    </form>
+                    <form method="POST" action="/pages/edit_profile.php#security" class="auth-secondary-form">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="tfa_action" value="resend">
+                        <button type="submit" class="btn-action secondary block">Прислать новый код</button>
+                    </form>
+                    <form method="POST" action="/pages/edit_profile.php#security" class="auth-secondary-form">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="tfa_action" value="cancel">
+                        <button type="submit" class="btn-action secondary block">Отмена</button>
+                    </form>
+
+                <?php else: ?>
+                    <p class="ep-card-hint">
+                        Выключена. Если включить, то после пароля при входе нужно будет ввести ещё и код из письма —
+                        так аккаунт останется в безопасности, даже если пароль узнает кто-то посторонний.
+                    </p>
+                    <?php if (!$user['is_verified']): ?>
+                        <p class="ep-card-hint">
+                            <span class="ep-field-hint ep-field-hint-warn"><?php echo rr_icon('mail'); ?> Сначала подтвердите email — коды будут приходить именно на него.</span>
+                            <a href="/pages/resend_verification.php?csrf=<?php echo urlencode(csrf_token()); ?>">Получить письмо для подтверждения</a>
+                        </p>
+                    <?php else: ?>
+                        <form method="POST" action="/pages/edit_profile.php#security">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="tfa_action" value="start">
+                            <p class="ep-card-hint">Шаг 1 из 2. Введите пароль — мы пришлём код на <?php echo htmlspecialchars($user['email']); ?>, чтобы убедиться, что письма до вас доходят.</p>
+                            <div class="form-group">
+                                <label for="tfaStartPassword">Текущий пароль</label>
+                                <input type="password" name="tfa_password" id="tfaStartPassword" required autocomplete="current-password" placeholder="Введите ваш пароль">
+                            </div>
+                            <button type="submit" class="btn-submit">Прислать код на почту</button>
+                        </form>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
 
         <?php if ($notifError): ?>
             <div class="error ep-pane-notif" role="alert"><?php echo htmlspecialchars($notifError); ?></div>
