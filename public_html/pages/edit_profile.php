@@ -248,7 +248,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['update_notification_
                     <span class="ep-toggle-track"><span class="ep-toggle-thumb"></span></span>
                     <span class="ep-toggle-label">
                         Двухфакторная аутентификация
-                        <small>При входе дополнительно потребуется код — пока показывается на экране, письма ещё не настроены.</small>
+                        <small><?php echo rr_mail_configured()
+                            ? 'При входе дополнительно потребуется код, который придёт на email.'
+                            : 'При входе дополнительно потребуется код — пока показывается на экране, письма ещё не настроены.'; ?></small>
                     </span>
                 </label>
             </div>
