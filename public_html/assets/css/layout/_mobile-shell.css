@@ -165,17 +165,25 @@
         padding-right: var(--m-gutter);
     }
     body .footer {
-        padding: 18px 0 14px;
-        font-size: 12px;
+        padding: 24px 0 16px;
+        font-size: 13px;
     }
-    body .footer p {
-        font-size: 12px;
-        line-height: 1.5;
-        margin: 4px 0;
+    body .footer .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
     }
-    body .footer p.footer-legal-links a {
+    body .footer .footer-list dd,
+    body .footer .footer-links a {
+        overflow-wrap: anywhere;
+    }
+    body .footer .footer-links a {
         display: inline-block;
-        padding: 8px 2px;
+        padding: 6px 0;
+    }
+    body .footer p.footer-copy {
+        margin-top: 20px;
+        padding-top: 14px;
+        font-size: 12px;
     }
 
     /* ---------- Нижняя панель ---------- */

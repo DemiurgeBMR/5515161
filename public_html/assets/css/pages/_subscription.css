@@ -233,3 +233,39 @@
     background: #f8d7da;
     color: #721c24;
 }
+
+.pay-info {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 14px 16px;
+    display: grid;
+    gap: 10px;
+    background: var(--bg-elevated, #16161c);
+    border: 1px solid var(--border, #2a2a33);
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-muted, #9a9aa5);
+}
+.pay-info li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.pay-info .rr-icon {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    color: var(--accent);
+}
+.pay-info b {
+    color: var(--text, #f2f2f5);
+    font-weight: 600;
+}
+.pay-info a {
+    color: var(--accent);
+}
+.pay-info a.nowrap {
+    white-space: nowrap;
+}

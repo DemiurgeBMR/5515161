@@ -241,15 +241,15 @@ if ($isOperator) {
         <p class="subscription-description">
             Оплата — за контакт, а не за время: 1 разблокировка открывает точный адрес и контакт собственника
             ОДНОЙ конкретной локации навсегда, даже если потом кредиты закончатся. При регистрации оператор сразу
-            получает 1 бесплатный контакт. Оплата — картой или через СБП на защищённой странице ЮKassa, контакты зачисляются сразу после оплаты.
+            получает 1 бесплатный контакт.
         </p>
 
-        <p class="subscription-section-sub">
-            После оплаты контакты и тариф сразу появляются в личном кабинете (услуга электронная, доставка не нужна).
-            Условия возврата — в <a href="/pages/terms.php#subscription">пользовательском соглашении</a>.
-            Вопросы по оплате: <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>,
-            <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a>.
-        </p>
+        <ul class="pay-info">
+            <li><?php echo rr_icon('card'); ?> <span><b>Оплата</b> картой или через СБП на защищённой странице ЮKassa. Данные карты у нас не хранятся.</span></li>
+            <li><?php echo rr_icon('check'); ?> <span><b>Получение.</b> Услуга электронная: контакты и тариф появляются в личном кабинете сразу после оплаты.</span></li>
+            <li><?php echo rr_icon('file-text'); ?> <span><b>Возврат</b> неиспользованных контактов и другие условия: <a href="/pages/terms.php#subscription">пользовательское соглашение</a>.</span></li>
+            <li><?php echo rr_icon('mail'); ?> <span><b>Вопросы по оплате:</b> <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>, <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>" class="nowrap"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a></span></li>
+        </ul>
 
         <h3 class="subscription-section-title"><?php echo rr_icon('mail'); ?> Разовые пакеты контактов</h3>
         <p class="subscription-section-sub">Не сгорают — копятся на балансе сколько угодно.</p>
