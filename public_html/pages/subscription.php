@@ -29,23 +29,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if (isset($_POST['plan']) && $isOperator) {
-        $planKey = $_POST['plan'];
-        $newEndDate = rr_purchase_subscription($pdo, $user_id, $planKey);
-        if ($newEndDate === false) {
-            $_SESSION['flash'] = 'Неизвестный тариф.';
+    if ((isset($_POST['plan']) || isset($_POST['pack'])) && $isOperator) {
+        $kind = isset($_POST['plan']) ? 'plan' : 'pack';
+        $itemKey = $kind === 'plan' ? $_POST['plan'] : $_POST['pack'];
+
+        if (!rr_payment_item($kind, (string) $itemKey)) {
+            $_SESSION['flash'] = $kind === 'plan' ? 'Неизвестный тариф.' : 'Неизвестный пакет.';
+        } elseif (!rr_payments_enabled()) {
+            $_SESSION['flash'] = 'Оплата на сайте пока недоступна. Напишите на ' . CONTACT_EMAIL . ', и мы оформим покупку вручную.';
+        } elseif (!rr_check_rate_limit($pdo, 'create_payment:' . $user_id, 10, 600)) {
+            $_SESSION['flash'] = 'Слишком много попыток оплаты подряд. Попробуйте через несколько минут.';
         } else {
-            $_SESSION['flash'] = 'Тариф «' . $recurringPlans[$planKey]['label'] . '» оформлен. Действует до '
-                . formatDateRu($newEndDate) . '.';
-        }
-    } elseif (isset($_POST['pack']) && $isOperator) {
-        $packKey = $_POST['pack'];
-        if (!isset($creditPacks[$packKey])) {
-            $_SESSION['flash'] = 'Неизвестный пакет.';
-        } else {
-            $pack = $creditPacks[$packKey];
-            rr_grant_credits($pdo, $user_id, $packKey, $pack['credits'], $pack['price']);
-            $_SESSION['flash'] = 'Пакет «' . $pack['label'] . '» оформлен — кредиты уже на балансе.';
+            $confirmUrl = rr_create_payment($pdo, $user_id, $kind, (string) $itemKey);
+            if ($confirmUrl) {
+                header('Location: ' . $confirmUrl);
+                exit;
+            }
+            $_SESSION['flash'] = 'Не удалось создать платёж. Попробуйте ещё раз чуть позже.';
         }
     } elseif (isset($_POST['turnkey_deal']) && $canOrderTurnkey) {
         $pdo->prepare("
@@ -241,7 +241,7 @@ if ($isOperator) {
         <p class="subscription-description">
             Оплата — за контакт, а не за время: 1 разблокировка открывает точный адрес и контакт собственника
             ОДНОЙ конкретной локации навсегда, даже если потом кредиты закончатся. При регистрации оператор сразу
-            получает 1 бесплатный контакт. Пока без реальной оплаты — оформление сразу зачисляет кредиты/тариф.
+            получает 1 бесплатный контакт. Оплата — картой или через СБП на защищённой странице ЮKassa, контакты зачисляются сразу после оплаты.
         </p>
 
         <h3 class="subscription-section-title"><?php echo rr_icon('mail'); ?> Разовые пакеты контактов</h3>

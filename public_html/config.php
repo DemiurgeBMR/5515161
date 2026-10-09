@@ -5,6 +5,7 @@
 
 // Набор SVG-иконок взамен эмодзи — см. includes/icons.php
 require_once __DIR__ . '/includes/icons.php';
+require_once __DIR__ . '/includes/payments.php';
 
 // --- НАСТРОЙКИ БАЗЫ ДАННЫХ ---
 // Значения берутся из переменных окружения, если заданы (на проде — обязательно
@@ -67,6 +68,13 @@ define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
 define('SMTP_ENCRYPTION', getenv('SMTP_ENCRYPTION') ?: 'tls');
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: SMTP_USER);
 define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: SITE_NAME);
+
+// --- ОПЛАТА (ЮKassa) ---
+// Пока ключи не заданы, покупка пакетов и тарифов на сайте отключена — раньше
+// оформление просто выдавало контакты бесплатно. Ключи берутся в личном
+// кабинете ЮKassa (Интеграция → Ключи API); см. includes/payments.php.
+define('YOOKASSA_SHOP_ID', getenv('YOOKASSA_SHOP_ID') ?: '');
+define('YOOKASSA_SECRET_KEY', getenv('YOOKASSA_SECRET_KEY') ?: '');
 // Контактный email для обращений (политика ПД, пользовательское соглашение).
 define('CONTACT_EMAIL', getenv('CONTACT_EMAIL') ?: 'no-reply@riveg-rent.ru');
 
@@ -248,11 +256,53 @@ function isServiceOverdue($days) {
  * См. rr_unlock_location(), rr_credits_summary().
  */
 function rr_credit_packs() {
+    $packs = rr_catalog_defaults()['packs'];
+    foreach (rr_price_overrides() as $key => $price) {
+        if (isset($packs[$key])) {
+            $packs[$key]['price'] = $price;
+        }
+    }
+    return $packs;
+}
+
+/** Цены по умолчанию — меняются из админ-панели (admin/prices.php), см. rr_price_overrides(). */
+function rr_catalog_defaults() {
     return [
-        'pack_5'  => ['label' => '5 контактов',  'credits' => 5,  'price' => 1190],
-        'pack_15' => ['label' => '15 контактов', 'credits' => 15, 'price' => 3030],
-        'pack_40' => ['label' => '40 контактов', 'credits' => 40, 'price' => 7140],
+        'packs' => [
+            'pack_5'  => ['label' => '5 контактов',  'credits' => 5,  'price' => 1190],
+            'pack_15' => ['label' => '15 контактов', 'credits' => 15, 'price' => 3030],
+            'pack_40' => ['label' => '40 контактов', 'credits' => 40, 'price' => 7140],
+        ],
+        'plans' => [
+            'operator_monthly' => ['label' => 'Оператор',        'months' => 1,  'monthly_allowance' => 10, 'price' => 1490],
+            'operator_yearly'  => ['label' => 'Оператор (год)',  'months' => 12, 'monthly_allowance' => 10, 'price' => 14900],
+            'network_monthly'  => ['label' => 'Сеть',             'months' => 1,  'monthly_allowance' => 40, 'price' => 5900],
+        ],
+        'turnkey_deal' => 1490,
     ];
+}
+
+/**
+ * Цены, изменённые админом в панели: [ключ => цена]. Если таблицы ещё нет
+ * (миграция не накатана) или в ней пусто — действуют цены по умолчанию.
+ * История прошлых покупок хранит цену на момент покупки, поэтому смена
+ * прайса её не переписывает.
+ */
+function rr_price_overrides() {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    try {
+        $rows = getDbConnection()->query("SELECT item_key, price FROM price_overrides")->fetchAll(PDO::FETCH_KEY_PAIR);
+        foreach ($rows as $key => $price) {
+            $cache[$key] = (int) $price;
+        }
+    } catch (Throwable $e) {
+        error_log('rr_price_overrides: ' . $e->getMessage());
+    }
+    return $cache;
 }
 
 /**
@@ -263,11 +313,13 @@ function rr_credit_packs() {
  * чтобы будущее изменение прайса не переписывало историю прошлых "оплат".
  */
 function rr_recurring_plans() {
-    return [
-        'operator_monthly' => ['label' => 'Оператор',        'months' => 1,  'monthly_allowance' => 10, 'price' => 1490],
-        'operator_yearly'  => ['label' => 'Оператор (год)',  'months' => 12, 'monthly_allowance' => 10, 'price' => 14900],
-        'network_monthly'  => ['label' => 'Сеть',             'months' => 1,  'monthly_allowance' => 40, 'price' => 5900],
-    ];
+    $plans = rr_catalog_defaults()['plans'];
+    foreach (rr_price_overrides() as $key => $price) {
+        if (isset($plans[$key])) {
+            $plans[$key]['price'] = $price;
+        }
+    }
+    return $plans;
 }
 
 /**
@@ -277,7 +329,7 @@ function rr_recurring_plans() {
  * (pages/service_order_chat.php), где и ведётся вся дальнейшая переписка.
  */
 function rr_turnkey_deal_price() {
-    return 1490;
+    return rr_price_overrides()['turnkey_deal'] ?? rr_catalog_defaults()['turnkey_deal'];
 }
 
 /** Человекочитаемые подписи статусов service_orders — единая точка правды
@@ -370,9 +422,10 @@ function rr_add_months_clamped($timestamp, $months) {
  * тариф, новый срок прибавляется к его остатку (а не пересчитывается от
  * "сейчас") — докупить тариф впрок не должно значить потерять уже
  * оплаченное время. Возвращает новую дату окончания или false, если
- * передан неизвестный тариф.
+ * передан неизвестный тариф. $pricePaid — сколько реально заплатили, если
+ * отличается от текущей цены в прайсе (оплата через ЮKassa).
  */
-function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
+function rr_purchase_subscription(PDO $pdo, $userId, $planKey, $pricePaid = null) {
     $plans = rr_recurring_plans();
     if (!isset($plans[$planKey])) {
         return false;
@@ -387,7 +440,7 @@ function rr_purchase_subscription(PDO $pdo, $userId, $planKey) {
         INSERT INTO subscriptions (user_id, plan, price_paid, start_date, end_date, is_active)
         VALUES (?, ?, ?, NOW(), ?, 1)
     ");
-    $stmt->execute([$userId, $planKey, $plan['price'], $endDate]);
+    $stmt->execute([$userId, $planKey, $pricePaid ?? $plan['price'], $endDate]);
 
     return $endDate;
 }
