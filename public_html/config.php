@@ -77,6 +77,12 @@ define('YOOKASSA_SHOP_ID', getenv('YOOKASSA_SHOP_ID') ?: '');
 define('YOOKASSA_SECRET_KEY', getenv('YOOKASSA_SECRET_KEY') ?: '');
 // Контактный email для обращений (политика ПД, пользовательское соглашение).
 define('CONTACT_EMAIL', getenv('CONTACT_EMAIL') ?: 'no-reply@riveg-rent.ru');
+define('CONTACT_PHONE', getenv('CONTACT_PHONE') ?: '+7 978 136 79 24');
+// Продавец (оператор сервиса) — реквизиты для соглашения, политики и подвала сайта.
+define('OPERATOR_NAME', getenv('OPERATOR_NAME') ?: 'ИП Коваленко Сергей Анатольевич');
+define('OPERATOR_INN', getenv('OPERATOR_INN') ?: '910211871400');
+define('OPERATOR_OGRNIP', getenv('OPERATOR_OGRNIP') ?: '315910200375457');
+define('OPERATOR_ADDRESS', getenv('OPERATOR_ADDRESS') ?: 'г. Симферополь, ул. Полюсная, д. 49');
 
 /** Настроена ли реальная отправка почты на этом окружении. */
 function rr_mail_configured() {

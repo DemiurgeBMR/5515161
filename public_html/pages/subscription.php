@@ -244,6 +244,13 @@ if ($isOperator) {
             получает 1 бесплатный контакт. Оплата — картой или через СБП на защищённой странице ЮKassa, контакты зачисляются сразу после оплаты.
         </p>
 
+        <p class="subscription-section-sub">
+            После оплаты контакты и тариф сразу появляются в личном кабинете (услуга электронная, доставка не нужна).
+            Условия возврата — в <a href="/pages/terms.php#subscription">пользовательском соглашении</a>.
+            Вопросы по оплате: <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>,
+            <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a>.
+        </p>
+
         <h3 class="subscription-section-title"><?php echo rr_icon('mail'); ?> Разовые пакеты контактов</h3>
         <p class="subscription-section-sub">Не сгорают — копятся на балансе сколько угодно.</p>
         <div class="plan-cards">

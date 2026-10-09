@@ -3,6 +3,12 @@
         <div class="container">
             <p>&copy; 2025 RR - Riveg Rent. Все права защищены.</p>
             <p class="footer-cities">Симферополь | Краснодар | Ростов</p>
+            <p class="footer-contacts">
+                <?php echo htmlspecialchars(OPERATOR_NAME); ?> · ИНН <?php echo htmlspecialchars(OPERATOR_INN); ?> · ОГРНИП <?php echo htmlspecialchars(OPERATOR_OGRNIP); ?><br>
+                <?php echo htmlspecialchars(OPERATOR_ADDRESS); ?> ·
+                <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a> ·
+                <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>
+            </p>
             <p class="footer-legal-links">
                 <a href="/pages/subscription.php">Подписка</a>
                 ·
