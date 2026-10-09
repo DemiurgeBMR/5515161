@@ -75,6 +75,22 @@ define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: SITE_NAME);
 // кабинете ЮKassa (Интеграция → Ключи API); см. includes/payments.php.
 define('YOOKASSA_SHOP_ID', getenv('YOOKASSA_SHOP_ID') ?: '');
 define('YOOKASSA_SECRET_KEY', getenv('YOOKASSA_SECRET_KEY') ?: '');
+// Чек по 54-ФЗ: данные чека уходят в ЮKassa вместе с платежом (нужны и для
+// «Чеков от ЮKassa», и для сторонней онлайн-кассы). Выключается значением
+// false — только если ЮKassa настроена на самозанятого (НПД), там чек другой.
+// Строка '0' в PHP «ложная», поэтому `?:` здесь не годится — читаем явно.
+$rrReceiptFlag = getenv('YOOKASSA_SEND_RECEIPT');
+define('YOOKASSA_SEND_RECEIPT', $rrReceiptFlag === false || trim($rrReceiptFlag) === ''
+    ? true
+    : (filter_var($rrReceiptFlag, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true));
+unset($rrReceiptFlag);
+// Ставка НДС в чеке: 1 = «Без НДС» (УСН/патент). Остальные коды — в таблице
+// vat_code в документации ЮKassa (ставки меняются, здесь их не дублируем).
+define('YOOKASSA_VAT_CODE', (int) (getenv('YOOKASSA_VAT_CODE') ?: 1));
+// Система налогообложения в чеке: 1 ОСН, 2 УСН «доходы», 3 УСН «доходы минус
+// расходы», 6 патент. Нужна, только если в магазине ЮKassa их несколько;
+// 0 = не передавать.
+define('YOOKASSA_TAX_SYSTEM_CODE', (int) (getenv('YOOKASSA_TAX_SYSTEM_CODE') ?: 0));
 // Контактный email для обращений (политика ПД, пользовательское соглашение).
 define('CONTACT_EMAIL', getenv('CONTACT_EMAIL') ?: 'no-reply@riveg-rent.ru');
 define('CONTACT_PHONE', getenv('CONTACT_PHONE') ?: '+7 978 136 79 24');
