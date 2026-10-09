@@ -1,21 +1,41 @@
     </main>
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2025 RR - Riveg Rent. Все права защищены.</p>
-            <p class="footer-cities">Симферополь | Краснодар | Ростов</p>
-            <p class="footer-contacts">
-                <?php echo htmlspecialchars(OPERATOR_NAME); ?> · ИНН <?php echo htmlspecialchars(OPERATOR_INN); ?> · ОГРНИП <?php echo htmlspecialchars(OPERATOR_OGRNIP); ?><br>
-                <?php echo htmlspecialchars(OPERATOR_ADDRESS); ?> ·
-                <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a> ·
-                <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>
-            </p>
-            <p class="footer-legal-links">
-                <a href="/pages/subscription.php">Подписка</a>
-                ·
-                <a href="/pages/privacy_policy.php">Политика обработки персональных данных</a>
-                ·
-                <a href="/pages/terms.php">Пользовательское соглашение</a>
-            </p>
+            <div class="footer-grid">
+                <div class="footer-col footer-brand">
+                    <div class="footer-brand-name">RR · Riveg Rent</div>
+                    <p class="footer-cities">Симферополь · Краснодар · Ростов</p>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-title">Контакты</h4>
+                    <dl class="footer-list">
+                        <div><dt>Телефон</dt><dd><a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a></dd></div>
+                        <div><dt>Email</dt><dd><a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a></dd></div>
+                        <div><dt>Адрес</dt><dd><?php echo htmlspecialchars(OPERATOR_ADDRESS); ?></dd></div>
+                    </dl>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-title">Продавец</h4>
+                    <dl class="footer-list">
+                        <div><dt>Название</dt><dd><?php echo htmlspecialchars(OPERATOR_NAME); ?></dd></div>
+                        <div><dt>ИНН</dt><dd><?php echo htmlspecialchars(OPERATOR_INN); ?></dd></div>
+                        <div><dt>ОГРНИП</dt><dd><?php echo htmlspecialchars(OPERATOR_OGRNIP); ?></dd></div>
+                    </dl>
+                </div>
+
+                <div class="footer-col">
+                    <h4 class="footer-title">Документы</h4>
+                    <ul class="footer-links">
+                        <li><a href="/pages/subscription.php">Тарифы и оплата</a></li>
+                        <li><a href="/pages/terms.php">Пользовательское соглашение</a></li>
+                        <li><a href="/pages/privacy_policy.php">Политика обработки персональных данных</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <p class="footer-copy">&copy; <?php echo date('Y'); ?> RR · Riveg Rent. Все права защищены.</p>
         </div>
     </footer>
 <?php include __DIR__ . '/mobile_nav.php'; // нижняя панель и шторка для телефонов (скрыты на десктопе) ?>
