@@ -245,7 +245,7 @@ if ($isOperator) {
         </p>
 
         <ul class="pay-info">
-            <li><?php echo rr_icon('card'); ?> <span><b>Оплата</b> картой или через СБП на защищённой странице ЮKassa. Данные карты у нас не хранятся.</span></li>
+            <li><?php echo rr_icon('card'); ?> <span><b>Оплата</b> картой или через СБП на защищённой странице ЮKassa. Данные карты у нас не хранятся. Чек отправим на почту, указанную в аккаунте.</span></li>
             <li><?php echo rr_icon('check'); ?> <span><b>Получение.</b> Услуга электронная: контакты и тариф появляются в личном кабинете сразу после оплаты.</span></li>
             <li><?php echo rr_icon('file-text'); ?> <span><b>Возврат</b> неиспользованных контактов и другие условия: <a href="/pages/terms.php#subscription">пользовательское соглашение</a>.</span></li>
             <li><?php echo rr_icon('mail'); ?> <span><b>Вопросы по оплате:</b> <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>, <a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>" class="nowrap"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a></span></li>

@@ -31,6 +31,39 @@ function rr_payment_item($kind, $key) {
     return ['label' => $label, 'price' => (int) $items[$key]['price'], 'data' => $items[$key]];
 }
 
+/**
+ * Данные чека для платежа (54-ФЗ) либо null, если чеки выключены или у
+ * покупателя нет адреса почты. Чек уходит покупателю на email из аккаунта.
+ */
+function rr_payment_receipt(PDO $pdo, $userId, array $item) {
+    if (!YOOKASSA_SEND_RECEIPT) {
+        return null;
+    }
+    $stmt = $pdo->prepare("SELECT email FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $email = trim((string) $stmt->fetchColumn());
+    if ($email === '') {
+        return null;
+    }
+
+    $receipt = [
+        'customer' => ['email' => $email],
+        'items'    => [[
+            'description'     => mb_substr($item['label'], 0, 128),
+            'quantity'        => '1.00',
+            'measure'         => 'piece',
+            'amount'          => ['value' => number_format($item['price'], 2, '.', ''), 'currency' => 'RUB'],
+            'vat_code'        => YOOKASSA_VAT_CODE,
+            'payment_mode'    => 'full_payment',
+            'payment_subject' => 'service',
+        ]],
+    ];
+    if (YOOKASSA_TAX_SYSTEM_CODE > 0) {
+        $receipt['tax_system_code'] = YOOKASSA_TAX_SYSTEM_CODE;
+    }
+    return $receipt;
+}
+
 /** Запрос к API ЮKassa. Возвращает [HTTP-код, разобранный JSON|null]. */
 function rr_yookassa_request($method, $path, $body = null, $idempotenceKey = null) {
     $ch = curl_init((getenv('YOOKASSA_API_URL') ?: 'https://api.yookassa.ru/v3') . $path);
@@ -74,13 +107,18 @@ function rr_create_payment(PDO $pdo, $userId, $kind, $itemKey) {
     ")->execute([$userId, $kind, $itemKey, $item['price'], $idempotenceKey]);
     $paymentId = (int) $pdo->lastInsertId();
 
-    [$code, $data] = rr_yookassa_request('POST', '/payments', [
+    $body = [
         'amount'       => ['value' => number_format($item['price'], 2, '.', ''), 'currency' => 'RUB'],
         'capture'      => true,
         'confirmation' => ['type' => 'redirect', 'return_url' => SITE_URL . '/pages/payment_return.php?payment=' . $paymentId],
         'description'  => $item['label'] . ' — ' . SITE_NAME,
         'metadata'     => ['payment_id' => (string) $paymentId],
-    ], $idempotenceKey);
+    ];
+    $receipt = rr_payment_receipt($pdo, $userId, $item);
+    if ($receipt !== null) {
+        $body['receipt'] = $receipt;
+    }
+    [$code, $data] = rr_yookassa_request('POST', '/payments', $body, $idempotenceKey);
 
     $confirmUrl = $data['confirmation']['confirmation_url'] ?? null;
     if ($code < 200 || $code >= 300 || empty($data['id']) || !$confirmUrl) {
