@@ -261,6 +261,9 @@ foreach ([
     '/admin/locations.php',
     '/admin/users.php',
     '/admin/geocode_backfill.php',
+    '/admin/dashboard.php',
+    '/admin/payments.php',
+    '/admin/prices.php',
 ] as $path) {
     [$code] = httpGet($baseUrl . $path, $adminJar);
     check($code === 200, "admin GET $path -> 200 (got $code)");

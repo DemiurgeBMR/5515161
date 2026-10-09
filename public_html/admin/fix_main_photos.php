@@ -69,14 +69,7 @@ $remaining = (int) $pdo->query("SELECT COUNT(*) FROM ($affectedSql) t")->fetchCo
     <div class="admin-container adm-tool">
         <h1><?php echo rr_icon('camera'); ?> Починка главных фото</h1>
 
-        <div class="nav-admin">
-            <a href="/admin/index.php"><?php echo rr_icon('list'); ?> На модерацию</a>
-            <a href="/admin/locations.php"><?php echo rr_icon('map-pin'); ?> Все локации</a>
-            <a href="/admin/users.php"><?php echo rr_icon('users'); ?> Пользователи</a>
-            <a href="/admin/geocode_backfill.php"><?php echo rr_icon('globe'); ?> Геокодирование</a>
-            <a href="/admin/fix_main_photos.php"><?php echo rr_icon('camera'); ?> Починка фото</a>
-            <a href="/admin/service_orders.php"><?php echo rr_icon('file-text'); ?> Заказы услуг</a>
-        </div>
+        <?php include __DIR__ . '/../includes/admin_nav.php'; ?>
 
         <p>Находит локации, у которых есть фото, но ни одно не отмечено главным (из-за уже
            исправленного бага в одобрении ревизий) — и назначает главным первое доступное фото,
