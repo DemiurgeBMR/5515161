@@ -231,6 +231,18 @@ a {
     font-size: 12px;
     opacity: 0.5;
 }
+.footer p.footer-contacts {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.footer p.footer-contacts a {
+    color: rgba(255,255,255,0.6);
+    text-decoration: underline;
+}
+.footer p.footer-contacts a:hover {
+    color: #fff;
+}
 .footer p.footer-legal-links {
     margin-top: 8px;
     font-size: 12px;
