@@ -1,0 +1,6 @@
+# Токены и почта для заявок — не для git (шаблон: config/secrets.example.php).
+/config/secrets.php
+
+# Временные файлы ограничения частоты заявок.
+/storage/*
+!/storage/.gitkeep
