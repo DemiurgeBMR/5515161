@@ -1136,7 +1136,9 @@ a:hover { color: var(--accent-hover); }
 .booking-success__icon .i { width: 30px; height: 30px; stroke-width: 2.25; }
 .booking-success .h3 { margin-bottom: 12px; }
 .booking-success p { color: var(--ink-2); }
-.booking-success__muted { margin-top: 12px; font-size: 0.95rem; }
+.booking-success p + p { margin-top: 10px; }
+.booking-success .booking-success__action { margin-top: 22px; }
+.booking-success .booking-success__muted { margin-top: 18px; font-size: 0.95rem; }
 
 .notice {
     display: flex;

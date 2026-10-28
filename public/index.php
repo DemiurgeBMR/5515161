@@ -540,7 +540,7 @@ require __DIR__ . '/../src/partials/header.php';
                 <p data-success-details></p>
                 <p>Номер уже держим за вами. Администратор перезвонит в течение <?= e($h['response_time']) ?> и подтвердит бронь.</p>
                 <p data-success-email hidden></p>
-                <p><a class="btn btn--primary" href="#" data-success-link>Открыть мою бронь<?= icon('arrow-right') ?></a></p>
+                <p class="booking-success__action"><a class="btn btn--primary" href="#" data-success-link>Открыть мою бронь<?= icon('arrow-right') ?></a></p>
                 <p class="booking-success__muted">Сохраните ссылку на бронь — по ней видно статус и можно написать администратору. Срочный вопрос? Звоните: <a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a></p>
             </div>
         </div>
