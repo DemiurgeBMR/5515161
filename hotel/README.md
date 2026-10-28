@@ -8,6 +8,9 @@
 
 ## Запустить у себя
 
+В Open Server сайт уже описан в `.osp/project.ini` и открывается по адресу
+http://hotel/ — см. [docs/OSPANEL.md](../docs/OSPANEL.md). Без Open Server:
+
 ```bash
 php -S localhost:8080 -t hotel/public
 ```

@@ -28,9 +28,31 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    fwrite(STDERR, "Не удалось подключиться к базе данных ($dbHost/$dbName): " . $e->getMessage() . "\n");
-    fwrite(STDERR, "Проверьте переменные окружения DB_HOST, DB_NAME, DB_USER, DB_PASS.\n");
-    exit(1);
+    // 1049 «Unknown database» — первый запуск на новом компьютере (Open Server),
+    // базы ещё нет. Создаём пустую и подключаемся заново. На сервере база уже
+    // создана docker-compose, сюда не попадаем — права на CREATE DATABASE
+    // там и не нужны.
+    if (strpos($e->getMessage(), '[1049]') === false) {
+        fwrite(STDERR, "Не удалось подключиться к базе данных ($dbHost/$dbName): " . $e->getMessage() . "\n");
+        fwrite(STDERR, "Проверьте переменные окружения DB_HOST, DB_NAME, DB_USER, DB_PASS.\n");
+        fwrite(STDERR, "В Open Server: включён ли модуль MySQL-8.0? Подробнее — docs/OSPANEL.md.\n");
+        exit(1);
+    }
+    try {
+        $server = new PDO('mysql:host=' . $dbHost . ';charset=utf8mb4', $dbUser, $dbPass);
+        $server->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $server->exec('CREATE DATABASE `' . str_replace('`', '``', $dbName) . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+        echo "[создано] база данных $dbName\n";
+        $pdo = new PDO(
+            'mysql:host=' . $dbHost . ';dbname=' . $dbName . ';charset=utf8mb4',
+            $dbUser,
+            $dbPass
+        );
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (PDOException $e) {
+        fwrite(STDERR, "Базы $dbName нет, и создать её не получилось: " . $e->getMessage() . "\n");
+        exit(1);
+    }
 }
 
 $pdo->exec("
@@ -83,6 +105,16 @@ foreach ($files as $file) {
         echo "    OK\n";
     } catch (PDOException $e) {
         $errorCode = (int) $e->errorInfo[1];
+        // Базовую схему прогоняем только в пустую базу (см. выше), поэтому
+        // «таблица уже есть» здесь значит, что прошлый прогон оборвался на
+        // середине. Считать её применённой нельзя — половины таблиц не будет.
+        if ($name === $baselineFile) {
+            fwrite(STDERR, "    ОШИБКА в $name: " . $e->getMessage() . "\n");
+            fwrite(STDERR, "Базовая схема создалась не полностью. Удалите базу $dbName и запустите скрипт снова —\n");
+            fwrite(STDERR, "он создаст её заново. Нужен MySQL 8 (в Open Server — модуль MySQL-8.0), MariaDB не подойдёт.\n");
+            $hadError = true;
+            break;
+        }
         if (in_array($errorCode, $alreadyAppliedErrorCodes, true)) {
             echo "    [пропущено] похоже, уже применено ранее (" . $e->getMessage() . ")\n";
             $pdo->prepare("INSERT INTO `_schema_migrations` (filename) VALUES (?)")->execute([$name]);
