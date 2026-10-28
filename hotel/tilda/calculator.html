@@ -1,0 +1,161 @@
+<!--
+  Калькулятор стоимости для Тильды.
+  Вставьте этот код целиком в блок «HTML-код» (T123). Подробно — README.md рядом.
+
+  Что настроить — только блок HOTEL_CALC ниже: цены, вместимость, скидки,
+  якорь формы и имя скрытого поля формы, куда попадёт расчёт.
+-->
+<div class="hcalc" id="hcalc">
+  <div class="hcalc__card">
+    <h3 class="hcalc__title">Рассчитайте стоимость</h3>
+    <div class="hcalc__grid">
+      <label class="hcalc__field">
+        <span>Заезд</span>
+        <input type="date" data-in>
+      </label>
+      <label class="hcalc__field">
+        <span>Выезд</span>
+        <input type="date" data-out>
+      </label>
+      <label class="hcalc__field">
+        <span>Номер</span>
+        <select data-room></select>
+      </label>
+      <label class="hcalc__field">
+        <span>Гостей</span>
+        <select data-guests></select>
+      </label>
+    </div>
+    <p class="hcalc__warn" data-warn hidden></p>
+    <div class="hcalc__result" data-result aria-live="polite">
+      <p class="hcalc__muted">Выберите даты — посчитаем стоимость с учётом скидки за длительное проживание.</p>
+    </div>
+    <a class="hcalc__btn" href="#booking" data-go>Отправить заявку с этим расчётом</a>
+    <p class="hcalc__note">Это предварительный расчёт. Точную цену и наличие подтвердит администратор.</p>
+  </div>
+</div>
+
+<style>
+.hcalc { --hc-accent: #8b3a22; --hc-accent-hover: #722f1a; --hc-olive: #55653a; --hc-olive-soft: #e4e8d4;
+  --hc-ink: #2a211c; --hc-ink2: #574a41; --hc-line: #cdbba6; --hc-surface: #fffdf9;
+  font-family: 'Manrope', Arial, sans-serif; color: var(--hc-ink); max-width: 720px; margin: 0 auto; padding: 0 16px; box-sizing: border-box; }
+.hcalc *, .hcalc *::before, .hcalc *::after { box-sizing: border-box; }
+.hcalc__card { background: var(--hc-surface); border: 1px solid #e0d2c1; border-radius: 28px; padding: 32px; box-shadow: 0 18px 40px -22px rgba(62,38,22,.35); }
+.hcalc__title { margin: 0 0 20px; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.1; }
+.hcalc__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.hcalc__field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--hc-ink2); }
+.hcalc__field input, .hcalc__field select { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--hc-line); border-radius: 12px;
+  background: #fff; color: var(--hc-ink); font: 500 16px/1.4 inherit; font-family: inherit; }
+.hcalc__field input:focus, .hcalc__field select:focus { outline: none; border-color: var(--hc-accent); box-shadow: 0 0 0 4px #f4e2d8; }
+.hcalc__warn { margin: 14px 0 0; padding: 10px 14px; border-radius: 12px; background: #f4e2d8; color: var(--hc-accent-hover); font-size: 15px; }
+.hcalc__warn[hidden] { display: none; }
+.hcalc__result { margin-top: 20px; font-size: 16px; }
+.hcalc__muted { margin: 0; color: #6e5f54; }
+.hcalc__row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--hc-line); color: var(--hc-ink2); }
+.hcalc__row b { color: var(--hc-ink); white-space: nowrap; }
+.hcalc__row--disc, .hcalc__row--disc b { color: var(--hc-olive); }
+.hcalc__total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 14px; font-weight: 600; }
+.hcalc__total b { font-size: 30px; font-weight: 800; }
+.hcalc__nudge { margin: 14px 0 0; padding: 10px 14px; border-radius: 12px; background: var(--hc-olive-soft); color: #3f4c29; font-size: 15px; }
+.hcalc__btn { display: flex; align-items: center; justify-content: center; min-height: 56px; margin-top: 22px; padding: 0 24px; border-radius: 999px;
+  background: var(--hc-accent); color: #fff !important; font-weight: 600; font-size: 17px; line-height: 1.25; text-align: center; text-decoration: none; }
+.hcalc__btn:hover { background: var(--hc-accent-hover); }
+.hcalc__note { margin: 12px 0 0; text-align: center; font-size: 14px; color: #6e5f54; }
+@media (max-width: 560px) {
+  .hcalc { padding: 0 12px; }
+  .hcalc__card { padding: 22px 18px; border-radius: 20px; }
+  .hcalc__title { font-size: 26px; }
+}
+@media (max-width: 380px) { .hcalc__grid { grid-template-columns: 1fr; } }
+</style>
+
+<script>
+(function () {
+  // ===================== НАСТРОЙКИ =====================
+  var HOTEL_CALC = {
+    rooms: [
+      { name: 'Стандарт',      price: 2500, guests: 2 },
+      { name: 'Большой номер', price: 3000, guests: 3 },
+      { name: 'Люкс',          price: 5000, guests: 3 }
+    ],
+    // Скидки за длительное проживание. percent: null — «условия обсуждаются».
+    tiers: [
+      { nights: 7,  percent: 10,   label: 'от 7 ночей' },
+      { nights: 30, percent: null, label: 'от месяца', text: 'индивидуальные условия' }
+    ],
+    // Якорь блока с формой (в настройках блока формы → «Якорная ссылка»).
+    formAnchor: '#booking',
+    // Имя скрытого поля в форме Тильды, куда записать расчёт.
+    hiddenField: 'raschet'
+  };
+  // =====================================================
+
+  var root = document.getElementById('hcalc');
+  if (!root) return;
+  var $ = function (s) { return root.querySelector(s); };
+  var dIn = $('[data-in]'), dOut = $('[data-out]'), room = $('[data-room]'), guests = $('[data-guests]');
+  var result = $('[data-result]'), warn = $('[data-warn]'), go = $('[data-go]');
+  go.setAttribute('href', HOTEL_CALC.formAnchor);
+
+  function money(n) { return Math.round(n).toLocaleString('ru-RU').replace(/\s/g, ' ') + ' ₽'; }
+  function plural(n, a, b, c) { var d = n % 10, h = n % 100; return d === 1 && h !== 11 ? a : (d >= 2 && d <= 4 && (h < 12 || h > 14) ? b : c); }
+  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  function parse(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T00:00:00') : null; }
+  function human(s) { var d = parse(s); return d ? d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }) : ''; }
+  function tierFor(n) { var t = null; HOTEL_CALC.tiers.forEach(function (x) { if (n >= x.nights && (!t || x.nights > t.nights)) t = x; }); return t; }
+  function nextTier(n) { var t = null; HOTEL_CALC.tiers.forEach(function (x) { if (x.nights > n && (!t || x.nights < t.nights)) t = x; }); return t; }
+
+  HOTEL_CALC.rooms.forEach(function (r, i) {
+    var o = document.createElement('option'); o.value = i; o.textContent = r.name + ' — ' + money(r.price); room.appendChild(o);
+  });
+  var maxGuests = Math.max.apply(null, HOTEL_CALC.rooms.map(function (r) { return r.guests; }));
+  for (var g = 1; g <= maxGuests; g++) { var o = document.createElement('option'); o.value = g; o.textContent = g; guests.appendChild(o); }
+  dIn.min = iso(new Date());
+
+  var summaryText = '';
+
+  function render() {
+    var r = HOTEL_CALC.rooms[room.value], n = 0, a = parse(dIn.value), b = parse(dOut.value);
+    var gc = parseInt(guests.value, 10);
+    if (gc > r.guests) {
+      var fit = HOTEL_CALC.rooms.filter(function (x) { return x.guests >= gc; }).map(function (x) { return '«' + x.name + '»'; });
+      warn.textContent = 'В номере «' + r.name + '» — до ' + r.guests + ' ' + plural(r.guests, 'гостя', 'гостей', 'гостей') + '.' + (fit.length ? ' Подойдёт ' + fit.join(' или ') + '.' : '');
+      warn.hidden = false;
+    } else { warn.hidden = true; }
+
+    if (a && b) n = Math.round((b - a) / 86400000);
+    if (n < 1) {
+      result.innerHTML = '<p class="hcalc__muted">Выберите даты — посчитаем стоимость с учётом скидки за длительное проживание.</p>';
+      summaryText = ''; return;
+    }
+    var base = r.price * n, total = base, t = tierFor(n), nx = nextTier(n);
+    var period = human(dIn.value) + ' — ' + human(dOut.value) + ', ' + n + ' ' + plural(n, 'ночь', 'ночи', 'ночей');
+    var html = '<div class="hcalc__row"><span>Даты</span><b>' + period + '</b></div>'
+      + '<div class="hcalc__row"><span>' + r.name + ': ' + money(r.price) + ' × ' + n + '</span><b>' + money(base) + '</b></div>';
+    if (t && t.percent !== null) {
+      total = Math.round(r.price * (100 - t.percent) / 100) * n;
+      html += '<div class="hcalc__row hcalc__row--disc"><span>Скидка ' + t.label + ', −' + t.percent + '%</span><b>−' + money(base - total) + '</b></div>';
+    }
+    html += '<div class="hcalc__total"><span>' + (t && t.percent === null ? 'Без скидки' : 'Итого') + '</span><b>' + money(total) + '</b></div>';
+    if (t && t.percent === null) html += '<p class="hcalc__nudge">Проживание ' + t.label + ' — ' + t.text + '. Администратор рассчитает цену.</p>';
+    else if (nx && nx.percent !== null) { var m = nx.nights - n; html += '<p class="hcalc__nudge">Ещё ' + m + ' ' + plural(m, 'ночь', 'ночи', 'ночей') + ' — и цена станет на ' + nx.percent + '% ниже.</p>'; }
+    result.innerHTML = html;
+    summaryText = period + '; ' + r.name + '; гостей: ' + gc + '; ' + (t && t.percent === null ? 'без скидки ' : 'итого ') + money(total).replace(/ /g, ' ');
+  }
+
+  dIn.addEventListener('change', function () {
+    var a = parse(dIn.value); if (!a) return render();
+    a.setDate(a.getDate() + 1); dOut.min = iso(a);
+    if (!dOut.value || dOut.value <= dIn.value) dOut.value = iso(a);
+    render();
+  });
+  [dOut, room, guests].forEach(function (el) { el.addEventListener('change', render); });
+
+  // Кладём расчёт в скрытое поле формы Тильды, чтобы он пришёл вместе с заявкой.
+  go.addEventListener('click', function () {
+    if (!summaryText) return;
+    var fields = document.querySelectorAll('input[name="' + HOTEL_CALC.hiddenField + '"]');
+    for (var i = 0; i < fields.length; i++) fields[i].value = summaryText;
+  });
+})();
+</script>
