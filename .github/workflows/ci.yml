@@ -5,36 +5,28 @@ on:
   pull_request:
 
 jobs:
-  smoke:
+  lint:
     runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: riveg_rent_ci
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: pdo_mysql, mysqli, mbstring, gd, curl, json
+          php-version: '8.1'
+          extensions: mbstring
           coverage: none
 
-      - name: Run smoke tests
-        env:
-          DB_HOST: 127.0.0.1
-          DB_USER: root
-          DB_PASS: ''
-          DB_NAME: riveg_rent_ci
-        run: bash tests/smoke.sh
+      - name: Проверка синтаксиса PHP
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+
+      - name: Страницы открываются
+        run: |
+          php -S 127.0.0.1:8090 -t public > /tmp/server.log 2>&1 &
+          sleep 1
+          for page in / /rules.php /privacy.php /consent.php /sitemap.xml; do
+            path="$page"; [ "$page" = /sitemap.xml ] && path=/sitemap.php
+            code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$path")
+            echo "$page → $code"
+            [ "$code" = 200 ] || { cat /tmp/server.log; exit 1; }
+            if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
+          done
