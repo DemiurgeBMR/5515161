@@ -112,10 +112,22 @@ function ical_fetch(string $url): string
         ]);
         $ok = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        $err = curl_error($ch);
+        $errno = curl_errno($ch);
         curl_close($ch);
-        if (!$ok || $code >= 400) {
-            throw new RuntimeException($err !== '' ? $err : 'площадка ответила ошибкой ' . $code);
+        if (!$ok || $errno) {
+            // Коды ошибок curl — числами: часть констант есть не во всех версиях PHP.
+            throw new RuntimeException([
+                28 => 'площадка не ответила за 15 секунд',
+                6  => 'адрес не найден — проверьте ссылку',
+                7  => 'не удалось подключиться к площадке',
+                35 => 'ошибка защищённого соединения',
+                51 => 'ошибка сертификата площадки',
+                60 => 'ошибка сертификата площадки',
+                23 => 'календарь слишком большой',
+            ][$errno] ?? 'не удалось скачать календарь (ошибка ' . $errno . ')');
+        }
+        if ($code >= 400) {
+            throw new RuntimeException('площадка ответила ошибкой ' . $code . ($code === 404 ? ' — ссылка устарела или неверна' : ''));
         }
         return $body;
     }
@@ -154,7 +166,9 @@ function ical_sync_room(array $room): ?string
     // Если хоть одна площадка не ответила, старые закрытия не трогаем:
     // лучше лишний раз не продать, чем продать занятое.
     if ($error === null) {
-        tx(function () use ($room, $events, $today) {
+        $changed = tx(function () use ($room, $events, $today) {
+            $sig = fn (array $rows) => implode('|', array_map(fn ($r) => $r['date_from'] . '/' . $r['date_to'] . '/' . $r['reason'], $rows));
+            $before = q_all("SELECT date_from, date_to, reason FROM room_closures WHERE room_id = ? AND source = 'ical' ORDER BY date_from, date_to, reason", [$room['id']]);
             q("DELETE FROM room_closures WHERE room_id = ? AND source = 'ical'", [$room['id']]);
             foreach ($events as $ev) {
                 if ($ev['to'] <= $today) {
@@ -166,8 +180,13 @@ function ical_sync_room(array $room): ?string
                     'source' => 'ical', 'external_uid' => $ev['uid'], 'created_at' => now(),
                 ]);
             }
+            $after = q_all("SELECT date_from, date_to, reason FROM room_closures WHERE room_id = ? AND source = 'ical' ORDER BY date_from, date_to, reason", [$room['id']]);
+            return $sig($before) !== $sig($after);
         });
-        touch_data_version();
+        // Открытые шахматки обновляются, только если занятость на площадках правда изменилась.
+        if ($changed) {
+            touch_data_version();
+        }
     }
     q('UPDATE rooms SET ical_synced_at = ?, ical_error = ? WHERE id = ?', [now(), mb_substr((string) $error, 0, 255), $room['id']]);
     return $error;

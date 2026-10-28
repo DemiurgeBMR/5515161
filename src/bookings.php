@@ -135,11 +135,23 @@ function guest_update(int $id, array $d): void
 /** Удалить личные данные гостя (по его просьбе или по сроку хранения). Брони остаются для учёта. */
 function guest_anonymize(int $id, string $why): void
 {
+    $guest = guest_get($id);
+    if (!$guest) {
+        return;
+    }
     q_update('guests', $id, [
         'name' => 'Данные удалены', 'phone' => '', 'phone_digits' => '', 'email' => '', 'note' => null,
         'updated_at' => now(), 'anonymized_at' => now(),
     ]);
-    q("UPDATE bookings SET guest_comment = NULL WHERE guest_id = ?", [$id]);
+    // Вместе с карточкой — всё, где могли остаться имя, телефон или почта:
+    // комментарии и сообщения гостя, заметки по его броням, записи журнала.
+    q("UPDATE bookings SET guest_comment = NULL, admin_note = NULL, cancel_reason = '' WHERE guest_id = ?", [$id]);
+    q('UPDATE booking_messages SET message = NULL WHERE booking_id IN (SELECT id FROM bookings WHERE guest_id = ?)', [$id]);
+    q("UPDATE audit_log SET details = NULL WHERE entity = 'booking' AND action IN ('guest_message', 'reminder_sent', 'deleted', 'mail', 'status')
+       AND entity_id IN (SELECT id FROM bookings WHERE guest_id = ?)", [$id]);
+    if ($guest['email'] !== '') {
+        q('DELETE FROM login_codes WHERE email = ?', [$guest['email']]);
+    }
     audit('guest', $id, 'anonymized', $why, current_staff() ? 'staff' : 'system');
 }
 
@@ -422,8 +434,12 @@ function booking_update(int $id, array $d): array
         }
 
         $manual = !empty($d['price_manual']);
+        $sameStay = $old['check_in'] === $checkIn && $old['check_out'] === $checkOut && $old['room_type_id'] === $type['id'];
         if ($manual) {
             $total = max(0, (int) $d['total_price']);
+        } elseif ($sameStay && !$old['price_manual']) {
+            // Даты и номер те же — остаётся сумма, которую гостю уже назвали, даже если цены с тех пор поменялись.
+            $total = $old['total_price'];
         } else {
             $total = quote($type, $checkIn, $checkOut)['total'];
         }
