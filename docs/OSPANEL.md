@@ -61,26 +61,21 @@ Open Server Panel (OSP). В конце на компьютере будут ра
 поменяйте `php_engine` в обоих разделах. **Если указать модуль, которого нет,
 OSP молча не покажет сайт.**
 
-## 4. Включить расширения PHP
+## 4. Проверить расширения PHP
 
 Откройте Блокнотом файл `C:\OSPanel\config\PHP-8.5\default\templates\php.ini`
-(вместо `PHP-8.5` — ваша версия). Найдите строки ниже и уберите `;` в начале,
-если он есть:
+(вместо `PHP-8.5` — ваша версия) и убедитесь, что перед этими строками нет `;`:
 
-    extension=curl
-    extension=fileinfo
-    extension=gd
-    extension=mbstring
-    extension=openssl
-    extension=pdo_mysql
+    extension = curl
+    extension = fileinfo
+    extension = gd
+    extension = mbstring
+    extension = openssl
+    extension = pdo_mysql
 
-В том же файле поднимите лимиты загрузки, чтобы проходили фотографии с
-телефона:
-
-    upload_max_filesize = 20M
-    post_max_size = 25M
-
-Сохраните файл.
+В свежем OSP 6 они уже включены, а лимиты загрузки (`upload_max_filesize`,
+`post_max_size`) стоят с запасом — менять обычно ничего не нужно. Если
+что-то правили — перезапустите модуль PHP.
 
 ## 5. Запустить Open Server
 
