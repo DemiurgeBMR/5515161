@@ -4,3 +4,7 @@
 # Временные файлы ограничения частоты заявок.
 /storage/*
 !/storage/.gitkeep
+
+# Фото, загруженные в админке, — данные, а не код.
+/public/uploads/*
+!/public/uploads/.htaccess

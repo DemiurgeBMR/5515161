@@ -2,10 +2,11 @@
 $h = hotel();
 $nav = [
     '/#rooms'    => 'Номера',
+    '/#calendar' => 'Свободные даты',
     '/#prices'   => 'Цены',
-    '/#care'     => 'Во время лечения',
     '/#faq'      => 'Вопросы',
     '/#contacts' => 'Контакты',
+    '/account.php' => 'Мои брони',
 ];
 ?>
 <header class="site-header" data-header>

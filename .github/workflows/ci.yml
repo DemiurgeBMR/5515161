@@ -5,28 +5,54 @@ on:
   pull_request:
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      HOTEL_DB_HOST: 127.0.0.1
+      HOTEL_DB_USER: root
+      HOTEL_DB_PASS: root
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
-          extensions: mbstring
+          extensions: mbstring, pdo_mysql, gd, curl, exif
           coverage: none
 
       - name: Проверка синтаксиса PHP
-        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Тесты бронирования на MySQL 8
+        run: php tests/run.php
 
       - name: Страницы открываются
+        env:
+          HOTEL_DB_NAME: hotel_ci
+          HOTEL_MAIL_TRANSPORT: log
         run: |
+          php tools/migrate.php
           php -S 127.0.0.1:8090 -t public > /tmp/server.log 2>&1 &
           sleep 1
-          for page in / /rules.php /privacy.php /consent.php /sitemap.xml; do
-            path="$page"; [ "$page" = /sitemap.xml ] && path=/sitemap.php
-            code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$path")
+          for page in / /rules.php /privacy.php /consent.php /account.php /sitemap.php /api/availability.php; do
+            code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
             echo "$page → $code"
-            [ "$code" = 200 ] || { cat /tmp/server.log; exit 1; }
+            [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
             if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
           done
+          if grep -qiE 'Fatal|Warning|Notice|Deprecated' /tmp/server.log; then cat /tmp/server.log; exit 1; fi

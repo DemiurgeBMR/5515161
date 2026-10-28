@@ -1,32 +1,43 @@
 <?php
 require __DIR__ . '/../src/bootstrap.php';
 
+if (!db_ready()) {
+    require __DIR__ . '/../src/partials/maintenance.php';
+    exit;
+}
+
 $h = hotel();
-$rooms = $h['rooms'];
-$minPrice = min(array_column($rooms, 'price'));
-$maxPrice = max(array_column($rooms, 'price'));
+$types = room_types();
+$discounts = stay_discounts();
+$prices = array_column($types, 'base_price');
+$minPrice = $prices ? min($prices) : 0;
+$maxPrice = $prices ? max($prices) : 0;
+$maxGuests = $types ? max(array_column($types, 'capacity')) : 1;
 $weekTier = null;
-foreach ($h['long_stay'] as $tier) {
-    if ($tier['percent'] !== null && ($weekTier === null || $tier['nights'] < $weekTier['nights'])) {
+foreach ($discounts as $tier) {
+    if ($tier['percent'] !== null) {
         $weekTier = $tier;
+        break;
     }
 }
 $walk = $h['walk_minutes'];
 $today = today();
+$prepaymentText = prepayment_mode_label();
 
 // Значения формы: из быстрой формы на первом экране без JS (GET) или пустые.
 $form = [
-    'check_in'  => (string) ($_GET['check_in'] ?? ''),
-    'check_out' => (string) ($_GET['check_out'] ?? ''),
-    'room'      => (string) ($_GET['room'] ?? ''),
-    'guests'    => (string) ($_GET['guests'] ?? '1'),
+    'check_in'  => get('check_in'),
+    'check_out' => get('check_out'),
+    'room'      => (int) get('room', '0'),
+    'guests'    => get('guests', '1'),
 ];
-if (!isset($rooms[$form['room']])) {
-    $form['room'] = '';
+if (!isset($types[$form['room']])) {
+    $form['room'] = 0;
 }
-// Результат отправки заявки без JS (api/booking.php возвращает сюда).
-$bookingResult = $_GET['booking'] ?? null;
-$notifyResult = $_GET['notify'] ?? null;
+// Результат отправки без JS (api/booking.php возвращает сюда при ошибке).
+$bookingResult = get('booking') ?: null;
+$bookingMessage = mb_substr(get('msg'), 0, 300);
+$notifyResult = get('notify') ?: null;
 
 $faq = [
     ['Что нужно для заселения?',
@@ -36,18 +47,18 @@ $faq = [
     ['Сроки лечения могут сдвинуться. Что будет с бронью?',
      'Так бывает часто: госпитализацию переносят, результаты анализов готовы позже. Предупредите нас — перенесём даты или продлим проживание. Условия отмены: ' . $h['cancellation'] . '.'],
     ['Можно продлить проживание?',
-     'Да, в любой день — просто скажите администратору. Если ваш номер на новые даты уже занят, предложим другой. Чем дольше живёте, тем ниже цена за сутки.'],
+     'Да, в любой день — скажите администратору или напишите со страницы своей брони (ссылка приходит в письме и есть в разделе «Мои брони»). Если ваш номер на новые даты уже занят, предложим другой. Чем дольше живёте, тем ниже цена за сутки.'],
     ['Можно жить вместе с родственником?',
      'Да. Цена — за номер, а не за человека. ' . implode(', ', array_map(
-         fn ($r) => '«' . $r['name'] . '» — до ' . $r['guests'] . ' ' . plural($r['guests'], 'гостя', 'гостей', 'гостей'),
-         array_values($rooms)
+         fn ($t) => '«' . $t['name'] . '» — до ' . $t['capacity'] . ' ' . plural($t['capacity'], 'гостя', 'гостей', 'гостей'),
+         array_values($types)
      )) . '.'],
     ['Можно готовить? Где хранить лекарства?',
      'В каждом номере есть холодильник, чайник и посуда — в холодильнике можно хранить и продукты, и лекарства, которым нужен холод. [Общая кухня с плитой и микроволновкой.] Рядом продуктовый магазин и аптека.'],
     ['Нужен номер без ступенек или на первом этаже',
      'Напишите об этом в комментарии к заявке или скажите по телефону — подберём подходящий номер. [Есть ли номера на первом этаже, лифт, пандус.]'],
     ['Как оплатить? Будут ли документы?',
-     'Оплата: ' . $h['payment'] . '. Предоплата: ' . $h['prepayment'] . '. Всегда выдаём кассовый чек, а если нужно — договор и справку о проживании для работодателя или бухгалтерии.'],
+     'Оплата: ' . $h['payment'] . '. Предоплата — ' . $prepaymentText . ', остальное при заселении. Всегда выдаём кассовый чек, а если нужно — договор и справку о проживании для работодателя или бухгалтерии.'],
     ['Как добраться от вокзала?',
      'От ж/д вокзала и Центрального автовокзала — около [N] минут на такси. [Общественный транспорт: номер маршрута и остановка.] Если нужно, подскажем дорогу по телефону или вызовем такси.'],
     ['Есть парковка? Можно с животными?',
@@ -118,7 +129,7 @@ require __DIR__ . '/../src/partials/header.php';
                 </ul>
             </div>
             <div class="hero__media">
-                <?= photo_placeholder('уютный номер в тёплом свете', 'arch hero__photo') ?>
+                <?= site_photo('hero', 'Уютный номер в тёплом свете', 'arch hero__photo') ?>
                 <p class="walk-badge"><?= icon('footprints') ?><span><strong><?= e($walk) ?> минут</strong> пешком до диспансера</span></p>
             </div>
         </div>
@@ -136,16 +147,16 @@ require __DIR__ . '/../src/partials/header.php';
                 <div class="field">
                     <label for="q-room">Номер</label>
                     <select id="q-room" name="room">
-                        <option value="">Любой подходящий</option>
-<?php foreach ($rooms as $key => $r): ?>
-                        <option value="<?= e($key) ?>"<?= $form['room'] === $key ? ' selected' : '' ?>><?= e($r['name']) ?> — <?= e(room_price($r)) ?></option>
+                        <option value="0">Любой подходящий</option>
+<?php foreach ($types as $t): ?>
+                        <option value="<?= $t['id'] ?>"<?= $form['room'] === $t['id'] ? ' selected' : '' ?>><?= e($t['name']) ?> — <?= e(type_price_label($t)) ?></option>
 <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="field field--narrow">
                     <label for="q-guests">Гостей</label>
                     <select id="q-guests" name="guests">
-<?php for ($g = 1; $g <= max(array_column($rooms, 'guests')); $g++): ?>
+<?php for ($g = 1; $g <= $maxGuests; $g++): ?>
                         <option value="<?= $g ?>"<?= $form['guests'] === (string) $g ? ' selected' : '' ?>><?= $g ?></option>
 <?php endfor; ?>
                     </select>
@@ -196,42 +207,54 @@ require __DIR__ . '/../src/partials/header.php';
             </div>
 
             <div class="rooms">
-<?php foreach ($rooms as $key => $r): ?>
-                <article class="room<?= !empty($r['featured']) ? ' room--featured' : '' ?>" aria-labelledby="room-<?= e($key) ?>">
+<?php foreach ($types as $t): ?>
+                <article class="room<?= $t['featured'] ? ' room--featured' : '' ?>" aria-labelledby="room-<?= $t['id'] ?>">
                     <div class="room__media">
-<?php if ($r['photos']): ?>
-                        <div class="room__gallery" tabindex="0" aria-label="Фотографии номера «<?= e($r['name']) ?>», листайте вбок">
-<?php foreach ($r['photos'] as $i => $src): ?>
-                            <img src="/<?= e(ltrim($src, '/')) ?>" alt="Номер «<?= e($r['name']) ?>», фото <?= $i + 1 ?>" loading="lazy" decoding="async" width="800" height="600">
+<?php if ($t['photos']): ?>
+                        <div class="room__gallery" tabindex="0" aria-label="Фотографии номера «<?= e($t['name']) ?>», листайте вбок">
+<?php foreach ($t['photos'] as $i => $photo): ?>
+                            <img src="/<?= e($photo['path']) ?>" alt="Номер «<?= e($t['name']) ?>», фото <?= $i + 1 ?>" loading="lazy" decoding="async" width="<?= (int) $photo['width'] ?>" height="<?= (int) $photo['height'] ?>">
 <?php endforeach; ?>
                         </div>
-<?php else: ?>
-                        <?= photo_placeholder('«' . $r['name'] . '»', 'room__ph') ?>
+<?php if (count($t['photos']) > 1): ?>
+                        <span class="room__count"><?= icon('camera') ?><?= count($t['photos']) ?></span>
 <?php endif; ?>
-<?php if (!empty($r['badge'])): ?>
-                        <span class="room__badge"><?= e($r['badge']) ?></span>
+<?php else: ?>
+                        <?= photo_placeholder('«' . $t['name'] . '»', 'room__ph') ?>
+<?php endif; ?>
+<?php if ($t['badge'] !== ''): ?>
+                        <span class="room__badge"><?= e($t['badge']) ?></span>
 <?php endif; ?>
                     </div>
                     <div class="room__body">
                         <header class="room__head">
-                            <h3 class="room__name" id="room-<?= e($key) ?>"><?= e($r['name']) ?></h3>
-                            <p class="room__price"><strong><?= e(room_price($r)) ?></strong> / сутки</p>
+                            <h3 class="room__name" id="room-<?= $t['id'] ?>"><?= e($t['name']) ?></h3>
+                            <p class="room__price"><strong><?= e(type_price_label($t)) ?></strong> / сутки</p>
                         </header>
                         <ul class="room__facts">
-                            <li><?= icon('users') ?>до <?= (int) $r['guests'] ?> <?= plural((int) $r['guests'], 'гостя', 'гостей', 'гостей') ?></li>
-                            <li><?= icon('ruler') ?><?= e($r['area']) ?> м²</li>
-                            <li><?= icon('bed-double') ?><?= e($r['bed']) ?></li>
+                            <li><?= icon('users') ?>до <?= $t['capacity'] ?> <?= plural($t['capacity'], 'гостя', 'гостей', 'гостей') ?></li>
+<?php if ($t['area'] !== ''): ?>
+                            <li><?= icon('ruler') ?><?= e($t['area']) ?> м²</li>
+<?php endif; ?>
+<?php if ($t['bed'] !== ''): ?>
+                            <li><?= icon('bed-double') ?><?= e($t['bed']) ?></li>
+<?php endif; ?>
                         </ul>
-                        <p class="room__summary"><?= e($r['summary']) ?></p>
+                        <p class="room__summary"><?= e($t['summary']) ?></p>
+<?php if ($t['features_list']): ?>
                         <details class="room__more">
                             <summary>Что в номере<?= icon('chevron-down') ?></summary>
                             <ul class="checklist">
-<?php foreach ($r['features'] as $f): ?>
+<?php foreach ($t['features_list'] as $f): ?>
                                 <li><?= icon('check') ?><?= e($f) ?></li>
 <?php endforeach; ?>
                             </ul>
                         </details>
-                        <a class="btn <?= !empty($r['featured']) ? 'btn--copper' : 'btn--outline' ?> room__cta" href="?room=<?= e($key) ?>#booking" data-book-room="<?= e($key) ?>">Забронировать</a>
+<?php endif; ?>
+                        <div class="room__actions">
+                            <a class="btn <?= $t['featured'] ? 'btn--copper' : 'btn--outline' ?> room__cta" href="?room=<?= $t['id'] ?>#booking" data-book-room="<?= $t['id'] ?>">Забронировать</a>
+                            <a class="room__dates" href="#calendar" data-show-calendar="<?= $t['id'] ?>">Свободные даты</a>
+                        </div>
                     </div>
                 </article>
 <?php endforeach; ?>
@@ -293,14 +316,13 @@ require __DIR__ . '/../src/partials/header.php';
                 <p class="eyebrow">Долгое проживание</p>
                 <h2 class="h2" id="prices-title">Приехали на всё <em>время лечения?</em></h2>
                 <p>Чем дольше вы живёте, тем ниже цена. Продлить можно в любой день — просто скажите администратору.</p>
-<?php if ($weekTier):
-    $exRoom = $rooms[array_key_first($rooms)];
-    $exNights = 21;
-    $ex = estimate(array_key_first($rooms), $exNights);
+<?php if ($weekTier && $types && $weekTier['min_nights'] <= 21):
+    $exType = reset($types);
+    $ex = simple_estimate($exType, 21);
 ?>
                 <p class="prices__example">
                     <?= icon('info') ?>
-                    <span>Например, 3 недели в номере «<?= e($exRoom['name']) ?>»: <strong><?= e(money((int) $ex['total'])) ?></strong> вместо <?= e(money($ex['base'])) ?> — экономия <?= e(money($ex['base'] - (int) $ex['total'])) ?>.</span>
+                    <span>Например, 3 недели в номере «<?= e($exType['name']) ?>»: <strong><?= e(money($ex['total'])) ?></strong> вместо <?= e(money($ex['sum'])) ?> — экономия <?= e(money($ex['sum'] - $ex['total'])) ?>.</span>
                 </p>
 <?php endif; ?>
                 <h3 class="prices__subtitle">В цену уже входит</h3>
@@ -319,31 +341,65 @@ require __DIR__ . '/../src/partials/header.php';
                         <tr>
                             <th scope="col">Номер</th>
                             <th scope="col">Посуточно</th>
-<?php foreach ($h['long_stay'] as $tier): ?>
+<?php foreach ($discounts as $tier): ?>
                             <th scope="col" class="<?= $tier === $weekTier ? 'is-accent' : '' ?>"><?= e($tier['label']) ?><span><?= e($tier['text']) ?></span></th>
 <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody>
-<?php foreach ($rooms as $key => $r): ?>
+<?php foreach ($types as $t): ?>
                         <tr>
-                            <th scope="row"><?= e($r['name']) ?></th>
-                            <td data-label="Посуточно"><?= e(room_price($r)) ?></td>
-<?php foreach ($h['long_stay'] as $tier): ?>
-                            <td data-label="<?= e($tier['label']) ?>" class="<?= $tier === $weekTier ? 'is-accent' : '' ?>"><?php
-    if ($tier['percent'] === null) {
-        echo e($tier['text']);
-    } else {
-        $p = discounted((int) $r['price'], (int) $tier['percent']);
-        echo e(!empty($r['price_tbd']) ? '[' . number_format($p, 0, ',', "\u{00A0}") . "]\u{00A0}₽" : money($p));
-    }
-?></td>
+                            <th scope="row"><?= e($t['name']) ?></th>
+                            <td data-label="Посуточно"><?= e(type_price_label($t)) ?></td>
+<?php foreach ($discounts as $tier): ?>
+                            <td data-label="<?= e($tier['label']) ?>" class="<?= $tier === $weekTier ? 'is-accent' : '' ?>"><?= e($tier['percent'] === null ? $tier['text'] : type_price_label($t, (int) round($t['base_price'] * (100 - $tier['percent']) / 100))) ?></td>
 <?php endforeach; ?>
                         </tr>
 <?php endforeach; ?>
                     </tbody>
                 </table>
-                <p class="price-table__note">Цена за номер в сутки. Скидка действует на весь срок проживания.</p>
+                <p class="price-table__note">Цена за номер в сутки. Скидка действует на весь срок проживания. В праздники цена может отличаться — точную сумму на ваши даты покажет форма брони.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         Свободные даты
+         ============================================================ -->
+    <section class="section" id="calendar" aria-labelledby="calendar-title">
+        <div class="container">
+            <div class="section-head">
+                <h2 class="h2" id="calendar-title">Свободные <em>даты</em></h2>
+                <p class="section-head__note">Календарь обновляется сам каждую минуту. Выберите дату заезда, затем дату выезда — и мы перенесём их в заявку.</p>
+            </div>
+            <div class="cal" data-calendar aria-live="polite">
+                <div class="cal__toolbar">
+                    <div class="cal__types" role="group" aria-label="Тип номера" data-cal-types>
+                        <button type="button" class="cal__type" data-type="0" aria-pressed="true">Любой номер</button>
+<?php foreach ($types as $t): ?>
+                        <button type="button" class="cal__type" data-type="<?= $t['id'] ?>" aria-pressed="false"><?= e($t['name']) ?></button>
+<?php endforeach; ?>
+                    </div>
+                    <div class="cal__nav">
+                        <button type="button" class="cal__arrow" data-cal-prev aria-label="Предыдущий месяц"><?= icon('arrow-right') ?></button>
+                        <button type="button" class="cal__arrow" data-cal-next aria-label="Следующий месяц"><?= icon('arrow-right') ?></button>
+                    </div>
+                </div>
+                <div class="cal__months" data-cal-months>
+                    <p class="cal__loading">Загружаем свободные даты…</p>
+                </div>
+                <div class="cal__footer">
+                    <ul class="cal__legend">
+                        <li><span class="cal__dot cal__dot--free"></span>свободно</li>
+                        <li><span class="cal__dot cal__dot--few"></span>остался 1 номер</li>
+                        <li><span class="cal__dot cal__dot--full"></span>занято</li>
+                    </ul>
+                    <div class="cal__pick" data-cal-pick>
+                        <p class="cal__pick-text" data-cal-pick-text>Выберите дату заезда</p>
+                        <button type="button" class="btn btn--primary" data-cal-book hidden>Забронировать эти даты<?= icon('arrow-right') ?></button>
+                    </div>
+                </div>
+                <noscript><p class="cal__noscript">Календарь свободных дат работает с включённым JavaScript. Узнать, свободен ли номер, можно по телефону <?= e($h['phone']) ?>.</p></noscript>
             </div>
         </div>
     </section>
@@ -359,15 +415,10 @@ require __DIR__ . '/../src/partials/header.php';
                 <p class="section-head__lead">Это заявка, а не оплата — она ни к чему не обязывает. Администратор проверит наличие и перезвонит в течение <?= e($h['response_time']) ?> (<?= e($h['admin_hours']) ?>).</p>
             </div>
 
-<?php if ($bookingResult === 'ok'): ?>
-            <div class="notice notice--ok" role="status">
-                <?= icon('check') ?>
-                <div><strong>Заявка отправлена.</strong> Перезвоним в течение <?= e($h['response_time']) ?>. Если не дозвонимся — напишем.</div>
-            </div>
-<?php elseif ($bookingResult === 'error'): ?>
+<?php if ($bookingResult === 'error'): ?>
             <div class="notice notice--error" role="alert">
                 <?= icon('info') ?>
-                <div><strong>Заявка не отправилась.</strong> Пожалуйста, позвоните нам: <a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a> — или напишите в <a href="<?= e(whatsapp_href()) ?>">WhatsApp</a>.</div>
+                <div><strong>Заявка не отправилась.</strong> <?= $bookingMessage !== '' ? e($bookingMessage) . ' ' : '' ?>Можно позвонить нам: <a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a> — или написать в <a href="<?= e(whatsapp_href()) ?>">WhatsApp</a>.</div>
             </div>
 <?php endif; ?>
 
@@ -394,16 +445,16 @@ require __DIR__ . '/../src/partials/header.php';
                             <div class="field">
                                 <label for="b-room">Номер</label>
                                 <select id="b-room" name="room" data-room>
-                                    <option value="">Подберите мне подходящий</option>
-<?php foreach ($rooms as $key => $r): ?>
-                                    <option value="<?= e($key) ?>"<?= $form['room'] === $key ? ' selected' : '' ?>><?= e($r['name']) ?> — <?= e(room_price($r)) ?></option>
+                                    <option value="0">Подберите мне подходящий</option>
+<?php foreach ($types as $t): ?>
+                                    <option value="<?= $t['id'] ?>"<?= $form['room'] === $t['id'] ? ' selected' : '' ?>><?= e($t['name']) ?> — <?= e(type_price_label($t)) ?></option>
 <?php endforeach; ?>
                                 </select>
                             </div>
                             <div class="field">
                                 <label for="b-guests">Сколько гостей</label>
                                 <select id="b-guests" name="guests" data-guests>
-<?php for ($g = 1; $g <= max(array_column($rooms, 'guests')); $g++): ?>
+<?php for ($g = 1; $g <= $maxGuests; $g++): ?>
                                     <option value="<?= $g ?>"<?= $form['guests'] === (string) $g ? ' selected' : '' ?>><?= $g ?></option>
 <?php endfor; ?>
                                 </select>
@@ -426,6 +477,11 @@ require __DIR__ . '/../src/partials/header.php';
                                 <label for="b-phone">Телефон <span class="req" aria-hidden="true">*</span></label>
                                 <input id="b-phone" type="tel" name="phone" required maxlength="25" autocomplete="tel" inputmode="tel" placeholder="+7 978 000-00-00" data-phone>
                             </div>
+                        </div>
+                        <div class="field">
+                            <label for="b-email">Почта</label>
+                            <input id="b-email" type="email" name="email" maxlength="190" autocomplete="email" inputmode="email" placeholder="name@mail.ru" aria-describedby="b-email-hint">
+                            <p class="field-hint" id="b-email-hint">Необязательно. Пришлём подтверждение и ссылку на бронь — по ней можно написать администратору или попросить продлить проживание.</p>
                         </div>
                         <div class="field">
                             <span class="field__label" id="b-contact-label">Удобнее, если мы</span>
@@ -469,16 +525,23 @@ require __DIR__ . '/../src/partials/header.php';
                     <ol class="steps">
                         <li><strong>Вы отправляете заявку.</strong> Это бесплатно и ни к чему не обязывает.</li>
                         <li><strong>Мы перезваниваем</strong> в течение <?= e($h['response_time']) ?>, подтверждаем наличие и точную цену.</li>
-                        <li><strong>Предоплата</strong> <?= e($h['prepayment']) ?> — и номер закреплён за вами.</li>
+<?php if ($prepaymentText !== 'без предоплаты'): ?>
+                        <li><strong>Предоплата</strong> — <?= e($prepaymentText) ?>, и номер закреплён за вами.</li>
+<?php else: ?>
+                        <li><strong>Номер закреплён за вами</strong> — оплата при заселении.</li>
+<?php endif; ?>
                     </ol>
                 </aside>
             </div>
 
             <div class="booking-success card" data-booking-success hidden tabindex="-1">
                 <span class="booking-success__icon"><?= icon('check') ?></span>
-                <h3 class="h3">Заявка отправлена</h3>
-                <p>Спасибо! Администратор перезвонит в течение <?= e($h['response_time']) ?> и подтвердит бронь. Если не дозвонимся — напишем.</p>
-                <p class="booking-success__muted">Срочный вопрос? Звоните: <a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a></p>
+                <h3 class="h3">Заявка <span data-success-number></span> принята</h3>
+                <p data-success-details></p>
+                <p>Номер уже держим за вами. Администратор перезвонит в течение <?= e($h['response_time']) ?> и подтвердит бронь.</p>
+                <p data-success-email hidden></p>
+                <p><a class="btn btn--primary" href="#" data-success-link>Открыть мою бронь<?= icon('arrow-right') ?></a></p>
+                <p class="booking-success__muted">Сохраните ссылку на бронь — по ней видно статус и можно написать администратору. Срочный вопрос? Звоните: <a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a></p>
             </div>
         </div>
     </section>
@@ -490,8 +553,8 @@ require __DIR__ . '/../src/partials/header.php';
     <section class="section section--dark bath" id="bath" aria-labelledby="bath-title">
         <div class="container bath__grid">
             <div class="bath__media">
-                <?= photo_placeholder('баня', 'ph--dark bath__ph') ?>
-                <?= photo_placeholder('хамам', 'ph--dark arch bath__ph') ?>
+                <?= site_photo('bath', 'Баня', 'ph--dark bath__ph') ?>
+                <?= site_photo('hammam', 'Хамам', 'ph--dark arch bath__ph') ?>
             </div>
             <div class="bath__text">
                 <p class="eyebrow eyebrow--light"><?= e($h['bath']['status']) ?> · <?= e($h['bath']['opening']) ?></p>
@@ -621,5 +684,9 @@ require __DIR__ . '/../src/partials/header.php';
     <a class="btn btn--primary" href="#booking">Забронировать</a>
 </div>
 
-<script type="application/json" id="pricing-data"><?= pricing_json() ?></script>
+<script type="application/json" id="site-data"><?= json_encode([
+    'types'    => array_map(fn ($t) => ['name' => $t['name'], 'capacity' => $t['capacity']], $types),
+    'phone'    => $h['phone'],
+    'whatsapp' => whatsapp_href(),
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php require __DIR__ . '/../src/partials/footer.php'; ?>

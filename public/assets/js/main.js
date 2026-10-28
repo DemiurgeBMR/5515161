@@ -5,8 +5,8 @@
  * Всё, что здесь есть, — улучшение поверх обычного HTML: без JS формы
  * отправляются как обычно, а меню и карта просто остаются статичными.
  *
- * Цены и скидки приходят из #pricing-data — их кладёт туда PHP из
- * config/hotel.php, отдельно здесь ничего менять не нужно.
+ * Цену и наличие номера считает сервер (/api/quote.php), свободные даты
+ * для календаря отдаёт /api/availability.php — здесь только показ.
  */
 (function () {
     'use strict';
@@ -14,8 +14,8 @@
     var $ = function (sel, root) { return (root || document).querySelector(sel); };
     var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
 
-    var pricing = null;
-    try { pricing = JSON.parse(($('#pricing-data') || {}).textContent || 'null'); } catch (e) { pricing = null; }
+    var site = null;
+    try { site = JSON.parse(($('#site-data') || {}).textContent || 'null'); } catch (e) { site = null; }
 
     // ---------------------------------------------------------------
     // Утилиты
@@ -62,20 +62,15 @@
         return String(s || '').replace(/\D+/g, '');
     }
 
-    function tierFor(nights) {
-        var found = null;
-        (pricing ? pricing.tiers : []).forEach(function (t) {
-            if (nights >= t.nights && (!found || t.nights > found.nights)) found = t;
-        });
-        return found;
+    function addDays(s, n) {
+        var d = parseDate(s);
+        d.setDate(d.getDate() + n);
+        return isoDate(d);
     }
 
-    function nextTier(nights) {
-        var found = null;
-        (pricing ? pricing.tiers : []).forEach(function (t) {
-            if (t.nights > nights && (!found || t.nights < found.nights)) found = t;
-        });
-        return found;
+    function getJSON(url) {
+        return fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); });
     }
 
     function scrollToEl(el) {
@@ -159,12 +154,15 @@
     });
 
     // ---------------------------------------------------------------
-    // Форма бронирования: расчёт стоимости
+    // Форма бронирования: расчёт стоимости и проверка, свободен ли номер
     // ---------------------------------------------------------------
 
     var form = $('[data-booking]');
     var summaryBodies = $$('[data-summary-body]');
     var capacityHint = $('[data-capacity-hint]');
+    var quoteTimer = null;
+    var quoteSeq = 0;
+    var lastQuote = null;
 
     function field(name) { return form ? form.elements[name] : null; }
 
@@ -173,75 +171,89 @@
         summaryBodies.forEach(function (el) { el.innerHTML = html; });
     }
 
-    function renderSummary() {
-        if (!form || !summaryBodies.length || !pricing) return;
-        var checkIn = field('check_in').value;
-        var checkOut = field('check_out').value;
-        var roomKey = field('room').value;
+    function capacityCheck() {
+        if (!capacityHint || !site) return;
+        var type = site.types[field('room').value];
         var guests = parseInt(field('guests').value, 10) || 1;
-        var nights = nightsBetween(checkIn, checkOut);
-        var room = pricing.rooms[roomKey];
-
-        // Подсказка о вместимости
-        if (capacityHint) {
-            if (room && guests > room.guests) {
-                var fits = Object.keys(pricing.rooms).filter(function (k) { return pricing.rooms[k].guests >= guests; })
-                    .map(function (k) { return '«' + pricing.rooms[k].name + '»'; });
-                capacityHint.textContent = 'В номере «' + room.name + '» — до ' + room.guests + ' ' + plural(room.guests, 'гостя', 'гостей', 'гостей') + '.'
-                    + (fits.length ? ' Для ' + guests + ' ' + plural(guests, 'гостя', 'гостей', 'гостей') + ' подойдёт ' + fits.join(' или ') + '.' : ' Позвоните нам — что-нибудь придумаем.');
-                capacityHint.classList.add('field-hint--warn');
-                capacityHint.hidden = false;
-            } else {
-                capacityHint.hidden = true;
-            }
+        if (type && guests > type.capacity) {
+            var fits = Object.keys(site.types).filter(function (k) { return site.types[k].capacity >= guests; })
+                .map(function (k) { return '«' + site.types[k].name + '»'; });
+            capacityHint.textContent = 'В номере «' + type.name + '» — до ' + type.capacity + ' ' + plural(type.capacity, 'гостя', 'гостей', 'гостей') + '.'
+                + (fits.length ? ' Для ' + guests + ' ' + plural(guests, 'гостя', 'гостей', 'гостей') + ' подойдёт ' + fits.join(' или ') + '.' : ' Позвоните нам — что-нибудь придумаем.');
+            capacityHint.classList.add('field-hint--warn');
+            capacityHint.hidden = false;
+        } else {
+            capacityHint.hidden = true;
         }
+    }
 
-        if (nights < 1) {
-            setSummary('<p class="summary__empty">Выберите даты и номер — посчитаем стоимость с учётом скидки за длительное проживание.</p>');
-            return;
-        }
-
+    function renderQuote(q, checkIn, checkOut) {
+        var nights = q.nights;
         var period = shortDate(checkIn) + ' — ' + shortDate(checkOut) + ', ' + nights + ' ' + plural(nights, 'ночь', 'ночи', 'ночей');
-        var tier = tierFor(nights);
-        var next = nextTier(nights);
-        var html = '<dl class="summary__rows"><div class="summary__row"><dt>Даты</dt><dd>' + esc(period) + '</dd></div>';
-
-        if (!room) {
-            var min = Math.min.apply(null, Object.keys(pricing.rooms).map(function (k) { return pricing.rooms[k].price; }));
-            html += '</dl><p class="summary__note">Подберём номер под ваши даты и число гостей — от ' + esc(money(min)) + ' за сутки.'
-                + (tier ? ' ' + esc(tier.label) + ' — ' + esc(tier.text) + '.' : '') + '</p>';
-            setSummary(html);
-            return;
+        var html = '';
+        if (!q.available) {
+            html += '<p class="summary__warn">' + esc(q.message) + '</p>';
         }
-
-        var base = room.price * nights;
-        html += '<div class="summary__row"><dt>' + esc(room.name) + ': ' + esc(money(room.price)) + ' × ' + nights + '</dt><dd>' + esc(money(base)) + '</dd></div>';
-
-        var total = base;
-        var individual = false;
-        if (tier && tier.percent !== null) {
-            total = Math.round(room.price * (100 - tier.percent) / 100) * nights;
-            html += '<div class="summary__row summary__row--discount"><dt>Скидка ' + esc(tier.label.toLowerCase()) + ', −' + tier.percent + '%</dt><dd>−' + esc(money(base - total)) + '</dd></div>';
-        } else if (tier) {
-            individual = true;
+        html += '<dl class="summary__rows"><div class="summary__row"><dt>Даты</dt><dd>' + esc(period) + '</dd></div>';
+        var perNight = q.seasonal ? 'в среднем ' + money(q.avg) : money(q.avg);
+        html += '<div class="summary__row"><dt>' + esc(q.type.name) + ': ' + esc(perNight) + ' × ' + nights + '</dt><dd>' + esc(money(q.sum)) + '</dd></div>';
+        if (q.discount > 0) {
+            html += '<div class="summary__row summary__row--discount"><dt>Скидка ' + esc(q.tier.label.toLowerCase()) + ', −' + q.tier.percent + '%</dt><dd>−' + esc(money(q.discount)) + '</dd></div>';
         }
         html += '</dl>';
-        html += '<dl class="summary__total"><dt>' + (individual ? 'Без скидки' : 'Итого') + '</dt><dd>' + esc(money(total)) + '</dd></dl>';
-
-        if (individual) {
-            html += '<p class="summary__nudge">' + esc(tier.label) + ' — ' + esc(tier.text) + '. Администратор рассчитает индивидуальную цену.</p>';
-        } else if (next && next.percent !== null) {
-            var more = next.nights - nights;
-            html += '<p class="summary__nudge">Ещё ' + more + ' ' + plural(more, 'ночь', 'ночи', 'ночей') + ' — и цена станет на ' + next.percent + '% ниже. Если лечение затянется, продлить можно в любой день.</p>';
+        if (q.total === null) {
+            html += '<dl class="summary__total"><dt>Без скидки</dt><dd>' + esc(money(q.sum)) + '</dd></dl>';
+            html += '<p class="summary__nudge">' + esc(q.tier.label) + ' — ' + esc(q.tier.text) + '. Администратор рассчитает индивидуальную цену.</p>';
+        } else {
+            html += '<dl class="summary__total"><dt>Итого</dt><dd>' + esc(money(q.total)) + '</dd></dl>';
+            if (q.next_tier) {
+                var more = q.next_tier.nights - nights;
+                html += '<p class="summary__nudge">Ещё ' + more + ' ' + plural(more, 'ночь', 'ночи', 'ночей') + ' — и цена станет на ' + q.next_tier.percent + '% ниже. Если лечение затянется, продлить можно в любой день.</p>';
+            }
+            if (q.available && q.prepayment > 0) {
+                html += '<p class="summary__note">Предоплата после подтверждения: ' + esc(money(q.prepayment)) + '.</p>';
+            }
         }
-        html += '<p class="summary__note">Предварительный расчёт. Точную цену и наличие подтвердит администратор.' + (room.tbd ? ' Цена этого номера уточняется.' : '') + '</p>';
+        if (q.available) {
+            html += '<p class="summary__ok">' + (field('room').value === '0' ? 'Подберём: «' + esc(q.type.name) + '» — свободен' : 'Номер на эти даты свободен') + '</p>';
+        }
+        html += '<p class="summary__note">' + (q.seasonal ? 'В эти даты действуют сезонные цены. ' : '') + 'Точную цену подтвердит администратор.' + (q.type.tbd ? ' Цена этого номера уточняется.' : '') + '</p>';
         setSummary(html);
+    }
+
+    function renderSummary() {
+        if (!form || !summaryBodies.length) return;
+        capacityCheck();
+        var checkIn = field('check_in').value;
+        var checkOut = field('check_out').value;
+        if (nightsBetween(checkIn, checkOut) < 1) {
+            lastQuote = null;
+            setSummary('<p class="summary__empty">Выберите даты и номер — посчитаем стоимость с учётом скидки за длительное проживание и проверим, свободен ли номер.</p>');
+            return;
+        }
+        clearTimeout(quoteTimer);
+        quoteTimer = setTimeout(function () {
+            var seq = ++quoteSeq;
+            var url = '/api/quote.php?type=' + encodeURIComponent(field('room').value || '0')
+                + '&check_in=' + checkIn + '&check_out=' + checkOut + '&guests=' + encodeURIComponent(field('guests').value || '1');
+            getJSON(url).then(function (q) {
+                if (seq !== quoteSeq) return;
+                if (!q.ok) {
+                    lastQuote = null;
+                    setSummary('<p class="summary__warn">' + esc(q.message || 'Не получилось посчитать') + '</p>');
+                    return;
+                }
+                lastQuote = q;
+                renderQuote(q, checkIn, checkOut);
+            }).catch(function () {
+                if (seq === quoteSeq) setSummary('<p class="summary__note">Не получилось посчитать — проверьте интернет. Точную цену назовёт администратор.</p>');
+            });
+        }, 250);
     }
 
     if (form) {
         ['check_in', 'check_out', 'room', 'guests'].forEach(function (name) {
             field(name).addEventListener('change', renderSummary);
-            field(name).addEventListener('input', renderSummary);
         });
         renderSummary();
     }
@@ -252,9 +264,8 @@
         Object.keys(values).forEach(function (name) {
             if (values[name] !== undefined && values[name] !== '' && field(name)) field(name).value = values[name];
         });
-        if (values.check_in) {
-            var d = parseDate(values.check_in);
-            if (d) { d.setDate(d.getDate() + 1); field('check_out').min = isoDate(d); }
+        if (values.check_in && parseDate(values.check_in)) {
+            field('check_out').min = addDays(values.check_in, 1);
         }
         renderSummary();
         var section = $('#booking');
@@ -326,6 +337,8 @@
         if (!f.elements.name.value.trim()) e.name = 'Как к вам обращаться?';
         var d = phoneDigits(f.elements.phone.value);
         if (d.length < 10 || d.length > 15) e.phone = 'Проверьте номер телефона';
+        var email = f.elements.email ? f.elements.email.value.trim() : '';
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Проверьте адрес почты';
         if (!f.elements.consent.checked) e.consent = 'Без согласия мы не можем принять заявку';
         return e;
     }
@@ -338,7 +351,7 @@
             var n = nightsBetween(f.elements.check_in.value, f.elements.check_out.value);
             lines.push('Даты: ' + shortDate(f.elements.check_in.value) + ' — ' + shortDate(f.elements.check_out.value) + ' (' + n + ' ' + plural(n, 'ночь', 'ночи', 'ночей') + ')');
         }
-        lines.push('Номер: ' + (pricing && pricing.rooms[roomKey] ? pricing.rooms[roomKey].name : 'подберите, пожалуйста'));
+        lines.push('Номер: ' + (site && site.types[roomKey] ? site.types[roomKey].name : 'подберите, пожалуйста'));
         lines.push('Гостей: ' + f.elements.guests.value);
         if (f.elements.name.value.trim()) lines.push('Имя: ' + f.elements.name.value.trim());
         if (f.elements.phone.value.trim()) lines.push('Телефон: ' + f.elements.phone.value.trim());
@@ -347,13 +360,14 @@
     }
 
     function showFallback(f, box, reason) {
-        var phone = pricing ? pricing.phone : '';
+        var phone = site ? site.phone : '';
         var digits = phoneDigits(phone);
         var tel = digits.length === 11 ? 'tel:+' + digits : '#contacts';
-        var wa = pricing && pricing.whatsapp && pricing.whatsapp.indexOf('https://') === 0
-            ? pricing.whatsapp + '?text=' + encodeURIComponent(bookingText(f)) : '';
+        var wa = site && site.whatsapp && site.whatsapp.indexOf('https://') === 0
+            ? site.whatsapp + '?text=' + encodeURIComponent(bookingText(f)) : '';
         var title = reason === 'rate_limit' ? 'Слишком много заявок подряд.'
             : reason === 'network' ? 'Не получилось отправить заявку — похоже, пропал интернет.'
+            : reason === 'no_rooms' ? 'На эти даты свободных номеров уже нет — их только что заняли.'
             : 'Не получилось отправить заявку.';
         box.innerHTML = '<strong>' + esc(title) + '</strong> Пожалуйста, позвоните нам или отправьте заявку в мессенджер — мы уже подготовили текст.'
             + '<div class="form-error__actions">'
@@ -375,7 +389,8 @@
             credentials: 'same-origin'
         }).then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (data) {
-                if (res.ok && data.ok) onSuccess();
+                if (res.ok && data.ok) onSuccess(data);
+                else if (data.error === 'no_rooms') onFail('no_rooms');
                 else if (res.status === 422 && data.fields) showErrors(f, data.fields);
                 else onFail(data.error || 'server');
             });
@@ -401,18 +416,251 @@
 
             var initial = label.textContent;
             label.textContent = 'Отправляем…';
-            submitForm(form, function () {
+            submitForm(form, function (data) {
                 var success = $('[data-booking-success]');
+                var b = data.booking;
+                if (b) {
+                    $('[data-success-number]', success).textContent = b.number;
+                    $('[data-success-details]', success).textContent = b.dates + ', ' + b.type_name + (b.total ? ', ' + b.total : '') + '.';
+                    $('[data-success-link]', success).href = b.url;
+                    var em = $('[data-success-email]', success);
+                    if (b.email) {
+                        em.textContent = b.email_sent ? 'Письмо со ссылкой на бронь отправили на ' + b.email + '.' : 'Ссылку на бронь сохраните сейчас — письмо на ' + b.email + ' отправить не получилось.';
+                        em.hidden = false;
+                    }
+                }
                 $('.booking').hidden = true;
                 success.hidden = false;
-                scrollToEl($('#booking'));
+                success.scrollIntoView({ block: 'center' });
                 success.focus({ preventScroll: true });
+                if (calendar) calendar.refresh();
             }, function (reason) {
                 showFallback(form, errorBox, reason);
             }).then(function () {
                 label.textContent = initial;
             });
         });
+    }
+
+    // ---------------------------------------------------------------
+    // Календарь свободных дат: сколько номеров свободно в каждую ночь.
+    // Данные обновляются раз в минуту, пока вкладка открыта.
+    // ---------------------------------------------------------------
+
+    var calendar = (function () {
+        var root = $('[data-calendar]');
+        if (!root || !window.fetch) return null;
+        var monthsEl = $('[data-cal-months]', root);
+        var pickText = $('[data-cal-pick-text]', root);
+        var bookBtn = $('[data-cal-book]', root);
+        var prevBtn = $('[data-cal-prev]', root);
+        var nextBtn = $('[data-cal-next]', root);
+        var typeBtns = $$('[data-type]', root);
+        var MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        var WEEK = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+        var wide = window.matchMedia('(min-width: 900px)');
+        var today = isoDate(new Date());
+        var thisMonth = today.slice(0, 7);
+        var state = { type: '0', start: thisMonth, data: null, checkIn: null, checkOut: null, note: '' };
+
+        function shiftMonth(key, n) {
+            var d = new Date(key + '-01T00:00:00');
+            d.setMonth(d.getMonth() + n);
+            return isoDate(d).slice(0, 7);
+        }
+
+        // Свободно комнат в ночь: по выбранному типу или всего.
+        function freeFor(date) {
+            var day = state.data && state.data.free[date];
+            if (!day) return null;
+            if (state.type !== '0') return day[state.type] || 0;
+            var sum = 0;
+            Object.keys(day).forEach(function (k) { sum += day[k]; });
+            return sum;
+        }
+
+        function totalRooms() {
+            var n = 0;
+            (state.data ? state.data.types : []).forEach(function (t) {
+                if (state.type === '0' || String(t.id) === state.type) n += t.rooms;
+            });
+            return n;
+        }
+
+        // Свободны ли все ночи периода хотя бы в одном номере одного типа.
+        // null — часть дат за пределами загруженных месяцев, проверит сервер.
+        function rangeFree(a, b) {
+            var types = state.type === '0' ? (state.data ? state.data.types.map(function (t) { return String(t.id); }) : []) : [state.type];
+            var unknown = false;
+            var ok = types.some(function (t) {
+                for (var d = a; d < b; d = addDays(d, 1)) {
+                    var day = state.data.free[d];
+                    if (!day) { unknown = true; return true; }
+                    if (!(day[t] > 0)) return false;
+                }
+                return true;
+            });
+            return unknown ? null : ok;
+        }
+
+        function load(quiet) {
+            var months = wide.matches ? 2 : 1;
+            if (!quiet) monthsEl.setAttribute('aria-busy', 'true');
+            return getJSON('/api/availability.php?month=' + state.start + '&months=' + months).then(function (data) {
+                if (!data.ok) throw new Error('availability');
+                state.data = data;
+                if (data.today) { today = data.today; thisMonth = today.slice(0, 7); }
+                render(months);
+            }).catch(function () {
+                if (!quiet || !state.data) {
+                    monthsEl.innerHTML = '<p class="cal__loading">Не получилось загрузить календарь. Свободные даты подскажут по телефону ' + esc(site ? site.phone : '') + '.</p>';
+                }
+            }).then(function () { monthsEl.removeAttribute('aria-busy'); });
+        }
+
+        function dayState(date) {
+            if (date < today) return 'past';
+            var f = freeFor(date);
+            if (f === null) return 'unknown';
+            if (f < 1) return 'full';
+            return f === 1 && totalRooms() > 1 ? 'few' : 'free';
+        }
+
+        function selectable(date, st) {
+            if (st === 'past') return false;
+            if (state.checkIn && !state.checkOut && date > state.checkIn) return rangeFree(state.checkIn, date) !== false;
+            return st === 'free' || st === 'few';
+        }
+
+        function renderMonth(key) {
+            var first = new Date(key + '-01T00:00:00');
+            var y = first.getFullYear();
+            var m = first.getMonth();
+            var html = '<div class="cal__month"><h3 class="cal__title">' + MONTHS[m] + ' ' + y + '</h3><div class="cal__grid">';
+            WEEK.forEach(function (w, i) { html += '<span class="cal__wd' + (i > 4 ? ' cal__wd--end' : '') + '" aria-hidden="true">' + w + '</span>'; });
+            var lead = (first.getDay() + 6) % 7;
+            for (var i = 0; i < lead; i++) html += '<span class="cal__blank"></span>';
+            var days = new Date(y, m + 1, 0).getDate();
+            for (var d = 1; d <= days; d++) {
+                var date = key + '-' + (d < 10 ? '0' : '') + d;
+                var st = dayState(date);
+                var cls = 'cal__day is-' + st;
+                if (date === today) cls += ' is-today';
+                if (date === state.checkIn) cls += ' is-in';
+                if (date === state.checkOut) cls += ' is-out';
+                if (state.checkIn && state.checkOut && date > state.checkIn && date < state.checkOut) cls += ' is-range';
+                var label = d + ' ' + shortDate(date).split(' ')[1] + ', ' + ({ past: 'прошло', full: 'занято', few: 'остался 1 номер', free: 'свободно', unknown: '' })[st];
+                var can = selectable(date, st);
+                html += '<button type="button" class="' + cls + '" data-date="' + date + '" aria-label="' + esc(label) + '"'
+                    + (date === state.checkIn || date === state.checkOut ? ' aria-pressed="true"' : '') + (can ? '' : ' disabled') + '>'
+                    + '<span class="cal__num">' + d + '</span></button>';
+            }
+            return html + '</div></div>';
+        }
+
+        function render(months) {
+            var html = '';
+            for (var i = 0; i < months; i++) html += renderMonth(shiftMonth(state.start, i));
+            monthsEl.innerHTML = html;
+            prevBtn.disabled = state.start <= thisMonth;
+            nextBtn.disabled = state.start >= shiftMonth(thisMonth, 17);
+            updatePick();
+        }
+
+        function updatePick() {
+            var text;
+            if (state.note) {
+                text = state.note;
+            } else if (!state.checkIn) {
+                text = 'Выберите дату заезда';
+            } else if (!state.checkOut) {
+                text = 'Заезд ' + shortDate(state.checkIn) + '. Теперь выберите дату выезда';
+            } else {
+                var n = nightsBetween(state.checkIn, state.checkOut);
+                text = shortDate(state.checkIn) + ' — ' + shortDate(state.checkOut) + ', ' + n + ' ' + plural(n, 'ночь', 'ночи', 'ночей');
+            }
+            pickText.textContent = text;
+            bookBtn.hidden = !(state.checkIn && state.checkOut);
+        }
+
+        monthsEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-date]');
+            if (!btn || btn.disabled) return;
+            var date = btn.getAttribute('data-date');
+            state.note = '';
+            if (!state.checkIn || state.checkOut || date <= state.checkIn) {
+                state.checkIn = date;
+                state.checkOut = null;
+            } else if (rangeFree(state.checkIn, date) === false) {
+                state.note = 'Между этими датами есть занятые ночи — выберите другие даты';
+                state.checkIn = null;
+            } else {
+                state.checkOut = date;
+            }
+            render(wide.matches ? 2 : 1);
+            var again = $('[data-date="' + date + '"]', monthsEl);
+            if (again && !again.disabled) again.focus();
+        });
+
+        typeBtns.forEach(function (btn) {
+            btn.addEventListener('click', function () { setType(btn.getAttribute('data-type')); });
+        });
+
+        function setType(type) {
+            state.type = String(type);
+            typeBtns.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-type') === state.type)); });
+            if (state.checkIn && state.checkOut && rangeFree(state.checkIn, state.checkOut) === false) {
+                state.checkOut = null;
+                state.note = 'В этом номере выбранные даты заняты — выберите другие';
+            }
+            if (state.data) render(wide.matches ? 2 : 1);
+        }
+
+        prevBtn.addEventListener('click', function () { state.start = shiftMonth(state.start, -1); load(); });
+        nextBtn.addEventListener('click', function () { state.start = shiftMonth(state.start, 1); load(); });
+        if (wide.addEventListener) wide.addEventListener('change', function () { load(true); });
+
+        bookBtn.addEventListener('click', function () {
+            goToBooking({ check_in: state.checkIn, check_out: state.checkOut, room: state.type });
+        });
+
+        // Номера на сайте у всех на виду — обновляем раз в минуту, если вкладка открыта.
+        setInterval(function () { if (document.visibilityState === 'visible') load(true); }, 60000);
+        document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') load(true); });
+
+        // Календарь грузим, когда до него долистали.
+        if ('IntersectionObserver' in window) {
+            var seen = new IntersectionObserver(function (entries) {
+                if (entries[0].isIntersecting) { seen.disconnect(); load(); }
+            }, { rootMargin: '400px' });
+            seen.observe(root);
+        } else {
+            load();
+        }
+
+        return { refresh: function () { return load(true); }, setType: setType };
+    })();
+
+    // Ссылки «Свободные даты» в карточках номеров
+    $$('[data-show-calendar]').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            if (!calendar) return;
+            e.preventDefault();
+            calendar.setType(link.getAttribute('data-show-calendar'));
+            scrollToEl($('#calendar'));
+        });
+    });
+
+    // Страница брони: дата нужна только для «Продлить проживание»
+    var msgForm = $('[data-message-form]');
+    if (msgForm) {
+        var extendField = $('[data-extend-field]', msgForm);
+        var syncKind = function () {
+            var k = msgForm.querySelector('input[name=kind]:checked');
+            extendField.hidden = !k || k.value !== 'extend';
+        };
+        $$('input[name=kind]', msgForm).forEach(function (r) { r.addEventListener('change', syncKind); });
+        syncKind();
     }
 
     // «Сообщить об открытии бани»
@@ -431,7 +679,7 @@
             submitForm(notify, function () {
                 notify.innerHTML = '<p class="notice notice--light" role="status">Спасибо! Сообщим, как только откроемся.</p>';
             }, function () {
-                notifyMsg.textContent = 'Не получилось отправить. Позвоните нам: ' + (pricing ? pricing.phone : '');
+                notifyMsg.textContent = 'Не получилось отправить. Позвоните нам: ' + (site ? site.phone : '');
                 notifyMsg.hidden = false;
             });
         });

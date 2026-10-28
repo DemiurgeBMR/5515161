@@ -1,11 +1,8 @@
 <?php
 /**
- * Общий код сайта гостиницы: загрузка конфига, хелперы для шаблонов и
- * расчёт стоимости. Подключается первой строкой каждой страницы.
- *
- * Расчёт стоимости живёт здесь в одном экземпляре для PHP (форма без JS,
- * письмо администратору) и повторяется в assets/js/main.js для живого
- * пересчёта в браузере. Правила скидок оба берут из config/hotel.php.
+ * Общий код сайта гостиницы: конфиг, хелперы для шаблонов, даты, ссылки.
+ * Подключается первой строкой каждой страницы и подтягивает остальные
+ * модули: база, цены, занятость, брони, почта, вход, площадки.
  */
 
 declare(strict_types=1);
@@ -14,6 +11,7 @@ const HOTEL_ROOT = __DIR__ . '/..';
 const HOTEL_TZ   = 'Europe/Simferopol';
 
 date_default_timezone_set(HOTEL_TZ);
+mb_internal_encoding('UTF-8');
 
 function hotel(): array
 {
@@ -26,21 +24,42 @@ function hotel(): array
 
 function hotel_secrets(): array
 {
-    $file = HOTEL_ROOT . '/config/secrets.php';
-    $defaults = [
-        'mail_to'            => '',
-        'mail_from'          => '',
-        'telegram_bot_token' => '',
-        'telegram_chat_ids'  => [],
-    ];
-    return is_file($file) ? array_merge($defaults, require $file) : $defaults;
+    static $secrets = null;
+    if ($secrets === null) {
+        $file = HOTEL_ROOT . '/config/secrets.php';
+        $defaults = [
+            'db_host' => 'MySQL-8.0', 'db_port' => 3306, 'db_name' => 'hotel', 'db_user' => 'root', 'db_pass' => '',
+            'mail_transport' => 'log', 'mail_from' => '', 'mail_from_name' => '',
+            'smtp_host' => '', 'smtp_port' => 465, 'smtp_secure' => 'ssl', 'smtp_user' => '', 'smtp_pass' => '',
+            'notify_extra' => '', 'setup_key' => '',
+        ];
+        $secrets = is_file($file) ? array_merge($defaults, require $file) : $defaults;
+        // Для тестов: письма в лог, что бы ни было в secrets.php.
+        if (getenv('HOTEL_MAIL_TRANSPORT')) {
+            $secrets['mail_transport'] = getenv('HOTEL_MAIL_TRANSPORT');
+        }
+    }
+    return $secrets;
+}
+
+/** Кеш на время одного запроса; app_cache_clear() — после изменений в админке. */
+function &app_cache(): array
+{
+    static $cache = [];
+    return $cache;
+}
+
+function app_cache_clear(): void
+{
+    $cache = &app_cache();
+    $cache = [];
 }
 
 // -------------------------------------------------------------------
 // Шаблоны
 // -------------------------------------------------------------------
 
-function e(?string $s): string
+function e($s): string
 {
     return htmlspecialchars((string) $s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
@@ -57,12 +76,22 @@ function icon(string $name, string $class = ''): string
     return '<svg class="' . e($cls) . '" aria-hidden="true" focusable="false"><use href="#i-' . e($name) . '"></use></svg>';
 }
 
-/** Заглушка вместо фотографии — пока в конфиге нет настоящих фото. */
+/** Заглушка вместо фотографии — пока фото не загружено в админке. */
 function photo_placeholder(string $label, string $class = ''): string
 {
     return '<div class="ph ' . e($class) . '" role="img" aria-label="Здесь будет фото: ' . e($label) . '">'
         . icon('camera', 'ph__icon')
         . '<span class="ph__label">[Фото: ' . e($label) . ']</span></div>';
+}
+
+/** Фото из админки (Настройки → Фото на главной) или заглушка. */
+function site_photo(string $slot, string $label, string $class = ''): string
+{
+    $path = setting('photo_' . $slot);
+    if ($path && is_file(HOTEL_ROOT . '/public/' . $path)) {
+        return '<img class="' . e($class) . ' is-photo" src="/' . e($path) . '" alt="' . e($label) . '" loading="lazy" decoding="async">';
+    }
+    return photo_placeholder($label, $class);
 }
 
 /** Ссылка на файл из public/assets с меткой версии, чтобы браузер не держал старый CSS/JS. */
@@ -76,12 +105,6 @@ function asset(string $path): string
 function money(int $rub): string
 {
     return number_format($rub, 0, ',', "\u{00A0}") . "\u{00A0}₽";
-}
-
-function room_price(array $room): string
-{
-    $sum = number_format($room['price'], 0, ',', "\u{00A0}");
-    return !empty($room['price_tbd']) ? '[' . $sum . "]\u{00A0}₽" : $sum . "\u{00A0}₽";
 }
 
 /** 1 ночь, 2 ночи, 5 ночей. */
@@ -98,6 +121,11 @@ function plural(int $n, string $one, string $few, string $many): string
     return $many;
 }
 
+function nights_label(int $n): string
+{
+    return $n . "\u{00A0}" . plural($n, 'ночь', 'ночи', 'ночей');
+}
+
 /** У ИП — ОГРНИП, у организации — ОГРН. */
 function ogrn_label(): string
 {
@@ -108,6 +136,125 @@ function full_address(): string
 {
     $a = hotel()['address'];
     return $a['locality'] . ', ' . $a['street'];
+}
+
+// -------------------------------------------------------------------
+// Даты
+// -------------------------------------------------------------------
+
+const RU_MONTHS_GEN = ['', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const RU_MONTHS = ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const RU_WEEKDAYS_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+
+function today(): DateTimeImmutable
+{
+    return new DateTimeImmutable('today', new DateTimeZone(HOTEL_TZ));
+}
+
+/** Дата из формы (ГГГГ-ММ-ДД) или null. */
+function parse_date(string $s): ?DateTimeImmutable
+{
+    $d = DateTimeImmutable::createFromFormat('!Y-m-d', $s, new DateTimeZone(HOTEL_TZ));
+    return ($d && $d->format('Y-m-d') === $s) ? $d : null;
+}
+
+/** «5 ноября» (с годом, если он не текущий или $withYear). */
+function ru_date(string $date, bool $withYear = false): string
+{
+    $d = parse_date(substr($date, 0, 10));
+    if (!$d) {
+        return $date;
+    }
+    $s = (int) $d->format('j') . "\u{00A0}" . RU_MONTHS_GEN[(int) $d->format('n')];
+    if ($withYear || $d->format('Y') !== today()->format('Y')) {
+        $s .= ' ' . $d->format('Y');
+    }
+    return $s;
+}
+
+/** «5–12 ноября», «28 октября – 4 ноября». */
+function ru_date_range(string $from, string $to): string
+{
+    $a = parse_date($from);
+    $b = parse_date($to);
+    if (!$a || !$b) {
+        return $from . ' – ' . $to;
+    }
+    if ($a->format('Y-m') === $b->format('Y-m')) {
+        return $a->format('j') . '–' . ru_date($to);
+    }
+    return ru_date($from) . ' – ' . ru_date($to);
+}
+
+function ru_datetime(string $dt): string
+{
+    return ru_date($dt) . ', ' . substr($dt, 11, 5);
+}
+
+// -------------------------------------------------------------------
+// Запросы и ответы
+// -------------------------------------------------------------------
+
+function is_post(): bool
+{
+    return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+}
+
+function post(string $key, string $default = ''): string
+{
+    $v = $_POST[$key] ?? $default;
+    return is_string($v) ? trim(str_replace("\0", '', $v)) : $default;
+}
+
+function get(string $key, string $default = ''): string
+{
+    $v = $_GET[$key] ?? $default;
+    return is_string($v) ? trim($v) : $default;
+}
+
+function json_response(array $data, int $status = 200): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function redirect(string $url): void
+{
+    header('Location: ' . $url, true, 303);
+    exit;
+}
+
+function client_ip(): string
+{
+    return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+}
+
+/** Запрос с этого же компьютера (Open Server) или с локального адреса. */
+function is_local_request(): bool
+{
+    $ip = client_ip();
+    return $ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '127.') === 0;
+}
+
+/**
+ * Адрес сайта для ссылок в письмах. Берётся из config/hotel.php; адрес из
+ * запроса — только для локальной разработки (http://hotel/), иначе в
+ * письмо администратору можно было бы подсунуть ссылку на чужой сайт.
+ */
+function base_url(): string
+{
+    $configured = rtrim(hotel()['site_url'], '/');
+    if (filled($configured)) {
+        return $configured;
+    }
+    $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+    if ($host !== '' && preg_match('/^(localhost|127\.0\.0\.1|[a-z0-9-]+|[a-z0-9.-]+\.(local|test|localhost))(:\d+)?$/i', $host)) {
+        return 'http://' . $host;
+    }
+    return 'http://hotel';
 }
 
 // -------------------------------------------------------------------
@@ -124,18 +271,18 @@ function phone_digits(string $phone): string
     return strlen($d) === 11 ? $d : '';
 }
 
-function tel_href(): string
+function tel_href(?string $phone = null): string
 {
-    $d = phone_digits(hotel()['phone']);
-    return $d !== '' ? 'tel:+' . $d : '#contacts';
+    $d = phone_digits($phone ?? hotel()['phone']);
+    return $d !== '' ? 'tel:+' . $d : ($phone === null ? '#contacts' : '');
 }
 
-function whatsapp_href(string $text = ''): string
+function whatsapp_href(string $text = '', ?string $phone = null): string
 {
     $m = hotel()['messengers'];
-    $d = phone_digits(filled($m['whatsapp']) ? $m['whatsapp'] : hotel()['phone']);
+    $d = phone_digits($phone ?? (filled($m['whatsapp']) ? $m['whatsapp'] : hotel()['phone']));
     if ($d === '') {
-        return '#contacts';
+        return $phone === null ? '#contacts' : '';
     }
     return 'https://wa.me/' . $d . ($text !== '' ? '?text=' . rawurlencode($text) : '');
 }
@@ -206,73 +353,15 @@ function twogis_href(): string
 }
 
 // -------------------------------------------------------------------
-// Цены
+// Модули
 // -------------------------------------------------------------------
 
-/** Ступень скидки, которая действует при таком числе ночей, или null. */
-function stay_tier(int $nights): ?array
-{
-    $found = null;
-    foreach (hotel()['long_stay'] as $tier) {
-        if ($nights >= $tier['nights'] && ($found === null || $tier['nights'] > $found['nights'])) {
-            $found = $tier;
-        }
-    }
-    return $found;
-}
-
-function discounted(int $price, int $percent): int
-{
-    return (int) round($price * (100 - $percent) / 100);
-}
-
-/**
- * Предварительная стоимость проживания.
- * total = null, если для такого срока цена считается индивидуально.
- */
-function estimate(string $roomKey, int $nights): ?array
-{
-    $rooms = hotel()['rooms'];
-    if (!isset($rooms[$roomKey]) || $nights < 1) {
-        return null;
-    }
-    $price = (int) $rooms[$roomKey]['price'];
-    $tier = stay_tier($nights);
-    $base = $price * $nights;
-    if ($tier === null) {
-        return ['nights' => $nights, 'price' => $price, 'base' => $base, 'tier' => null, 'total' => $base];
-    }
-    if ($tier['percent'] === null) {
-        return ['nights' => $nights, 'price' => $price, 'base' => $base, 'tier' => $tier, 'total' => null];
-    }
-    return ['nights' => $nights, 'price' => $price, 'base' => $base, 'tier' => $tier,
-        'total' => discounted($price, (int) $tier['percent']) * $nights];
-}
-
-/** Данные для расчёта в браузере (main.js) — из того же конфига. */
-function pricing_json(): string
-{
-    $h = hotel();
-    $rooms = [];
-    foreach ($h['rooms'] as $key => $r) {
-        $rooms[$key] = ['name' => $r['name'], 'price' => (int) $r['price'], 'guests' => (int) $r['guests'], 'tbd' => !empty($r['price_tbd'])];
-    }
-    return json_encode([
-        'rooms' => $rooms,
-        'tiers' => $h['long_stay'],
-        'phone' => $h['phone'],
-        'whatsapp' => whatsapp_href(),
-    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP);
-}
-
-function today(): DateTimeImmutable
-{
-    return new DateTimeImmutable('today', new DateTimeZone(HOTEL_TZ));
-}
-
-/** Дата из формы (ГГГГ-ММ-ДД) или null. */
-function parse_date(string $s): ?DateTimeImmutable
-{
-    $d = DateTimeImmutable::createFromFormat('!Y-m-d', $s, new DateTimeZone(HOTEL_TZ));
-    return ($d && $d->format('Y-m-d') === $s) ? $d : null;
-}
+require __DIR__ . '/db.php';
+require __DIR__ . '/pricing.php';
+require __DIR__ . '/availability.php';
+require __DIR__ . '/bookings.php';
+require __DIR__ . '/auth.php';
+require __DIR__ . '/mail.php';
+require __DIR__ . '/uploads.php';
+require __DIR__ . '/ical.php';
+require __DIR__ . '/cron.php';
