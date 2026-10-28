@@ -8,6 +8,19 @@
  * пишет в storage/mail.log. Боевую базу не трогает.
  */
 
+// Любое предупреждение PHP (в том числе об устаревшей функции в новой
+// версии PHP) — провал теста: на сайте оно сломало бы ответ формы.
+error_reporting(E_ALL);
+set_error_handler(function (int $no, string $msg, string $file, int $line): bool {
+    global $failed;
+    if (!(error_reporting() & $no)) {
+        return false; // подавлено через @
+    }
+    echo "  ✗ PHP: $msg ($file:$line)\n";
+    $failed++;
+    return true;
+});
+
 putenv('HOTEL_DB_NAME=' . (getenv('HOTEL_DB_NAME') ?: 'hotel_test'));
 putenv('HOTEL_MAIL_TRANSPORT=log');
 ob_start();
@@ -208,6 +221,17 @@ $n = cron_cleanup();
 check(guest_get($oldGuest)['anonymized_at'] !== null && guest_get($oldGuest)['phone'] === '', 'данные несостоявшейся заявки старше 30 дней удалены');
 check(guest_get($b1['guest_id'])['anonymized_at'] === null, 'данные действующих гостей не тронуты');
 
+echo "\nЗащита карточек гостей\n";
+$victim = booking_create(guest(['check_in' => d(90), 'check_out' => d(91), 'room_type_id' => $lux['id'], 'phone' => '+7 978 555-00-01', 'email' => '']), true);
+$att = booking_create(guest(['check_in' => d(92), 'check_out' => d(93), 'room_type_id' => $lux['id'], 'phone' => '+7 978 555-00-01', 'email' => 'other@example.com']));
+check($att['guest_id'] !== $victim['guest_id'] && guest_get($victim['guest_id'])['email'] === '', 'заявка с сайта с чужим телефоном не попадает в чужую карточку и не меняет её почту');
+check($att['guest_email'] === 'other@example.com', 'письмо по такой заявке уйдёт на почту из заявки');
+$same = booking_create(guest(['check_in' => d(94), 'check_out' => d(95), 'room_type_id' => $lux['id'], 'phone' => '+7 978 555-00-01', 'email' => 'other@example.com']));
+check($same['guest_id'] === $att['guest_id'], 'тот же телефон и та же почта — та же карточка гостя');
+$odd = booking_create(guest(['check_in' => d(96), 'check_out' => d(97), 'room_type_id' => $lux['id'], 'name' => "Иван\r\nBcc: x@example.com"]));
+check($odd['guest_name'] === 'Иван Bcc: x@example.com', 'переводы строк из имени убираются (не попадут в заголовки письма)');
+expect_error(fn () => booking_create(guest(['check_in' => today()->modify('+19 months')->format('Y-m-d'), 'check_out' => today()->modify('+19 months +2 days')->format('Y-m-d'), 'room_type_id' => $std['id']])), 'с сайта нельзя бронировать дальше 18 месяцев', 'далеко');
+
 echo "\nУдаление данных по просьбе гостя\n";
 $an = booking_create(guest(['check_in' => d(40), 'check_out' => d(42), 'room_type_id' => $lux['id'], 'comment' => 'приедем с собакой']));
 message_add($an, 'other', 'Мой второй телефон +7 978 000-12-34', null);
@@ -227,8 +251,11 @@ $tmp = tempnam(sys_get_temp_dir(), 'img');
 imagejpeg($img, $tmp, 90);
 $up = upload_photo(['error' => UPLOAD_ERR_OK, 'tmp_name' => $tmp, 'size' => filesize($tmp)], 'test', false);
 check($up['width'] === 1600 && $up['height'] === 1067 && is_file(HOTEL_ROOT . '/public/' . $up['path']), 'фото уменьшено до 1600 px и сохранено');
+$small = upload_small($up['path']);
+check($small !== null && getimagesize(HOTEL_ROOT . '/public/' . $small)[0] === 800, 'для телефонов сохранена копия 800 px');
+check(str_contains(img_srcset($up['path'], '100vw'), '800w'), 'у фото на сайте есть srcset с лёгкой копией');
 delete_upload($up['path']);
-check(!is_file(HOTEL_ROOT . '/public/' . $up['path']), 'фото удаляется');
+check(!is_file(HOTEL_ROOT . '/public/' . $up['path']) && !is_file(HOTEL_ROOT . '/public/' . $small), 'фото удаляется вместе с копией');
 @rmdir(HOTEL_ROOT . '/public/uploads/test');
 file_put_contents($tmp, '<?php echo "hack";');
 expect_error(fn () => upload_photo(['error' => UPLOAD_ERR_OK, 'tmp_name' => $tmp, 'size' => 20], 'test', false), 'PHP-файл под видом фото не загружается', 'JPEG');

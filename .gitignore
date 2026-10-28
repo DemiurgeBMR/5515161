@@ -1,9 +1,10 @@
-# Токены и почта для заявок — не для git (шаблон: config/secrets.example.php).
+# Пароли от базы и почты — не для git (шаблон: config/secrets.example.php).
 /config/secrets.php
 
-# Временные файлы ограничения частоты заявок.
+# Сессии, лог писем и служебные файлы.
 /storage/*
 !/storage/.gitkeep
+!/storage/.htaccess
 
 # Фото, загруженные в админке, — данные, а не код.
 /public/uploads/*

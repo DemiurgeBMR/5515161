@@ -15,6 +15,7 @@ function send_mail(string $to, string $subject, string $text, string $replyTo = 
     $s = hotel_secrets();
     $fromName = $s['mail_from_name'] !== '' ? $s['mail_from_name'] : (filled(hotel()['name']) ? hotel()['name'] : 'Гостиница');
     $text = str_replace("\r\n", "\n", $text);
+    $subject = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $subject)); // перевод строки в теме — путь к подмене заголовков
 
     try {
         switch ($s['mail_transport']) {

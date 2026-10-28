@@ -206,7 +206,7 @@ admin_header('Номера и фото', 'rooms');
 <?php foreach (SITE_PHOTO_SLOTS as $slot => $label): $path = setting('photo_' . $slot); ?>
         <figure>
 <?php if ($path && is_file(HOTEL_ROOT . '/public/' . $path)): ?>
-            <img src="/<?= e($path) ?>" alt="<?= e($label) ?>">
+            <img src="/<?= e(upload_small($path) ?? $path) ?>" alt="<?= e($label) ?>">
             <figcaption>
                 <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="site_photo_delete"><input type="hidden" name="slot" value="<?= e($slot) ?>">
                     <button class="icon-button" type="submit" aria-label="Удалить фото" data-confirm="Удалить фото?"><?= icon('trash-2') ?></button></form>

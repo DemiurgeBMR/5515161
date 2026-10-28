@@ -159,6 +159,15 @@ $freeIds = [];
 if (parse_date((string) $f['check_in']) && parse_date((string) $f['check_out']) && $f['check_out'] > $f['check_in']) {
     $freeIds = array_keys(free_rooms($f['check_in'], $f['check_out'], $b['id'] ?? null));
 }
+// Тот же телефон у других карточек — скорее всего, гость уже бывал у нас.
+$sameGuests = [];
+if ($b && $b['guest_id']) {
+    $digits = (string) q_val('SELECT phone_digits FROM guests WHERE id = ?', [$b['guest_id']]);
+    if ($digits !== '') {
+        $sameGuests = q_all('SELECT g.id, g.name, COUNT(b.id) AS n FROM guests g LEFT JOIN bookings b ON b.guest_id = g.id
+                             WHERE g.phone_digits = ? AND g.id <> ? AND g.anonymized_at IS NULL GROUP BY g.id ORDER BY g.id DESC LIMIT 3', [$digits, $b['guest_id']]);
+    }
+}
 $quoteNow = null;
 if ($b && isset($types[$b['room_type_id']])) {
     $quoteNow = quote($types[$b['room_type_id']], $b['check_in'], $b['check_out']);
@@ -175,6 +184,13 @@ admin_header($b ? 'Бронь ' . booking_number($b) : 'Новая бронь', 
         </div>
         <p class="adm-head__sub">Бронь <?= e(booking_number($b)) ?> · <?= e(ru_date_range($b['check_in'], $b['check_out'])) ?>, <?= e(nights_label($b['nights'])) ?> · <?= e($b['room_name'] ?? '—') ?> (<?= e($b['type_name']) ?>) · <?= e(BOOKING_SOURCES[$b['source']] ?? $b['source']) ?>, <?= e(ru_datetime($b['created_at'])) ?></p>
         <p class="adm-head__sub"><?= guest_contacts_html($b['guest_phone'] ?? '', $b['guest_email'] ?? '') ?> · связаться: <?= e(mb_strtolower(CONTACT_PREFS[$b['contact_pref']] ?? $b['contact_pref'])) ?><?php if ($b['guest_id']): ?> · <a href="/admin/guest.php?id=<?= (int) $b['guest_id'] ?>">карточка гостя</a><?php endif; ?></p>
+<?php if ($sameGuests): ?>
+        <p class="adm-head__sub">Этот телефон есть и в других карточках:
+<?php foreach ($sameGuests as $i => $sg): ?>
+            <?= $i ? ', ' : '' ?><a href="/admin/guest.php?id=<?= (int) $sg['id'] ?>"><?= e($sg['name']) ?></a> (<?= (int) $sg['n'] ?> <?= plural((int) $sg['n'], 'бронь', 'брони', 'броней') ?>)
+<?php endforeach; ?>
+        </p>
+<?php endif; ?>
     </div>
 </div>
 
@@ -211,7 +227,7 @@ foreach ($transitions as [$to, $label, $btn]):
         <input type="hidden" name="id" value="<?= $b['id'] ?>">
         <input type="hidden" name="action" value="status">
         <input type="hidden" name="to" value="cancelled">
-        <div class="field"><label for="c-reason">Причина отмены</label><input id="c-reason" name="reason" maxlength="255" placeholder="Например: даты лечения перенесли"></div>
+        <div class="field"><label for="c-reason">Причина отмены — её увидит гость</label><input id="c-reason" name="reason" maxlength="255" placeholder="Например: гость передумал"></div>
 <?php if ($b['guest_email']): ?>
         <label class="inline-check"><input type="checkbox" name="notify" value="1" checked> Сообщить гостю письмом</label>
 <?php endif; ?>

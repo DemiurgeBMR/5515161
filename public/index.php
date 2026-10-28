@@ -129,7 +129,7 @@ require __DIR__ . '/../src/partials/header.php';
                 </ul>
             </div>
             <div class="hero__media">
-                <?= site_photo('hero', 'Уютный номер в тёплом свете', 'arch hero__photo') ?>
+                <?= site_photo('hero', 'Уютный номер в тёплом свете', 'arch hero__photo', true) ?>
                 <p class="walk-badge"><?= icon('footprints') ?><span><strong><?= e($walk) ?> минут</strong> пешком до диспансера</span></p>
             </div>
         </div>
@@ -213,7 +213,7 @@ require __DIR__ . '/../src/partials/header.php';
 <?php if ($t['photos']): ?>
                         <div class="room__gallery" tabindex="0" aria-label="Фотографии номера «<?= e($t['name']) ?>», листайте вбок">
 <?php foreach ($t['photos'] as $i => $photo): ?>
-                            <img src="/<?= e($photo['path']) ?>" alt="Номер «<?= e($t['name']) ?>», фото <?= $i + 1 ?>" loading="lazy" decoding="async" width="<?= (int) $photo['width'] ?>" height="<?= (int) $photo['height'] ?>">
+                            <img src="/<?= e($photo['path']) ?>"<?= img_srcset($photo['path'], '(max-width: 760px) 92vw, 420px', (int) $photo['width']) ?> alt="Номер «<?= e($t['name']) ?>», фото <?= $i + 1 ?>" loading="lazy" decoding="async" width="<?= (int) $photo['width'] ?>" height="<?= (int) $photo['height'] ?>">
 <?php endforeach; ?>
                         </div>
 <?php if (count($t['photos']) > 1): ?>

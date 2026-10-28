@@ -7,6 +7,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.1 — минимальная версия для хостинга, 8.5 — как в Open Server.
+        php: ['8.1', '8.5']
 
     services:
       mysql:
@@ -31,7 +36,8 @@ jobs:
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: ${{ matrix.php }}
+          ini-values: error_reporting=E_ALL, display_errors=On
           extensions: mbstring, pdo_mysql, gd, curl, exif
           coverage: none
 
@@ -49,12 +55,17 @@ jobs:
           php tools/migrate.php
           php -S 127.0.0.1:8090 -t public > /tmp/server.log 2>&1 &
           sleep 1
-          for page in / /rules.php /privacy.php /consent.php /account.php /sitemap.php /api/availability.php /admin/login.php; do
+          for page in / /rules.php /privacy.php /consent.php /account.php /sitemap.php /robots.php /api/availability.php /admin/login.php; do
             code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
             echo "$page → $code"
             [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
             if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
           done
+          # Страница «не найдено» и заголовки безопасности.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/404.php)
+          echo "/404.php → $code"
+          [ "$code" = 404 ] || exit 1
+          curl -s -D - -o /dev/null http://127.0.0.1:8090/ | grep -qi '^content-security-policy:' || { echo 'нет Content-Security-Policy'; exit 1; }
           # Админка без входа — только переход на страницу входа.
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/admin/bookings.php)
           echo "/admin/bookings.php без входа → $code"

@@ -4,6 +4,7 @@
 DirectoryIndex index.php
 Options -Indexes
 AddDefaultCharset UTF-8
+ErrorDocument 404 /404.php
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -17,6 +18,7 @@ AddDefaultCharset UTF-8
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     RewriteRule ^sitemap\.xml$ sitemap.php [L]
+    RewriteRule ^robots\.txt$ robots.php [L]
 </IfModule>
 
 # Служебные файлы (.git, .env и т.п.) не отдаём.
@@ -24,11 +26,11 @@ AddDefaultCharset UTF-8
     Require all denied
 </FilesMatch>
 
+# Заголовки безопасности для страниц ставит PHP (src/bootstrap.php, там же
+# Content-Security-Policy), здесь — только для файлов, если PHP их не задал.
 <IfModule mod_headers.c>
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Header setifempty X-Content-Type-Options "nosniff"
+    Header setifempty Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
 # Шрифты, стили и скрипты кешируются надолго: в ссылках на CSS/JS есть ?v=…,
@@ -40,7 +42,9 @@ AddDefaultCharset UTF-8
     ExpiresByType application/javascript "access plus 1 year"
     ExpiresByType text/javascript "access plus 1 year"
     ExpiresByType image/svg+xml "access plus 1 month"
-    ExpiresByType image/jpeg "access plus 1 month"
+    # Загруженные фото получают новое имя при каждой замене — их тоже можно надолго.
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/webp "access plus 1 month"
     ExpiresByType image/avif "access plus 1 month"
 </IfModule>

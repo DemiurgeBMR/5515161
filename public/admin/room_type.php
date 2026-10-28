@@ -122,7 +122,7 @@ admin_header($t['name'], 'rooms');
         <div class="photo-grid">
 <?php foreach ($t['photos'] as $i => $p): ?>
             <figure>
-                <img src="/<?= e($p['path']) ?>" alt="Фото <?= $i + 1 ?>" loading="lazy">
+                <img src="/<?= e(upload_small($p['path']) ?? $p['path']) ?>" alt="Фото <?= $i + 1 ?>" loading="lazy">
 <?php if ($i === 0): ?><span class="is-cover">Главное</span><?php endif; ?>
                 <figcaption>
 <?php if ($i > 0): ?>

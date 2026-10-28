@@ -124,15 +124,27 @@ function now(): string
 // Настройки, которые меняются из админки
 // -------------------------------------------------------------------
 
+/** Настройка из базы. Все настройки читаются одним запросом на страницу. */
 function setting(string $name, ?string $default = null): ?string
 {
-    $v = q_val('SELECT value FROM settings WHERE name = ?', [$name]);
+    $cache = &app_cache();
+    if (!isset($cache['settings'])) {
+        $cache['settings'] = [];
+        foreach (q_all('SELECT name, value FROM settings') as $row) {
+            $cache['settings'][$row['name']] = $row['value'];
+        }
+    }
+    $v = $cache['settings'][$name] ?? null;
     return $v === null ? $default : (string) $v;
 }
 
 function set_setting(string $name, ?string $value): void
 {
     q('INSERT INTO settings (name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)', [$name, $value]);
+    $cache = &app_cache();
+    if (isset($cache['settings'])) {
+        $cache['settings'][$name] = $value;
+    }
 }
 
 /** Отметка «данные изменились» — по ней открытая шахматка понимает, что пора обновиться. */

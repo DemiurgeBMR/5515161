@@ -58,6 +58,7 @@ $page = [
     'description' => 'Ваши брони в гостинице ' . $h['name'] . ': статус, даты, связь с администратором.',
     'path'        => '/account.php',
     'noindex'     => true,
+    'analytics'   => false,
 ];
 require __DIR__ . '/../src/partials/head.php';
 require __DIR__ . '/../src/partials/header.php';

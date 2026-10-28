@@ -58,6 +58,7 @@ $page = [
     'description' => 'Ваша бронь в гостинице ' . $h['name'] . '.',
     'path'        => '/booking.php',
     'noindex'     => true,
+    'analytics'   => false, // в адресе секретная ссылка — в Метрику её не отдаём
 ];
 require __DIR__ . '/../src/partials/head.php';
 require __DIR__ . '/../src/partials/header.php';

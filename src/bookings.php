@@ -80,25 +80,43 @@ function normalize_phone(string $phone): array
     return [$phone, $d];
 }
 
+/** Строка из формы для имени: без переводов строк и служебных символов. */
+function clean_line(string $s, int $max = 100): string
+{
+    return mb_substr(trim((string) preg_replace('/[\x00-\x1F\x7F\s]+/u', ' ', $s)), 0, $max);
+}
+
 function valid_email(string $email): bool
 {
     return $email === '' || (bool) filter_var($email, FILTER_VALIDATE_EMAIL);
 }
 
-/** Найти гостя по телефону (или почте) или завести нового. Имя существующего гостя не перезаписывается. */
-function guest_upsert(string $name, string $phone, string $email): int
+/**
+ * Найти гостя или завести нового. Имя существующего гостя не перезаписывается.
+ *
+ * Администратор находит гостя по телефону (или почте). Заявку с сайта может
+ * отправить кто угодно, поэтому её привязываем к существующему гостю, только
+ * если совпали и телефон, и почта. Иначе зная чужой номер, можно было бы
+ * подставить свою почту и увидеть чужие брони в «Моих бронях».
+ */
+function guest_upsert(string $name, string $phone, string $email, bool $byStaff = true): int
 {
     [$display, $digits] = normalize_phone($phone);
     $email = mb_strtolower(trim($email));
     $guest = null;
-    if ($digits !== '') {
+    if (!$byStaff) {
+        if ($digits !== '' && $email !== '') {
+            $guest = q_one('SELECT * FROM guests WHERE phone_digits = ? AND email = ? AND anonymized_at IS NULL ORDER BY id DESC LIMIT 1', [$digits, $email]);
+        }
+    } elseif ($digits !== '') {
         $guest = q_one('SELECT * FROM guests WHERE phone_digits = ? AND anonymized_at IS NULL ORDER BY id DESC LIMIT 1', [$digits]);
     } elseif ($email !== '') {
         $guest = q_one('SELECT * FROM guests WHERE email = ? AND anonymized_at IS NULL ORDER BY id DESC LIMIT 1', [$email]);
     }
     if ($guest) {
         $upd = ['updated_at' => now()];
-        if ($guest['email'] === '' && $email !== '') {
+        // Почту, которую ввёл администратор, считаем актуальной.
+        if ($email !== '' && $guest['email'] !== $email) {
             $upd['email'] = $email;
         }
         q_update('guests', (int) $guest['id'], $upd);
@@ -121,9 +139,9 @@ function guest_get(int $id): ?array
 
 function guest_update(int $id, array $d): void
 {
-    [$display, $digits] = normalize_phone((string) $d['phone']);
+    [$display, $digits] = normalize_phone(clean_line((string) $d['phone'], 25));
     q_update('guests', $id, [
-        'name'         => $d['name'],
+        'name'         => clean_line((string) $d['name'], 100) ?: 'Гость',
         'phone'        => $display,
         'phone_digits' => $digits,
         'email'        => mb_strtolower(trim((string) $d['email'])),
@@ -232,6 +250,9 @@ function booking_validate_dates(string $checkIn, string $checkOut, bool $allowPa
     if (!$allowPast && $a < today()) {
         throw new BookingError('Дата заезда уже прошла', 'check_in');
     }
+    if (!$allowPast && $a > today()->modify('+18 months')) {
+        throw new BookingError('Так далеко вперёд бронь не принимаем — позвоните нам', 'check_in');
+    }
     if ($a->diff($b)->days > 365) {
         throw new BookingError('Срок больше года — позвоните нам, обсудим', 'check_out');
     }
@@ -250,8 +271,8 @@ function booking_validate_dates(string $checkIn, string $checkOut, bool $allowPa
  */
 function booking_create(array $d, bool $byStaff = false): array
 {
-    $name = trim((string) ($d['name'] ?? ''));
-    $phone = trim((string) ($d['phone'] ?? ''));
+    $name = clean_line((string) ($d['name'] ?? ''), 80);
+    $phone = clean_line((string) ($d['phone'] ?? ''), 25);
     $email = mb_strtolower(trim((string) ($d['email'] ?? '')));
     $guests = max(1, min(20, (int) ($d['guests'] ?? 1)));
     $checkIn = (string) ($d['check_in'] ?? '');
@@ -335,7 +356,7 @@ function booking_create(array $d, bool $byStaff = false): array
                 : 'На эти даты свободных номеров нет. Выберите другие даты или позвоните нам — подскажем, когда освободится', 'check_in');
         }
 
-        $gid = $guestId ?: guest_upsert($name, $phone, $email);
+        $gid = $guestId ?: guest_upsert($name, $phone, $email, $byStaff);
         $quote = quote($chosenType, $checkIn, $checkOut);
         $manualTotal = isset($d['total_price']) && $d['total_price'] !== '' && $d['total_price'] !== null;
         $total = $manualTotal ? max(0, (int) $d['total_price']) : $quote['total'];
@@ -430,7 +451,7 @@ function booking_update(int $id, array $d): array
                 'note' => q_val('SELECT note FROM guests WHERE id = ?', [$old['guest_id']])]);
             $guestId = $old['guest_id'];
         } else {
-            $guestId = guest_upsert(trim($d['name']), (string) ($d['phone'] ?? ''), $email);
+            $guestId = guest_upsert(clean_line((string) $d['name'], 80), (string) ($d['phone'] ?? ''), $email);
         }
 
         $manual = !empty($d['price_manual']);
@@ -584,6 +605,9 @@ function message_add(array $b, string $kind, string $text, ?string $newCheckOut)
     if ($kind === 'extend') {
         if (!$newCheckOut || !parse_date($newCheckOut) || $newCheckOut <= $b['check_out']) {
             throw new BookingError('Новая дата выезда должна быть позже ' . ru_date($b['check_out']), 'new_check_out');
+        }
+        if (nights_between($b['check_in'], $newCheckOut) > 365) {
+            throw new BookingError('Срок больше года — позвоните нам, обсудим', 'new_check_out');
         }
     } else {
         $newCheckOut = null;

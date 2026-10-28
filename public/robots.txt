@@ -1,5 +1,0 @@
-User-agent: *
-Disallow: /api/
-
-# Замените домен на настоящий.
-Sitemap: https://[домен].ru/sitemap.xml

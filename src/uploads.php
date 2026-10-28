@@ -10,6 +10,7 @@
 
 const UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
 const UPLOAD_MAX_SIDE = 1600;
+const UPLOAD_SMALL_SIDE = 800; // лёгкая копия для телефонов: …/имя-800.jpg
 
 /**
  * $file — элемент $_FILES. Возвращает ['path' => 'uploads/rooms/….jpg', 'width', 'height'].
@@ -61,7 +62,6 @@ function upload_photo(array $file, string $subdir, bool $fromForm = true): array
         if ($angle) {
             $rotated = imagerotate($src, $angle, 0);
             if ($rotated) {
-                imagedestroy($src);
                 $src = $rotated;
             }
         }
@@ -74,18 +74,48 @@ function upload_photo(array $file, string $subdir, bool $fromForm = true): array
     $dst = imagecreatetruecolor($nw, $nh);
     imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255)); // прозрачный PNG — на белом фоне
     imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
-    imagedestroy($src);
+    unset($src); // память освобождается сама; imagedestroy() в PHP 8.5 устарела
 
     $dir = HOTEL_ROOT . '/public/uploads/' . $subdir;
     if (!is_dir($dir) && !@mkdir($dir, 0775, true)) {
         throw new BookingError('Нет доступа к папке public/uploads — разрешите запись', 'photo');
     }
-    $name = bin2hex(random_bytes(12)) . '.jpg';
-    if (!imagejpeg($dst, $dir . '/' . $name, 82)) {
+    $name = bin2hex(random_bytes(12));
+    imageinterlace($dst, true); // прогрессивный JPEG: на медленном интернете фото проявляется сразу
+    if (!imagejpeg($dst, $dir . '/' . $name . '.jpg', 82)) {
         throw new BookingError('Не удалось сохранить фото', 'photo');
     }
-    imagedestroy($dst);
-    return ['path' => 'uploads/' . $subdir . '/' . $name, 'width' => $nw, 'height' => $nh];
+    // Копия поменьше — телефон скачает её вместо полной (атрибут srcset).
+    if (max($nw, $nh) > UPLOAD_SMALL_SIDE) {
+        $k = UPLOAD_SMALL_SIDE / max($nw, $nh);
+        $sw = max(1, (int) round($nw * $k));
+        $sh = max(1, (int) round($nh * $k));
+        $small = imagecreatetruecolor($sw, $sh);
+        imagecopyresampled($small, $dst, 0, 0, 0, 0, $sw, $sh, $nw, $nh);
+        imageinterlace($small, true);
+        imagejpeg($small, $dir . '/' . $name . '-' . UPLOAD_SMALL_SIDE . '.jpg', 80);
+    }
+    return ['path' => 'uploads/' . $subdir . '/' . $name . '.jpg', 'width' => $nw, 'height' => $nh];
+}
+
+/** Уменьшенная копия фото (или null, если фото маленькое и копии нет). */
+function upload_small(string $path): ?string
+{
+    $small = (string) preg_replace('/\.jpg$/', '-' . UPLOAD_SMALL_SIDE . '.jpg', $path);
+    return $small !== $path && is_file(HOTEL_ROOT . '/public/' . $small) ? $small : null;
+}
+
+/**
+ * Атрибуты srcset и sizes для фото из админки: браузер телефона выберет
+ * лёгкую копию, компьютера — полную. $width — ширина полного фото.
+ */
+function img_srcset(string $path, string $sizes, int $width = UPLOAD_MAX_SIDE): string
+{
+    $small = upload_small($path);
+    if (!$small) {
+        return '';
+    }
+    return ' srcset="/' . e($small) . ' ' . UPLOAD_SMALL_SIDE . 'w, /' . e($path) . ' ' . $width . 'w" sizes="' . e($sizes) . '"';
 }
 
 /** Удалить загруженный файл — только из public/uploads. */
@@ -94,8 +124,10 @@ function delete_upload(?string $path): void
     if (!$path || !preg_match('#^uploads/[a-z0-9_/-]+\.jpg$#', $path)) {
         return;
     }
-    $file = HOTEL_ROOT . '/public/' . $path;
-    if (is_file($file)) {
-        @unlink($file);
+    foreach ([$path, (string) preg_replace('/\.jpg$/', '-' . UPLOAD_SMALL_SIDE . '.jpg', $path)] as $p) {
+        $file = HOTEL_ROOT . '/public/' . $p;
+        if (is_file($file)) {
+            @unlink($file);
+        }
     }
 }

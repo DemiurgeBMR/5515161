@@ -84,12 +84,16 @@ function photo_placeholder(string $label, string $class = ''): string
         . '<span class="ph__label">[Фото: ' . e($label) . ']</span></div>';
 }
 
-/** Фото из админки (Настройки → Фото на главной) или заглушка. */
-function site_photo(string $slot, string $label, string $class = ''): string
+/**
+ * Фото из админки (Номера и фото → Фото на главной) или заглушка.
+ * $first — фото на первом экране: грузится сразу и в первую очередь.
+ */
+function site_photo(string $slot, string $label, string $class = '', bool $first = false, string $sizes = '(max-width: 760px) 100vw, 50vw'): string
 {
     $path = setting('photo_' . $slot);
     if ($path && is_file(HOTEL_ROOT . '/public/' . $path)) {
-        return '<img class="' . e($class) . ' is-photo" src="/' . e($path) . '" alt="' . e($label) . '" loading="lazy" decoding="async">';
+        return '<img class="' . e($class) . ' is-photo" src="/' . e($path) . '"' . img_srcset($path, $sizes) . ' alt="' . e($label) . '"'
+            . ($first ? ' fetchpriority="high"' : ' loading="lazy"') . ' decoding="async">';
     }
     return photo_placeholder($label, $class);
 }
@@ -363,6 +367,128 @@ function twogis_href(): string
 {
     $l = hotel()['listings']['2gis'];
     return filled($l) ? $l : 'https://2gis.ru/simferopol/search/' . rawurlencode(hotel()['address']['street']);
+}
+
+// -------------------------------------------------------------------
+// Поисковики и статистика
+// -------------------------------------------------------------------
+
+/** Открыт ли сайт для поисковиков (config/hotel.php → indexing). */
+function site_indexing(): bool
+{
+    return !empty(hotel()['indexing']);
+}
+
+/**
+ * Картинка для превью ссылки в мессенджерах и соцсетях: фото первого экрана
+ * из админки (полный адрес) или null, пока фото не загружено.
+ */
+function og_image_url(): ?string
+{
+    try {
+        $path = setting('photo_hero');
+    } catch (Throwable $e) {
+        return null; // база недоступна — превью без картинки
+    }
+    return $path && is_file(HOTEL_ROOT . '/public/' . $path) ? base_url() . '/' . $path : null;
+}
+
+/** Номер счётчика Яндекс Метрики или пустая строка, если Метрика выключена. */
+function metrika_id(): string
+{
+    $id = (string) (hotel()['analytics']['metrika_id'] ?? '');
+    return preg_match('/^\d{4,12}$/', $id) ? $id : '';
+}
+
+// -------------------------------------------------------------------
+// Заголовки безопасности и страница ошибки
+// -------------------------------------------------------------------
+
+function is_https(): bool
+{
+    return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+}
+
+/**
+ * Заголовки безопасности для каждого ответа. Дублируют .htaccess, потому что
+ * на хостингах с nginx .htaccess не работает.
+ *
+ * Content-Security-Policy разрешает скрипты только с этого сайта (и Яндекс
+ * Метрику, если она включена): даже если в данные гостя попадёт вредный
+ * код, браузер его не выполнит. Админка Метрике не открыта.
+ */
+function send_security_headers(): void
+{
+    if (PHP_SAPI === 'cli' || headers_sent()) {
+        return;
+    }
+    $admin = strpos((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/admin/') === 0;
+    $ym = !$admin && metrika_id() !== '';
+    $mc = 'https://mc.yandex.ru https://mc.yandex.com';
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
+    if (!$ym) {
+        header('X-Frame-Options: SAMEORIGIN');
+    }
+    header('Content-Security-Policy: ' . implode('; ', [
+        "default-src 'self'",
+        "script-src 'self'" . ($ym ? " $mc https://yastatic.net" : ''),
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data:" . ($ym ? " $mc" : ''),
+        "font-src 'self'",
+        "connect-src 'self'" . ($ym ? " $mc wss://mc.yandex.ru wss://mc.yandex.com" : ''),
+        // Яндекс Карта на главной — во фрейме; Вебвизору Метрики нужны blob: и mc.yandex.
+        "frame-src https://yandex.ru https://yandex.com" . ($ym ? " blob: $mc" : ''),
+        "child-src 'self' blob:" . ($ym ? " $mc" : ''),
+        "worker-src 'self' blob:",
+        // Карта кликов в Метрике открывает сайт во фрейме на metrika.yandex.ru.
+        "frame-ancestors 'self'" . ($ym ? ' https://metrika.yandex.ru https://metrika.yandex.com https://webvisor.com https://*.webvisor.com' : ''),
+        "base-uri 'self'",
+        "form-action 'self'",
+        "object-src 'none'",
+    ]));
+    if (is_https()) {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
+    if (!site_indexing() || $admin) {
+        header('X-Robots-Tag: noindex, nofollow');
+    }
+}
+
+/**
+ * Необработанная ошибка: в лог — подробности, гостю — понятная страница с
+ * телефоном (или JSON для формы), без кусков кода и путей на сервере.
+ */
+function hotel_fail(Throwable $e): void
+{
+    error_log('hotel: ' . get_class($e) . ': ' . $e->getMessage() . ' в ' . $e->getFile() . ':' . $e->getLine());
+    if (PHP_SAPI === 'cli') {
+        fwrite(STDERR, 'Ошибка: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+    $json = strpos((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '/api/') !== false
+        || str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
+    if (headers_sent()) {
+        echo '<p>Что-то пошло не так. Позвоните нам: ' . e(hotel()['phone']) . '</p>';
+        exit;
+    }
+    if ($json) {
+        json_response(['ok' => false, 'error' => 'server', 'message' => 'Что-то пошло не так — позвоните нам.'], 500);
+    }
+    $errorCode = 500;
+    require __DIR__ . '/partials/error_page.php';
+    exit;
+}
+
+if (PHP_SAPI !== 'cli') {
+    ini_set('log_errors', '1');
+    // На своём компьютере ошибки видно сразу, на хостинге — только в логе.
+    if (!is_local_request()) {
+        ini_set('display_errors', '0');
+    }
+    set_exception_handler('hotel_fail');
+    send_security_headers();
 }
 
 // -------------------------------------------------------------------

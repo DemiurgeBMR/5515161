@@ -13,6 +13,9 @@ $l = $h['legal'];
             <a href="/rules.php">Правила проживания</a>
             <a href="/privacy.php">Политика обработки персональных данных</a>
             <a href="/consent.php">Согласие на обработку персональных данных</a>
+<?php if (!empty($metrika)): ?>
+            <button type="button" class="link-button site-footer__cookie" data-cookie-settings>Настройки cookie</button>
+<?php endif; ?>
         </nav>
         <div class="site-footer__legal">
             <p><?= e($l['operator']) ?>, ИНН <?= e($l['inn']) ?>, <?= ogrn_label() ?> <?= e($l['ogrn']) ?></p>

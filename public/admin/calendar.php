@@ -86,9 +86,9 @@ admin_header('Шахматка', 'calendar', 'adm-autoreload');
             <a class="btn btn--outline btn--sm" href="<?= e($nav(today()->modify('-2 days'))) ?>">Сегодня</a>
             <a class="btn btn--outline btn--sm" href="<?= e($nav($start->modify('+7 days'))) ?>" aria-label="Неделя вперёд">→</a>
         </div>
-        <div class="field"><label for="c-start">С даты</label><input id="c-start" type="date" name="start" value="<?= e($from) ?>" onchange="this.form.submit()"></div>
+        <div class="field"><label for="c-start">С даты</label><input id="c-start" type="date" name="start" value="<?= e($from) ?>" data-autosubmit></div>
         <div class="field"><label for="c-days">Показать</label>
-            <select id="c-days" name="days" onchange="this.form.submit()">
+            <select id="c-days" name="days" data-autosubmit>
 <?php foreach ([14 => '2 недели', 21 => '3 недели', 31 => 'месяц', 62 => '2 месяца'] as $n => $label): ?>
                 <option value="<?= $n ?>"<?= $n === $days ? ' selected' : '' ?>><?= e($label) ?></option>
 <?php endforeach; ?>

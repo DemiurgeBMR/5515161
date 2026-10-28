@@ -113,7 +113,7 @@ function ical_fetch(string $url): string
         $ok = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $errno = curl_errno($ch);
-        curl_close($ch);
+        unset($ch); // curl_close() в PHP 8.5 устарела — соединение закрывается само
         if (!$ok || $errno) {
             // Коды ошибок curl — числами: часть констант есть не во всех версиях PHP.
             throw new RuntimeException([

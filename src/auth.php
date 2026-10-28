@@ -27,12 +27,11 @@ function session_boot(): void
     ini_set('session.gc_maxlifetime', (string) SESSION_LIFETIME);
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
     session_name('hotel_sid');
     session_set_cookie_params([
         'lifetime' => SESSION_LIFETIME,
         'path'     => '/',
-        'secure'   => $https,
+        'secure'   => is_https(),
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
@@ -260,11 +259,17 @@ function guest_send_code(string $email): ?string
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return 'Проверьте адрес почты';
     }
+    // На одну почту — не больше 3 кодов за 15 минут и 6 за сутки: по 5 попыток
+    // на код подобрать 6 цифр перебором практически невозможно.
     if (rate_limited('code_ip', client_ip(), 10, 3600) || rate_limited('code_email', $email, 3, 900)) {
         return 'Слишком много запросов. Подождите 15 минут.';
     }
+    if (rate_limited('code_email_day', $email, 6, 86400)) {
+        return 'Слишком много запросов за сутки. Позвоните нам — администратор поможет.';
+    }
     rate_hit('code_ip', client_ip());
     rate_hit('code_email', $email);
+    rate_hit('code_email_day', $email);
     $has = q_val('SELECT b.id FROM bookings b JOIN guests g ON g.id = b.guest_id WHERE g.email = ? LIMIT 1', [$email]);
     if (!$has) {
         return null;

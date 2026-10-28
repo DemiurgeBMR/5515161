@@ -12,8 +12,13 @@
 require __DIR__ . '/../src/bootstrap.php';
 
 $problems = [];
+$notes = [];
 $add = function (string $where, string $what) use (&$problems) {
     $problems[] = sprintf('  %-34s %s', $where, $what);
+};
+// Необязательное — показываем, но запуск не блокирует.
+$note = function (string $where, string $what) use (&$notes) {
+    $notes[] = sprintf('  %-34s %s', $where, $what);
 };
 
 $walk = function (array $data, string $path) use (&$walk, $add) {
@@ -27,6 +32,16 @@ $walk = function (array $data, string $path) use (&$walk, $add) {
     }
 };
 $walk(hotel(), '');
+
+if (!site_indexing()) {
+    $add('indexing', 'сайт закрыт от поисковиков — перед запуском поставьте true');
+}
+if (metrika_id() === '') {
+    $note('analytics.metrika_id', 'Яндекс Метрика не подключена');
+}
+if ((hotel()['analytics']['yandex_verification'] ?? '') === '') {
+    $note('analytics.yandex_verification', 'сайт не подтверждён в Яндекс Вебмастере');
+}
 
 if (!has_coords()) {
     $add('address.lat / address.lon', 'нет координат — на сайте не будет карты');
@@ -89,7 +104,7 @@ foreach (['storage', 'public/uploads'] as $dir) {
 }
 
 // Заглушки в текстах страниц (правила, политика, вопросы на главной).
-foreach (['index.php', 'rules.php', 'privacy.php', 'consent.php', 'robots.txt'] as $file) {
+foreach (['index.php', 'rules.php', 'privacy.php', 'consent.php'] as $file) {
     $lines = file(HOTEL_ROOT . '/public/' . $file);
     foreach ($lines as $n => $line) {
         // Пропускаем PHP-код и комментарии — нас интересует текст для гостей.
@@ -103,6 +118,9 @@ foreach (['index.php', 'rules.php', 'privacy.php', 'consent.php', 'robots.txt'] 
     }
 }
 
+if ($notes) {
+    echo "Можно сделать позже (" . count($notes) . "):\n\n" . implode("\n", $notes) . "\n\n";
+}
 if ($problems) {
     echo "Перед запуском заполните (" . count($problems) . "):\n\n" . implode("\n", $problems) . "\n";
     exit(1);

@@ -18,6 +18,102 @@
     try { site = JSON.parse(($('#site-data') || {}).textContent || 'null'); } catch (e) { site = null; }
 
     // ---------------------------------------------------------------
+    // Яндекс Метрика — только после согласия на cookie.
+    // Номер счётчика задаётся в config/hotel.php (analytics.metrika_id);
+    // без него здесь ничего не происходит.
+    // ---------------------------------------------------------------
+
+    var metrikaId = +(document.body.getAttribute('data-metrika') || 0);
+    var CONSENT_KEY = 'cookie_consent';
+    var metrikaOn = false;
+
+    function getConsent() {
+        try { return localStorage.getItem(CONSENT_KEY); } catch (e) { return null; }
+    }
+    function setConsent(value) {
+        try { if (value) localStorage.setItem(CONSENT_KEY, value); else localStorage.removeItem(CONSENT_KEY); } catch (e) { /* приватный режим */ }
+    }
+
+    function loadMetrika() {
+        if (metrikaOn || !metrikaId) return;
+        metrikaOn = true;
+        window.ym = window.ym || function () { (window.ym.a = window.ym.a || []).push(arguments); };
+        window.ym.l = 1 * new Date();
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://mc.yandex.ru/metrika/tag.js';
+        document.head.appendChild(s);
+        window.ym(metrikaId, 'init', {
+            clickmap: true,
+            trackLinks: true,
+            accurateTrackBounce: true,
+            webvisor: document.body.getAttribute('data-webvisor') === '1'
+        });
+    }
+
+    // Отказ: удаляем cookie Метрики, если она успела их поставить.
+    function dropMetrikaCookies() {
+        document.cookie.split(';').forEach(function (c) {
+            var name = c.split('=')[0].trim();
+            if (name.indexOf('_ym') !== 0) return;
+            var host = location.hostname;
+            [host, '.' + host, '.' + host.split('.').slice(-2).join('.')].forEach(function (d) {
+                document.cookie = name + '=; Max-Age=0; path=/; domain=' + d;
+            });
+            document.cookie = name + '=; Max-Age=0; path=/';
+        });
+    }
+
+    /** Цель в Метрике (цели заводятся в Метрике как «JavaScript-событие» с тем же именем). */
+    function goal(name) {
+        if (metrikaOn && window.ym) window.ym(metrikaId, 'reachGoal', name);
+    }
+
+    function showCookieBar() {
+        if (document.querySelector('.cookie-bar')) return;
+        var bar = document.createElement('div');
+        bar.className = 'cookie-bar';
+        bar.setAttribute('role', 'region');
+        bar.setAttribute('aria-label', 'Согласие на cookie');
+        bar.innerHTML = '<p class="cookie-bar__text">Мы используем cookie и Яндекс Метрику, чтобы понимать, как сделать сайт удобнее. '
+            + '<a href="/privacy.php#cookies">Подробнее</a></p>'
+            + '<div class="cookie-bar__actions">'
+            + '<button type="button" class="btn btn--primary btn--sm" data-cookie="yes">Хорошо</button>'
+            + '<button type="button" class="btn btn--outline btn--sm" data-cookie="no">Отказаться</button></div>';
+        document.body.appendChild(bar);
+        bar.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-cookie]');
+            if (!btn) return;
+            var yes = btn.getAttribute('data-cookie') === 'yes';
+            setConsent(yes ? 'yes' : 'no');
+            bar.parentNode.removeChild(bar);
+            if (yes) loadMetrika();
+            else if (metrikaOn) { dropMetrikaCookies(); location.reload(); }
+            else dropMetrikaCookies();
+        });
+    }
+
+    if (metrikaId) {
+        var consent = getConsent();
+        if (consent === 'yes') loadMetrika();
+        else if (consent !== 'no') showCookieBar();
+        // В подвале — «Настройки cookie»: можно передумать в любой момент.
+        Array.prototype.forEach.call(document.querySelectorAll('[data-cookie-settings]'), function (btn) {
+            btn.addEventListener('click', function () { setConsent(null); showCookieBar(); });
+        });
+        // Звонки и мессенджеры — главные цели для гостиницы.
+        document.addEventListener('click', function (e) {
+            var a = e.target.closest && e.target.closest('a[href]');
+            if (!a) return;
+            var href = a.getAttribute('href');
+            if (href.indexOf('tel:') === 0) goal('phone_click');
+            else if (/^https:\/\/(wa\.me|t\.me|max\.ru)\//.test(href)) goal('messenger_click');
+        });
+        // Вебвизор не записывает, что гость печатает в формах.
+        Array.prototype.forEach.call(document.querySelectorAll('input, textarea'), function (el) { el.classList.add('ym-disable-keys'); });
+    }
+
+    // ---------------------------------------------------------------
     // Утилиты
     // ---------------------------------------------------------------
 
@@ -429,6 +525,7 @@
                         em.hidden = false;
                     }
                 }
+                goal('booking_sent');
                 $('.booking').hidden = true;
                 success.hidden = false;
                 success.scrollIntoView({ block: 'center' });
@@ -596,6 +693,7 @@
                 state.checkIn = null;
             } else {
                 state.checkOut = date;
+                goal('calendar_dates');
             }
             render(wide.matches ? 2 : 1);
             var again = $('[data-date="' + date + '"]', monthsEl);
@@ -621,6 +719,7 @@
         if (wide.addEventListener) wide.addEventListener('change', function () { load(true); });
 
         bookBtn.addEventListener('click', function () {
+            goal('calendar_to_booking');
             goToBooking({ check_in: state.checkIn, check_out: state.checkOut, room: state.type });
         });
 
@@ -677,6 +776,7 @@
             if (!notify.elements.consent.checked) errors.consent = 'Нужно согласие на обработку данных';
             if (Object.keys(errors).length) { showErrors(notify, errors); return; }
             submitForm(notify, function () {
+                goal('bath_waitlist');
                 notify.innerHTML = '<p class="notice notice--light" role="status">Спасибо! Сообщим, как только откроемся.</p>';
             }, function () {
                 notifyMsg.textContent = 'Не получилось отправить. Позвоните нам: ' + (site ? site.phone : '');

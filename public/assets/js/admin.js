@@ -44,6 +44,11 @@
         if (text && !window.confirm(text)) e.preventDefault();
     }, true);
 
+    // Поле, которое сразу отправляет форму (выбор даты и периода в шахматке)
+    $$('[data-autosubmit]').forEach(function (el) {
+        el.addEventListener('change', function () { if (el.form) el.form.submit(); });
+    });
+
     // Копировать ссылку: <button data-copy="#id-поля">
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {

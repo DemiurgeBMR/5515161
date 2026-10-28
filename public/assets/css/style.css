@@ -1650,3 +1650,36 @@ img.is-photo { display: block; width: 100%; height: auto; object-fit: cover; bac
     body { background: #fff; font-size: 12pt; }
     .section--cream, .section--sand, .card { background: #fff; box-shadow: none; }
 }
+.doc__actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0; }
+
+/* ------------------------------------------------------------------
+   Плашка согласия на cookie (только если включена Яндекс Метрика)
+   ------------------------------------------------------------------ */
+.cookie-bar {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 60;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 20px;
+    max-width: 720px;
+    margin-inline: auto;
+    padding: 16px 18px;
+    background: var(--dark);
+    color: var(--on-dark);
+    border-radius: 18px;
+    box-shadow: 0 18px 50px rgba(43, 33, 27, 0.35);
+}
+.cookie-bar__text { flex: 1 1 280px; margin: 0; font-size: 0.95rem; line-height: 1.5; }
+.cookie-bar__text a { color: var(--copper); }
+.cookie-bar__actions { display: flex; gap: 8px; }
+.cookie-bar .btn--outline { color: var(--on-dark); border-color: rgba(243, 235, 225, 0.4); }
+@media (max-width: 760px) {
+    /* над нижней панелью «Позвонить / Забронировать», пока она видна */
+    .action-bar:not(.is-hidden) ~ .cookie-bar { bottom: calc(86px + env(safe-area-inset-bottom)); }
+    .cookie-bar { transition: bottom .25s ease; }
+}
+.site-footer__cookie { justify-self: start; padding: 0; font: inherit; color: inherit; text-decoration: underline; }
