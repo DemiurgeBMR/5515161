@@ -489,7 +489,10 @@ function AddFont($family, $style='', $file='', $uni=false)
 		if (file_exists($unifilename.'.mtx.php')) {
 			include($unifilename.'.mtx.php');
 		}
-		if (!isset($type) ||  !isset($name) || $originalsize != $ttfstat['size']) {
+		// Правка для проекта: кеш шрифта хранит абсолютный путь к .ttf. Если проект
+		// перенесли в другую папку или на другой компьютер, путь в кеше устарел —
+		// пересобираем кеш, иначе PDF падает с «Can't open file».
+		if (!isset($type) ||  !isset($name) || $originalsize != $ttfstat['size'] || !isset($ttffile) || $ttffile !== $ttffilename) {
 			$ttffile = $ttffilename;
 			require_once($this->fontpath.'unifont/ttfonts.php');
 			$ttf = new TTFontFile();

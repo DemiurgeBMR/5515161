@@ -31,3 +31,10 @@ Thumbs.db
 # сервис seed-cities) — несколько гигабайт данных, не для git.
 /database/seed/*
 !/database/seed/.gitkeep
+
+# Кеш метрик шрифтов tFPDF (PDF истории обслуживания) — библиотека создаёт его
+# сама при первой выгрузке. В нём абсолютный путь к .ttf конкретного
+# компьютера, поэтому в репозитории ему не место.
+/public_html/includes/tfpdf/font/unifont/*.mtx.php
+/public_html/includes/tfpdf/font/unifont/*.cw.dat
+/public_html/includes/tfpdf/font/unifont/*.cw127.php
