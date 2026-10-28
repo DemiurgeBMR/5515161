@@ -208,19 +208,22 @@ require __DIR__ . '/../src/partials/header.php';
 
             <div class="rooms">
 <?php foreach ($types as $t): ?>
-                <article class="room<?= $t['featured'] ? ' room--featured' : '' ?>" aria-labelledby="room-<?= $t['id'] ?>">
+                <article class="room<?= $t['featured'] ? ' room--featured' : '' ?>" aria-labelledby="room-<?= $t['id'] ?>" data-room="<?= $t['id'] ?>">
                     <div class="room__media">
 <?php if ($t['photos']): ?>
-                        <div class="room__gallery" tabindex="0" aria-label="Фотографии номера «<?= e($t['name']) ?>», листайте вбок">
+                        <div class="room__gallery" tabindex="0" data-gallery aria-label="Фотографии номера «<?= e($t['name']) ?>»: листайте вбок, нажмите, чтобы открыть крупно">
 <?php foreach ($t['photos'] as $i => $photo): ?>
                             <img src="/<?= e($photo['path']) ?>"<?= img_srcset($photo['path'], '(max-width: 760px) 92vw, 420px', (int) $photo['width']) ?> alt="Номер «<?= e($t['name']) ?>», фото <?= $i + 1 ?>" loading="lazy" decoding="async" width="<?= (int) $photo['width'] ?>" height="<?= (int) $photo['height'] ?>">
 <?php endforeach; ?>
                         </div>
 <?php if (count($t['photos']) > 1): ?>
-                        <span class="room__count"><?= icon('camera') ?><?= count($t['photos']) ?></span>
+                        <button class="room__nav room__nav--prev" type="button" data-gal-prev aria-label="Предыдущее фото"><?= icon('arrow-right') ?></button>
+                        <button class="room__nav room__nav--next" type="button" data-gal-next aria-label="Следующее фото"><?= icon('arrow-right') ?></button>
+                        <span class="room__dots" aria-hidden="true"><?= str_repeat('<i></i>', count($t['photos'])) ?></span>
 <?php endif; ?>
+                        <button class="room__count" type="button" data-room-open><?= icon('camera') ?><?= count($t['photos']) ?> фото</button>
 <?php else: ?>
-                        <?= photo_placeholder('«' . $t['name'] . '»', 'room__ph') ?>
+                        <div class="room__ph-open" data-room-open><?= photo_placeholder('«' . $t['name'] . '»', 'room__ph') ?></div>
 <?php endif; ?>
 <?php if ($t['badge'] !== ''): ?>
                         <span class="room__badge"><?= e($t['badge']) ?></span>
@@ -228,7 +231,7 @@ require __DIR__ . '/../src/partials/header.php';
                     </div>
                     <div class="room__body">
                         <header class="room__head">
-                            <h3 class="room__name" id="room-<?= $t['id'] ?>"><?= e($t['name']) ?></h3>
+                            <h3 class="room__name" id="room-<?= $t['id'] ?>"><button class="room__open" type="button" data-room-open><?= e($t['name']) ?></button></h3>
                             <p class="room__price"><strong><?= e(type_price_label($t)) ?></strong> / сутки</p>
                         </header>
                         <ul class="room__facts">
@@ -254,11 +257,37 @@ require __DIR__ . '/../src/partials/header.php';
                         <div class="room__actions">
                             <a class="btn <?= $t['featured'] ? 'btn--copper' : 'btn--outline' ?> room__cta" href="?room=<?= $t['id'] ?>#booking" data-book-room="<?= $t['id'] ?>">Забронировать</a>
                             <a class="room__dates" href="#calendar" data-show-calendar="<?= $t['id'] ?>">Свободные даты</a>
+                            <button class="room__dates room__more-link" type="button" data-room-open>Подробнее</button>
                         </div>
                     </div>
                 </article>
 <?php endforeach; ?>
             </div>
+
+            <!-- Окно номера: большие фото и описание. Заполняется из карточки (main.js). -->
+            <dialog class="room-modal" data-room-modal aria-labelledby="room-modal-title">
+                <div class="room-modal__inner">
+                    <button class="room-modal__close" type="button" data-rm-close aria-label="Закрыть"><?= icon('x') ?></button>
+                    <div class="room-modal__media">
+                        <div class="room-modal__track" data-rm-track tabindex="0" aria-label="Фотографии номера, листайте вбок"></div>
+                        <button class="room-modal__nav room-modal__nav--prev" type="button" data-rm-prev aria-label="Предыдущее фото"><?= icon('arrow-right') ?></button>
+                        <button class="room-modal__nav room-modal__nav--next" type="button" data-rm-next aria-label="Следующее фото"><?= icon('arrow-right') ?></button>
+                        <span class="room-modal__counter" data-rm-counter aria-live="polite"></span>
+                    </div>
+                    <div class="room-modal__thumbs" data-rm-thumbs></div>
+                    <div class="room-modal__info">
+                        <h2 class="room-modal__name" id="room-modal-title" data-rm-name></h2>
+                        <p class="room__price" data-rm-price></p>
+                        <ul class="room__facts" data-rm-facts></ul>
+                        <p class="room-modal__summary" data-rm-summary></p>
+                        <div data-rm-features></div>
+                        <div class="room-modal__actions">
+                            <button class="btn btn--primary" type="button" data-rm-book>Забронировать</button>
+                            <button class="btn btn--outline" type="button" data-rm-dates>Свободные даты</button>
+                        </div>
+                    </div>
+                </div>
+            </dialog>
         </div>
     </section>
 
@@ -436,11 +465,13 @@ require __DIR__ . '/../src/partials/header.php';
                         <div class="grid-2">
                             <div class="field">
                                 <label for="b-in">Заезд <span class="req" aria-hidden="true">*</span></label>
-                                <input id="b-in" type="date" name="check_in" required min="<?= $today->format('Y-m-d') ?>" value="<?= e($form['check_in']) ?>" data-date-in>
+                                <input id="b-in" type="date" name="check_in" required min="<?= $today->format('Y-m-d') ?>" value="<?= e($form['check_in']) ?>" data-date-in aria-describedby="b-in-hint">
+                                <p class="field-hint" id="b-in-hint">Заезд с <?= e($h['check_in']) ?></p>
                             </div>
                             <div class="field">
                                 <label for="b-out">Выезд <span class="req" aria-hidden="true">*</span></label>
-                                <input id="b-out" type="date" name="check_out" required min="<?= $today->modify('+1 day')->format('Y-m-d') ?>" value="<?= e($form['check_out']) ?>" data-date-out>
+                                <input id="b-out" type="date" name="check_out" required min="<?= $today->modify('+1 day')->format('Y-m-d') ?>" value="<?= e($form['check_out']) ?>" data-date-out aria-describedby="b-out-hint">
+                                <p class="field-hint" id="b-out-hint">Выезд до <?= e($h['check_out']) ?></p>
                             </div>
                             <div class="field">
                                 <label for="b-room">Номер</label>
@@ -495,8 +526,7 @@ require __DIR__ . '/../src/partials/header.php';
                         </div>
                         <div class="field">
                             <label for="b-comment">Комментарий</label>
-                            <textarea id="b-comment" name="comment" rows="3" maxlength="1000" placeholder="Например: приедем в 6 утра, нужен номер без ступенек" aria-describedby="b-comment-hint"></textarea>
-                            <p class="field-hint" id="b-comment-hint">Диагноз и другие сведения о здоровье писать не нужно — для брони они не важны.</p>
+                            <textarea id="b-comment" name="comment" rows="3" maxlength="1000" placeholder="Например: приедем в 6 утра, нужен номер без ступенек"></textarea>
                         </div>
                     </fieldset>
 

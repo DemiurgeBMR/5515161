@@ -750,6 +750,163 @@
         });
     });
 
+    // ---------------------------------------------------------------
+    // Фото номеров: стрелки и точки в карточке, а по нажатию на фото или
+    // название — окно номера с большой листаемой галереей и описанием.
+    // ---------------------------------------------------------------
+
+    function slideIndex(track) {
+        return track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0;
+    }
+    function slideTo(track, i, smooth) {
+        var n = track.children.length;
+        i = Math.max(0, Math.min(n - 1, i));
+        track.scrollTo({ left: i * track.clientWidth, behavior: smooth === false ? 'auto' : 'smooth' });
+    }
+    function onSlide(track, fn) {
+        var raf = 0;
+        track.addEventListener('scroll', function () {
+            if (raf) return;
+            raf = requestAnimationFrame(function () { raf = 0; fn(slideIndex(track)); });
+        });
+        fn(slideIndex(track));
+    }
+
+    var roomModal = $('[data-room-modal]');
+    var canModal = roomModal && typeof roomModal.showModal === 'function';
+    var openRoom = function () {};
+
+    if (canModal) {
+        var rm = {
+            track: $('[data-rm-track]', roomModal), thumbs: $('[data-rm-thumbs]', roomModal),
+            counter: $('[data-rm-counter]', roomModal), prev: $('[data-rm-prev]', roomModal), next: $('[data-rm-next]', roomModal),
+            name: $('[data-rm-name]', roomModal), price: $('[data-rm-price]', roomModal), facts: $('[data-rm-facts]', roomModal),
+            summary: $('[data-rm-summary]', roomModal), features: $('[data-rm-features]', roomModal),
+            card: null, pushed: false
+        };
+
+        var updateModal = function (i) {
+            var n = rm.track.children.length;
+            rm.counter.textContent = n > 1 ? (i + 1) + ' / ' + n : '';
+            rm.prev.hidden = rm.next.hidden = n < 2;
+            rm.prev.disabled = i <= 0;
+            rm.next.disabled = i >= n - 1;
+            $$('button', rm.thumbs).forEach(function (b, k) { b.setAttribute('aria-current', String(k === i)); });
+        };
+        onSlide(rm.track, updateModal);
+
+        openRoom = function (card, index) {
+            rm.card = card;
+            rm.name.textContent = $('.room__open', card).textContent;
+            // Цена, удобства и список «Что в номере» — уже готовая разметка карточки
+            rm.price.innerHTML = $('.room__price', card).innerHTML;
+            rm.facts.innerHTML = $('.room__facts', card).innerHTML;
+            rm.summary.textContent = ($('.room__summary', card) || {}).textContent || '';
+            var list = $('.room__more .checklist', card);
+            rm.features.innerHTML = list ? '<h3 class="room-modal__subtitle">Что в номере</h3>' + list.outerHTML : '';
+            roomModal.classList.toggle('room-modal--featured', card.classList.contains('room--featured'));
+
+            rm.track.innerHTML = '';
+            rm.thumbs.innerHTML = '';
+            var photos = $$('[data-gallery] img', card);
+            photos.forEach(function (img, k) {
+                var big = document.createElement('img');
+                big.src = img.getAttribute('src');
+                big.alt = img.alt;
+                big.decoding = 'async';
+                rm.track.appendChild(big);
+                if (photos.length > 1) {
+                    var b = document.createElement('button');
+                    b.type = 'button';
+                    b.setAttribute('aria-label', 'Фото ' + (k + 1));
+                    var t = document.createElement('img');
+                    var set = img.getAttribute('srcset');
+                    t.src = set ? set.split(' ')[0] : img.getAttribute('src'); // лёгкая копия, если есть
+                    t.alt = '';
+                    b.appendChild(t);
+                    b.addEventListener('click', function () { slideTo(rm.track, k); });
+                    rm.thumbs.appendChild(b);
+                }
+            });
+            if (!photos.length) {
+                var ph = $('.ph', card);
+                if (ph) rm.track.appendChild(ph.cloneNode(true));
+            }
+            rm.thumbs.hidden = photos.length < 2;
+
+            roomModal.showModal();
+            document.documentElement.classList.add('is-locked');
+            requestAnimationFrame(function () {
+                slideTo(rm.track, index || 0, false);
+                updateModal(index || 0);
+                rm.track.focus({ preventScroll: true });
+            });
+            // Кнопка «Назад» на телефоне закрывает окно, а не уходит со страницы.
+            if (history.pushState && !rm.pushed) {
+                history.pushState({ roomModal: true }, '', location.pathname + location.search + '#nomer-' + card.getAttribute('data-room'));
+                rm.pushed = true;
+            }
+            goal('room_open');
+        };
+
+        // after — что сделать, когда окно закрылось и адрес вернулся назад
+        // (перейти к форме или календарю): иначе «Назад» сбил бы прокрутку.
+        var after = null;
+        var runAfter = function () { var f = after; after = null; if (f) f(); };
+        var closeRoom = function () { if (roomModal.open) roomModal.close(); };
+        roomModal.addEventListener('close', function () {
+            document.documentElement.classList.remove('is-locked');
+            if (rm.pushed) { rm.pushed = false; history.back(); } else runAfter();
+        });
+        window.addEventListener('popstate', function () {
+            if (roomModal.open) { rm.pushed = false; roomModal.close(); } else setTimeout(runAfter, 0);
+        });
+        // Нажатие мимо окна закрывает его
+        roomModal.addEventListener('click', function (e) { if (e.target === roomModal) closeRoom(); });
+        $('[data-rm-close]', roomModal).addEventListener('click', closeRoom);
+        rm.prev.addEventListener('click', function () { slideTo(rm.track, slideIndex(rm.track) - 1); });
+        rm.next.addEventListener('click', function () { slideTo(rm.track, slideIndex(rm.track) + 1); });
+        roomModal.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowLeft') { e.preventDefault(); slideTo(rm.track, slideIndex(rm.track) - 1); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); slideTo(rm.track, slideIndex(rm.track) + 1); }
+        });
+        // Кнопки окна повторяют кнопки карточки: сначала закрываем окно, потом идём к форме или календарю.
+        [['[data-rm-book]', '[data-book-room]'], ['[data-rm-dates]', '[data-show-calendar]']].forEach(function (pair) {
+            $(pair[0], roomModal).addEventListener('click', function () {
+                var link = rm.card && $(pair[1], rm.card);
+                after = function () { if (link) link.click(); };
+                closeRoom();
+            });
+        });
+    }
+
+    $$('.room').forEach(function (card) {
+        var gal = $('[data-gallery]', card);
+        if (gal) {
+            var prev = $('[data-gal-prev]', card), next = $('[data-gal-next]', card), dots = $$('.room__dots i', card);
+            onSlide(gal, function (i) {
+                dots.forEach(function (d, k) { d.classList.toggle('is-on', k === i); });
+                if (prev) prev.disabled = i <= 0;
+                if (next) next.disabled = i >= gal.children.length - 1;
+            });
+            if (prev) prev.addEventListener('click', function () { slideTo(gal, slideIndex(gal) - 1); });
+            if (next) next.addEventListener('click', function () { slideTo(gal, slideIndex(gal) + 1); });
+            if (canModal) {
+                gal.addEventListener('click', function () { openRoom(card, slideIndex(gal)); });
+                gal.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') { e.preventDefault(); openRoom(card, slideIndex(gal)); }
+                });
+            }
+        }
+        $$('[data-room-open]', card).forEach(function (el) {
+            if (!canModal) { if (el.classList.contains('room__more-link')) el.hidden = true; return; }
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                openRoom(card, gal ? slideIndex(gal) : 0);
+            });
+        });
+    });
+
     // Страница брони: дата нужна только для «Продлить проживание»
     var msgForm = $('[data-message-form]');
     if (msgForm) {
