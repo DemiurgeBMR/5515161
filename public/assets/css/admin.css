@@ -462,3 +462,6 @@ a.chess__cell:hover { background: var(--accent-soft); }
 .checks { display: grid; gap: 8px; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 @media (max-width: 760px) { .row-actions { justify-content: flex-start; } }
+@media (max-width: 560px) {
+    .table:not(.table--cards) th, .table:not(.table--cards) td { padding: 8px 6px; }
+}
