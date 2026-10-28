@@ -39,11 +39,11 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
 </div>
 
 <div class="kpis">
-    <a class="kpi<?= $new ? ' kpi--accent' : '' ?>" href="/admin/bookings.php?status=new"><b><?= count($new) ?></b><span>новых заявок</span></a>
-    <a class="kpi" href="#arrivals"><b><?= count($arrivals) ?></b><span>заездов сегодня</span></a>
-    <a class="kpi" href="#departures"><b><?= count($departures) ?></b><span>выездов сегодня</span></a>
-    <a class="kpi" href="#inhouse"><b><?= count($inHouse) ?></b><span>проживают сейчас</span></a>
-    <a class="kpi" href="/admin/calendar.php"><b><?= $freeTonight ?> <small>из <?= count($rooms) ?></small></b><span>комнат свободно сегодня</span></a>
+    <a class="kpi<?= $new ? ' kpi--accent' : '' ?>" href="/admin/bookings.php?status=new"><b><?= count($new) ?></b><span><?= plural(count($new), 'новая заявка', 'новые заявки', 'новых заявок') ?></span></a>
+    <a class="kpi" href="#arrivals"><b><?= count($arrivals) ?></b><span><?= plural(count($arrivals), 'заезд', 'заезда', 'заездов') ?> сегодня</span></a>
+    <a class="kpi" href="#departures"><b><?= count($departures) ?></b><span><?= plural(count($departures), 'выезд', 'выезда', 'выездов') ?> сегодня</span></a>
+    <a class="kpi" href="#inhouse"><b><?= count($inHouse) ?></b><span><?= plural(count($inHouse), 'номер занят', 'номера заняты', 'номеров занято') ?> гостями</span></a>
+    <a class="kpi" href="/admin/calendar.php"><b><?= $freeTonight ?> <small>из <?= count($rooms) ?></small></b><span><?= plural($freeTonight, 'комната свободна', 'комнаты свободны', 'комнат свободно') ?> сегодня</span></a>
 </div>
 
 <?php if ($conflicts): ?>
@@ -158,7 +158,7 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
 <?php endif; ?>
         </section>
 <?php if ($waitlist): ?>
-        <a class="kpi" href="/admin/guests.php?tab=waitlist"><b><?= $waitlist ?></b><span>просят сообщить об открытии бани</span></a>
+        <a class="kpi" href="/admin/guests.php?tab=waitlist"><b><?= $waitlist ?></b><span><?= plural($waitlist, 'человек просит', 'человека просят', 'человек просят') ?> сообщить об открытии бани</span></a>
 <?php endif; ?>
     </div>
 </div>

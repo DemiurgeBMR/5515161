@@ -77,28 +77,30 @@ admin_header('Сотрудники', 'users');
 <section class="panel">
     <div class="table-wrap">
         <table class="table table--cards">
-            <thead><tr><th>Имя</th><th>Почта</th><th>Роль</th><th>Письма о заявках</th><th>Доступ</th><th>Последний вход</th><th></th></tr></thead>
+            <thead><tr><th>Сотрудник</th><th>Роль</th><th>Настройки</th><th>Последний вход</th><th></th></tr></thead>
             <tbody>
 <?php foreach ($staff as $s): $sid = (int) $s['id']; $fid = 'staff-' . $sid; ?>
                 <tr class="<?= $s['is_active'] ? '' : 'is-muted' ?>">
-                    <td data-label="Имя"><input form="<?= $fid ?>" class="cell-input" name="name" value="<?= e($s['name']) ?>" maxlength="100" required aria-label="Имя"><?= $sid === $me['id'] ? '<small>это вы</small>' : '' ?></td>
-                    <td data-label="Почта"><?= e($s['email']) ?><?= $s['must_change_password'] ? '<small>ещё не сменил временный пароль</small>' : '' ?></td>
+                    <td data-label="Сотрудник"><input form="<?= $fid ?>" class="cell-input" name="name" value="<?= e($s['name']) ?>" maxlength="100" required aria-label="Имя">
+                        <small><?= e($s['email']) ?><?= $sid === $me['id'] ? ' · это вы' : '' ?><?= $s['must_change_password'] ? ' · ещё не сменил временный пароль' : '' ?></small></td>
                     <td data-label="Роль"><select form="<?= $fid ?>" class="cell-input cell-input--role" name="role" aria-label="Роль">
 <?php foreach (STAFF_ROLES as $key => $label): ?>
                         <option value="<?= $key ?>"<?= $s['role'] === $key ? ' selected' : '' ?>><?= e($label) ?></option>
 <?php endforeach; ?>
                     </select></td>
-                    <td data-label="Письма"><label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="notify" value="1"<?= $s['notify'] ? ' checked' : '' ?>> получать</label></td>
-                    <td data-label="Доступ"><label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="is_active" value="1"<?= $s['is_active'] ? ' checked' : '' ?><?= $sid === $me['id'] ? ' disabled' : '' ?>> может входить</label><?php if ($sid === $me['id']): ?><input form="<?= $fid ?>" type="hidden" name="is_active" value="1"><?php endif; ?></td>
+                    <td data-label="Настройки"><div class="checks">
+                        <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="notify" value="1"<?= $s['notify'] ? ' checked' : '' ?>> письма о заявках</label>
+                        <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="is_active" value="1"<?= $s['is_active'] ? ' checked' : '' ?><?= $sid === $me['id'] ? ' disabled' : '' ?>> может входить</label><?php if ($sid === $me['id']): ?><input form="<?= $fid ?>" type="hidden" name="is_active" value="1"><?php endif; ?>
+                    </div></td>
                     <td data-label="Последний вход"><?= $s['last_login_at'] ? e(ru_datetime($s['last_login_at'])) : '—' ?></td>
-                    <td data-label="" class="num nowrap">
+                    <td data-label="" class="num"><div class="row-actions">
                         <form method="post" id="<?= $fid ?>" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="staff_id" value="<?= $sid ?>">
                             <button class="btn btn--outline btn--sm" type="submit">Сохранить</button></form>
 <?php if ($sid !== $me['id']): ?>
                         <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="reset"><input type="hidden" name="staff_id" value="<?= $sid ?>">
                             <button class="btn btn--outline btn--sm" type="submit" data-confirm="Выдать <?= e($s['name']) ?> новый временный пароль? Старый перестанет работать."><?= icon('key-round') ?>Новый пароль</button></form>
 <?php endif; ?>
-                    </td>
+                    </div></td>
                 </tr>
 <?php endforeach; ?>
             </tbody>

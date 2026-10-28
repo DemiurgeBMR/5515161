@@ -49,8 +49,25 @@ jobs:
           php tools/migrate.php
           php -S 127.0.0.1:8090 -t public > /tmp/server.log 2>&1 &
           sleep 1
-          for page in / /rules.php /privacy.php /consent.php /account.php /sitemap.php /api/availability.php; do
+          for page in / /rules.php /privacy.php /consent.php /account.php /sitemap.php /api/availability.php /admin/login.php; do
             code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
+            echo "$page → $code"
+            [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
+            if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
+          done
+          # Админка без входа — только переход на страницу входа.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/admin/bookings.php)
+          echo "/admin/bookings.php без входа → $code"
+          [ "$code" = 303 ] || exit 1
+          # Вход владельцем и все страницы админки.
+          php -r 'require "src/bootstrap.php"; staff_create("ci@example.com", "CI", "owner", "ci-password-123");'
+          jar=/tmp/cookies.txt
+          token=$(curl -s -c $jar http://127.0.0.1:8090/admin/login.php | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//; s/"$//')
+          code=$(curl -s -b $jar -c $jar -o /dev/null -w '%{http_code}' --data-urlencode "_csrf=$token" -d action=login -d email=ci@example.com -d password=ci-password-123 http://127.0.0.1:8090/admin/login.php)
+          echo "вход → $code"
+          [ "$code" = 303 ] || exit 1
+          for page in /admin/ /admin/calendar.php /admin/bookings.php '/admin/booking.php?new=1' /admin/guests.php '/admin/guests.php?tab=waitlist' /admin/rooms.php '/admin/room_type.php?id=1' /admin/prices.php /admin/reports.php '/admin/reports.php?export=bookings' /admin/channels.php /admin/users.php /admin/journal.php /admin/profile.php /admin/api/version.php; do
+            code=$(curl -s -b $jar -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
             echo "$page → $code"
             [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
             if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi

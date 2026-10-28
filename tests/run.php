@@ -128,6 +128,16 @@ expect_error(fn () => booking_create(guest(['check_in' => d(11), 'check_out' => 
 closure_delete($cl);
 check((bool) booking_create(guest(['check_in' => d(11), 'check_out' => d(12), 'room_type_id' => $std['id']]))['id'], 'после открытия — продаётся');
 
+// Цены выросли, а в брони поправили только заметку — сумма, которую назвали гостю, остаётся.
+q('UPDATE room_types SET base_price = 3500 WHERE id = ?', [$large['id']]);
+app_cache_clear();
+$b3 = booking_get($b3['id']);
+$kept = booking_update($b3['id'], ['check_in' => $b3['check_in'], 'check_out' => $b3['check_out'], 'room_id' => 0, 'name' => $b3['guest_name'],
+    'phone' => $b3['guest_phone'], 'email' => $b3['guest_email'], 'guests' => 1, 'prepayment' => $b3['prepayment'], 'admin_note' => 'тихий номер']);
+check($kept['total_price'] === 3000 && $kept['admin_note'] === 'тихий номер', 'новая цена не меняет сумму брони, если даты и номер те же');
+q('UPDATE room_types SET base_price = 3000 WHERE id = ?', [$large['id']]);
+app_cache_clear();
+
 echo "\nОплаты и сообщения\n";
 payment_add($b1['id'], 2500, 'sbp', d(0), 'предоплата');
 payment_add($b1['id'], 5000, 'cash', d(0), '');
@@ -197,6 +207,18 @@ q_insert('bookings', ['token' => bin2hex(random_bytes(20)), 'guest_id' => $oldGu
 $n = cron_cleanup();
 check(guest_get($oldGuest)['anonymized_at'] !== null && guest_get($oldGuest)['phone'] === '', 'данные несостоявшейся заявки старше 30 дней удалены');
 check(guest_get($b1['guest_id'])['anonymized_at'] === null, 'данные действующих гостей не тронуты');
+
+echo "\nУдаление данных по просьбе гостя\n";
+$an = booking_create(guest(['check_in' => d(40), 'check_out' => d(42), 'room_type_id' => $lux['id'], 'comment' => 'приедем с собакой']));
+message_add($an, 'other', 'Мой второй телефон +7 978 000-12-34', null);
+q('UPDATE bookings SET admin_note = ? WHERE id = ?', ['звонить после 18', $an['id']]);
+guest_anonymize($an['guest_id'], 'по просьбе гостя');
+$an = booking_get($an['id']);
+check($an['guest_name'] === 'Данные удалены' && $an['guest_phone'] === '' && $an['guest_email'] === '', 'имя, телефон и почта стёрты');
+check($an['guest_comment'] === null && $an['admin_note'] === null, 'комментарий гостя и заметка администратора стёрты');
+check((int) q_val('SELECT COUNT(*) FROM booking_messages WHERE booking_id = ? AND message IS NOT NULL', [$an['id']]) === 0, 'тексты сообщений гостя стёрты');
+check((int) q_val("SELECT COUNT(*) FROM audit_log WHERE entity = 'booking' AND entity_id = ? AND action = 'guest_message' AND details IS NOT NULL", [$an['id']]) === 0, 'из журнала стёрты подробности сообщений');
+check($an['total_price'] !== null && $an['check_in'] === d(40), 'сама бронь осталась для учёта');
 
 echo "\nФото\n";
 $img = imagecreatetruecolor(3000, 2000);

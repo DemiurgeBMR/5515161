@@ -17,6 +17,16 @@ if (is_post()) {
         $n = q("DELETE FROM waitlist WHERE topic = 'bath'")->rowCount();
         audit('guest', null, 'waitlist_cleared', 'удалено телефонов: ' . $n);
         flash('ok', 'Список очищен.');
+    } elseif (post('action') === 'retention' && is_owner()) {
+        $days = (int) post('days');
+        if ($days < 7 || $days > 365) {
+            flash('error', 'Срок — от 7 до 365 дней.');
+        } else {
+            set_setting('retention_days', (string) $days);
+            audit('settings', null, 'updated', 'срок хранения несостоявшихся заявок: ' . $days . ' дн.');
+            flash('ok', 'Сохранено. Этот срок указан и в политике обработки персональных данных на сайте.');
+        }
+        redirect('/admin/guests.php#retention');
     }
     redirect('/admin/guests.php?tab=waitlist');
 }
@@ -100,6 +110,18 @@ admin_header('Гости', 'guests');
         </tbody>
     </table>
 </div>
+<?php endif; ?>
+<?php if (is_owner()): ?>
+<section class="panel" id="retention">
+    <h2 class="panel__title"><?= icon('shield-check') ?>Хранение данных гостей</h2>
+    <form method="post" class="form-grid">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="retention">
+        <div class="field"><label for="g-days">Удалять данные несостоявшихся заявок через, дней</label><input id="g-days" name="days" type="number" min="7" max="365" value="<?= max(7, (int) setting('retention_days', '30')) ?>"></div>
+        <div class="form-actions"><button class="btn btn--outline btn--sm" type="submit">Сохранить</button></div>
+    </form>
+    <p class="hint">Если заявку отменили или гость не приехал, через столько дней после дат брони сайт сам сотрёт имя, телефон, почту и комментарии — так требует закон о персональных данных. Брони остаются для отчётов, но без личных данных. Тех, кто у вас жил, сайт не трогает: их можно обезличить вручную в карточке гостя, если человек попросит.</p>
+</section>
 <?php endif; ?>
 <?php endif; ?>
 <?php admin_footer(); ?>

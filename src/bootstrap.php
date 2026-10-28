@@ -233,11 +233,23 @@ function client_ip(): string
     return (string) ($_SERVER['REMOTE_ADDR'] ?? '');
 }
 
-/** Запрос с этого же компьютера (Open Server) или с локального адреса. */
+/**
+ * Запрос с этого же компьютера (Open Server, php -S). На хостинге за прокси
+ * REMOTE_ADDR тоже бывает 127.0.0.1, поэтому нужно ещё локальное имя сайта
+ * (hotel, localhost) и отсутствие заголовков прокси.
+ */
 function is_local_request(): bool
 {
     $ip = client_ip();
-    return $ip === '127.0.0.1' || $ip === '::1' || strpos($ip, '127.') === 0;
+    if ($ip !== '::1' && strpos($ip, '127.') !== 0) {
+        return false;
+    }
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR']) || !empty($_SERVER['HTTP_X_REAL_IP']) || !empty($_SERVER['HTTP_FORWARDED'])) {
+        return false;
+    }
+    $host = strtolower((string) preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? '')));
+    return in_array($host, ['localhost', '127.0.0.1', '[::1]'], true)
+        || (bool) preg_match('/^[a-z0-9-]+$|\.(local|test|localhost)$/', $host);
 }
 
 /**

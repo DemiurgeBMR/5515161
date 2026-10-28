@@ -183,14 +183,14 @@ admin_header('Цены', 'prices');
     <form method="post">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="base">
-        <table class="table">
+        <table class="table table--cards">
             <thead><tr><th>Номер</th><th class="num">₽ за ночь</th><th>Не утверждена</th></tr></thead>
             <tbody>
 <?php foreach ($types as $t): ?>
                 <tr class="<?= $t['is_active'] ? '' : 'is-muted' ?>">
-                    <td><label for="bp-<?= $t['id'] ?>"><?= e($t['name']) ?></label><?= $t['is_active'] ? '' : '<small>скрыт с сайта</small>' ?></td>
-                    <td class="num"><input id="bp-<?= $t['id'] ?>" class="cell-input cell-input--num cell-input--price" name="price[<?= $t['id'] ?>]" inputmode="numeric" required value="<?= $t['base_price'] ?>"></td>
-                    <td><label class="inline-check"><input type="checkbox" name="tbd[<?= $t['id'] ?>]" value="1"<?= $t['price_tbd'] ? ' checked' : '' ?>> в скобках</label></td>
+                    <td data-label="Номер"><label for="bp-<?= $t['id'] ?>"><?= e($t['name']) ?></label><?= $t['is_active'] ? '' : '<small>скрыт с сайта</small>' ?></td>
+                    <td data-label="₽ за ночь" class="num"><input id="bp-<?= $t['id'] ?>" class="cell-input cell-input--num cell-input--price" name="price[<?= $t['id'] ?>]" inputmode="numeric" required value="<?= $t['base_price'] ?>"></td>
+                    <td data-label="Не утверждена"><label class="inline-check"><input type="checkbox" name="tbd[<?= $t['id'] ?>]" value="1"<?= $t['price_tbd'] ? ' checked' : '' ?>> в скобках</label></td>
                 </tr>
 <?php endforeach; ?>
             </tbody>
@@ -286,9 +286,9 @@ admin_header('Цены', 'prices');
                 <tbody>
 <?php foreach (array_merge($discounts, [['min_nights' => '', 'percent' => null, 'label' => '', 'note' => '']]) as $i => $d): $new = $d['min_nights'] === ''; ?>
                     <tr>
-                        <td data-label="От ночей"><input class="cell-input cell-input--num" name="d[<?= $i ?>][min_nights]" type="number" min="2" max="365" value="<?= e((string) $d['min_nights']) ?>" placeholder="<?= $new ? '14' : '' ?>" aria-label="От скольких ночей"></td>
+                        <td data-label="От ночей"><input class="cell-input cell-input--num" name="d[<?= $i ?>][min_nights]" type="number" min="2" max="365" value="<?= e((string) $d['min_nights']) ?>" placeholder="<?= $new ? 'ночей' : '' ?>" aria-label="От скольких ночей"></td>
                         <td data-label="Скидка, %"><input class="cell-input cell-input--num" name="d[<?= $i ?>][percent]" type="number" min="1" max="90" value="<?= $d['percent'] === null ? '' : (int) $d['percent'] ?>" placeholder="—" aria-label="Скидка в процентах"></td>
-                        <td data-label="Название"><input class="cell-input" name="d[<?= $i ?>][label]" maxlength="50" value="<?= e($d['label']) ?>" placeholder="От 14 ночей" aria-label="Название"></td>
+                        <td data-label="Название"><input class="cell-input" name="d[<?= $i ?>][label]" maxlength="50" value="<?= e($d['label']) ?>" placeholder="<?= $new ? 'От N ночей' : '' ?>" aria-label="Название"></td>
                         <td data-label="Без процента"><input class="cell-input" name="d[<?= $i ?>][note]" maxlength="100" value="<?= e($d['note']) ?>" placeholder="по договорённости" aria-label="Текст без процента"></td>
                         <td data-label="Удалить"><?php if (!$new): ?><label class="inline-check"><input type="checkbox" name="d[<?= $i ?>][delete]" value="1"> удалить</label><?php else: ?><span class="muted">новая</span><?php endif; ?></td>
                     </tr>
