@@ -31,6 +31,9 @@ if (is_post()) {
     redirect('/admin/guests.php?tab=waitlist');
 }
 
+if (get('tab') === 'waitlist' && bath_enabled()) {
+    redirect('/admin/bath.php?tab=waitlist'); // лист ожидания теперь в разделе «Баня»
+}
 $tab = get('tab') === 'waitlist' ? 'waitlist' : 'guests';
 $q = get('q');
 
@@ -40,7 +43,7 @@ admin_header('Гости', 'guests');
     <div><h1>Гости</h1></div>
     <nav class="tabs">
         <a class="tab<?= $tab === 'guests' ? ' is-active' : '' ?>" href="/admin/guests.php">Все гости</a>
-        <a class="tab<?= $tab === 'waitlist' ? ' is-active' : '' ?>" href="/admin/guests.php?tab=waitlist">Ждут открытия бани <span class="muted"><?= (int) q_val('SELECT COUNT(*) FROM waitlist') ?></span></a>
+        <a class="tab<?= $tab === 'waitlist' ? ' is-active' : '' ?>" href="<?= bath_enabled() ? '/admin/bath.php?tab=waitlist' : '/admin/guests.php?tab=waitlist' ?>">Ждут открытия бани <span class="muted"><?= (int) q_val('SELECT COUNT(*) FROM waitlist') ?></span></a>
     </nav>
 </div>
 <?php if ($tab === 'waitlist'):

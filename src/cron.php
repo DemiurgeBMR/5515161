@@ -1,7 +1,7 @@
 <?php
 /**
- * Фоновые задачи: синхронизация с площадками, напоминания гостям,
- * задачи и письма горничным, удаление устаревших данных.
+ * Фоновые задачи: синхронизация с площадками, напоминания гостям
+ * (о заезде и о бане), задачи и письма горничным, удаление устаревших данных.
  *
  * Запускаются двумя способами — достаточно любого:
  *  • планировщиком хостинга: php tools/cron.php каждые 10–15 минут;
@@ -47,6 +47,22 @@ function cron_run(): array
                 $log[] = 'напоминание: бронь ' . $b['id'];
             }
         }
+        // Баня: напоминание накануне сеанса.
+        if (bath_enabled()) {
+            $after = today()->modify('+2 days')->format('Y-m-d');
+            $rows = q_all("SELECT x.id FROM bath_bookings x JOIN guests g ON g.id = x.guest_id
+                           WHERE x.status = 'confirmed' AND x.starts_at >= ? AND x.starts_at < ? AND x.reminder_sent_at IS NULL AND g.email <> ''",
+                [$tomorrow . ' 00:00:00', $after . ' 00:00:00']);
+            foreach ($rows as $r) {
+                $b = bath_get((int) $r['id']);
+                [$subject, $text] = mail_bath_reminder($b);
+                if (send_mail($b['guest_email'], $subject, $text)) {
+                    q('UPDATE bath_bookings SET reminder_sent_at = ? WHERE id = ?', [now(), $b['id']]);
+                    audit('bath', $b['id'], 'reminder_sent', $b['guest_email'], 'system');
+                    $log[] = 'напоминание: баня ' . $b['id'];
+                }
+            }
+        }
     }
 
     // Уборка — раз в сутки.
@@ -78,9 +94,10 @@ function cron_cleanup(): int
     $guests = q_all(
         "SELECT g.id FROM guests g
          WHERE g.anonymized_at IS NULL
-           AND EXISTS (SELECT 1 FROM bookings b WHERE b.guest_id = g.id)
-           AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.guest_id = g.id AND (b.status IN ('confirmed', 'checked_in', 'checked_out') OR b.check_out >= ? OR b.created_at >= ?))",
-        [$cutoff, $cutoff . ' 00:00:00']
+           AND (EXISTS (SELECT 1 FROM bookings b WHERE b.guest_id = g.id) OR EXISTS (SELECT 1 FROM bath_bookings x WHERE x.guest_id = g.id))
+           AND NOT EXISTS (SELECT 1 FROM bookings b WHERE b.guest_id = g.id AND (b.status IN ('confirmed', 'checked_in', 'checked_out') OR b.check_out >= ? OR b.created_at >= ?))
+           AND NOT EXISTS (SELECT 1 FROM bath_bookings x WHERE x.guest_id = g.id AND (x.status IN ('confirmed', 'done') OR x.ends_at >= ? OR x.created_at >= ?))",
+        [$cutoff, $cutoff . ' 00:00:00', $cutoff . ' 00:00:00', $cutoff . ' 00:00:00']
     );
     foreach ($guests as $g) {
         guest_anonymize((int) $g['id'], 'срок хранения несостоявшейся заявки истёк');

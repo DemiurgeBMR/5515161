@@ -88,6 +88,11 @@ function report_period(string $from, string $to): array
         $r['by_method'][$p['method']] = (int) $p['s'];
         $r['payments'] += (int) $p['s'];
     }
+    // Баня: сеансы, которые начались в этом периоде (подтверждённые и состоявшиеся).
+    $bath = q_one("SELECT COUNT(*) AS n, COALESCE(SUM(TIMESTAMPDIFF(MINUTE, starts_at, ends_at)), 0) AS minutes, COALESCE(SUM(total_price), 0) AS revenue
+                   FROM bath_bookings WHERE source <> 'block' AND status IN ('confirmed', 'done') AND starts_at >= ? AND starts_at < ?", [$from . ' 00:00:00', $to . ' 00:00:00']);
+    $r['bath'] = ['sessions' => (int) $bath['n'], 'hours' => (int) round($bath['minutes'] / 60), 'revenue' => (int) $bath['revenue'],
+        'payments' => (int) q_val('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE bath_booking_id IS NOT NULL AND paid_on >= ? AND paid_on < ? AND voided_at IS NULL', [$from, $to])];
     $r['occupancy'] = $r['available'] > 0 ? (int) round($r['sold'] * 100 / $r['available']) : 0;
     $r['adr'] = $r['priced_nights'] ? (int) round($r['revenue'] / $r['priced_nights']) : 0;
     return $r;
@@ -169,10 +174,12 @@ if ($export === 'bookings' || $export === 'payments') {
             $rows);
     }
     $rows = [];
-    foreach (q_all('SELECT p.*, g.name AS guest_name, s.name AS staff_name FROM payments p JOIN bookings b ON b.id = p.booking_id
-                    LEFT JOIN guests g ON g.id = b.guest_id LEFT JOIN staff s ON s.id = p.created_by
+    foreach (q_all('SELECT p.*, COALESCE(g.name, gx.name) AS guest_name, s.name AS staff_name FROM payments p
+                    LEFT JOIN bookings b ON b.id = p.booking_id LEFT JOIN guests g ON g.id = b.guest_id
+                    LEFT JOIN bath_bookings x ON x.id = p.bath_booking_id LEFT JOIN guests gx ON gx.id = x.guest_id
+                    LEFT JOIN staff s ON s.id = p.created_by
                     WHERE p.paid_on >= ? AND p.paid_on < ? AND p.voided_at IS NULL ORDER BY p.paid_on, p.id', [$eFrom, $eToExcl]) as $p) {
-        $rows[] = [$p['paid_on'], (int) $p['amount'], PAYMENT_METHODS[$p['method']] ?? $p['method'], $p['received'] !== null ? (int) $p['received'] : '', $p['received'] !== null ? (int) $p['change_given'] : '', (int) $p['booking_id'], $p['guest_name'] ?? '', $p['note'], $p['staff_name'] ?? ''];
+        $rows[] = [$p['paid_on'], (int) $p['amount'], PAYMENT_METHODS[$p['method']] ?? $p['method'], $p['received'] !== null ? (int) $p['received'] : '', $p['received'] !== null ? (int) $p['change_given'] : '', $p['booking_id'] !== null ? (int) $p['booking_id'] : 'баня №' . (int) $p['bath_booking_id'], $p['guest_name'] ?? '', $p['note'], $p['staff_name'] ?? ''];
     }
     csv_send('oplaty_' . $eFrom . '_' . $eTo . '.csv', ['Дата', 'Сумма', 'Способ', 'Гость дал', 'Сдача', 'Бронь №', 'Гость', 'Заметка', 'Записал'], $rows);
 }
@@ -210,6 +217,9 @@ admin_header('Отчёты', 'reports');
     <div class="kpi"><span>Поступило оплат</span><b><?= e(money($r['payments'])) ?></b><small>по дате оплаты</small></div>
     <div class="kpi"><span>Заездов</span><b><?= $r['arrivals'] ?></b><small><?= $r['arrivals'] ? 'в среднем ' . e(nights_label((int) round($r['stay_nights'] / $r['arrivals']))) : 'гостей: 0' ?></small></div>
     <div class="kpi"><span>Отмены</span><b><?= $r['cancelled'] ?></b><small>отменённые и неприезды</small></div>
+<?php if (bath_enabled() && ($r['bath']['sessions'] || $r['bath']['payments'])): ?>
+    <div class="kpi"><span>Баня</span><b><?= e(money($r['bath']['revenue'])) ?></b><small><?= $r['bath']['sessions'] ?> <?= plural($r['bath']['sessions'], 'сеанс', 'сеанса', 'сеансов') ?>, <?= $r['bath']['hours'] ?> ч; оплат <?= e(money($r['bath']['payments'])) ?> (входят в «Поступило»)</small></div>
+<?php endif; ?>
 </div>
 <?php if ($r['tentative'] || $r['platform'] || $r['repair']): ?>
 <p class="hint">

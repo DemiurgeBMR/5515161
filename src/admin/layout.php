@@ -35,12 +35,13 @@ function flashes_html(): string
 function admin_counters(): array
 {
     if (is_housekeeper()) {
-        return ['new' => 0, 'messages' => 0, 'conflicts' => 0, 'cleaning' => cleaning_due_count()];
+        return ['new' => 0, 'messages' => 0, 'conflicts' => 0, 'bath' => 0, 'cleaning' => cleaning_due_count()];
     }
     return [
         'new'       => (int) q_val("SELECT COUNT(*) FROM bookings WHERE status = 'new'"),
         'messages'  => (int) q_val('SELECT COUNT(*) FROM booking_messages WHERE handled_at IS NULL'),
         'conflicts' => count(ical_conflicts()),
+        'bath'      => bath_new_count(),
         'cleaning'  => cleaning_due_count(),
     ];
 }
@@ -48,7 +49,7 @@ function admin_counters(): array
 /** Числа на пунктах меню. */
 function admin_badges(array $c): array
 {
-    return ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new'], 'cleaning' => $c['cleaning']];
+    return ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new'], 'bath' => $c['bath'], 'cleaning' => $c['cleaning']];
 }
 
 function admin_nav(): array
@@ -61,12 +62,16 @@ function admin_nav(): array
         'calendar' => ['/admin/calendar.php', 'Шахматка', 'calendar-days'],
         'cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can'],
         'bookings' => ['/admin/bookings.php', 'Брони', 'bed-double'],
+        'bath'     => ['/admin/bath.php', 'Баня', 'flame'],
         'guests'   => ['/admin/guests.php', 'Гости', 'users'],
         'rooms'    => ['/admin/rooms.php', 'Номера и фото', 'key-round'],
         'prices'   => ['/admin/prices.php', 'Цены', 'sparkles'],
         'reports'  => ['/admin/reports.php', 'Отчёты', 'file-text'],
         'channels' => ['/admin/channels.php', 'Площадки', 'navigation'],
     ];
+    if (!bath_enabled()) {
+        unset($nav['bath']);
+    }
     if (is_owner()) {
         $nav['users'] = ['/admin/users.php', 'Сотрудники', 'shield-check'];
     }
@@ -159,7 +164,7 @@ function admin_footer(): void
 
 const AUDIT_ENTITIES = [
     'booking' => 'Бронь', 'guest' => 'Гость', 'room' => 'Комната', 'room_type' => 'Тип номера',
-    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник', 'cleaning' => 'Уборка',
+    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник', 'cleaning' => 'Уборка', 'bath' => 'Баня',
 ];
 
 /** Понятное название действия из журнала: «Оплата», «Комната закрыта»… */
@@ -176,6 +181,12 @@ function audit_action_label(string $entity, string $action): string
         'room_type' => ['created' => 'Добавлен', 'updated' => 'Изменён', 'photos_added' => 'Добавлены фото'],
         'price' => ['base_price' => 'Цена за ночь', 'rule_added' => 'Добавлена сезонная цена', 'rule_deleted' => 'Удалена сезонная цена', 'discounts' => 'Скидки за срок', 'prepayment' => 'Предоплата'],
         'settings' => ['site_photo' => 'Фото на сайте', 'updated' => 'Изменены', 'export' => 'Выгрузка в Excel'],
+        'bath' => [
+            'created' => 'Запись', 'updated' => 'Изменена', 'status' => 'Статус', 'payment' => 'Оплата', 'refund' => 'Возврат',
+            'payment_voided' => 'Аннулирована оплата', 'mail' => 'Почта', 'reminder_sent' => 'Напоминание', 'deleted' => 'Удалена',
+            'blocked' => 'Время закрыто', 'unblocked' => 'Время открыто', 'state' => 'Статус бани', 'settings' => 'Настройки',
+            'photos_added' => 'Добавлены фото', 'photo_deleted' => 'Удалено фото', 'waitlist' => 'Лист ожидания',
+        ],
         'cleaning' => ['done' => 'Убрано', 'skipped' => 'Не нужна', 'reopened' => 'Снята отметка', 'added' => 'Добавлена', 'settings' => 'Настройки'],
         'staff' => [
             'login' => 'Вход', 'created' => 'Добавлен', 'updated' => 'Изменён', 'password_reset' => 'Сброшен пароль',
@@ -238,4 +249,72 @@ function booking_row_html(array $b, string $extra = ''): string
         . e($b['room_name'] ?? $b['type_name']) . ($extra !== '' ? ' · ' . e($extra) : '')
         . ($flags ? ' · <span class="brow__flag">' . e(implode(', ', $flags)) . '</span>' : '') . '</span>'
         . '</a>';
+}
+
+/**
+ * Оплаты в карточке брони или записи в баню: список (с аннулированными),
+ * подсказка и форма «Записать оплату» со сдачей. Удалить оплату нельзя.
+ * Форма шлёт action=payment_add / payment_void и id=$targetId.
+ */
+function admin_payments_html(array $payments, int $targetId, ?int $suggest, string $notePlaceholder): string
+{
+    ob_start();
+    ?>
+<?php if ($payments): ?>
+            <table class="table">
+                <tbody>
+<?php foreach ($payments as $p): $void = $p['voided_at'] !== null; $change = payment_change_text($p); ?>
+                    <tr class="pay-row<?= $void ? ' pay-row--void' : '' ?>">
+                        <td><?= e(ru_date($p['paid_on'])) ?> · <?= (int) $p['amount'] < 0 ? 'возврат' : 'оплата' ?><small><?= e(PAYMENT_METHODS[$p['method']] ?? $p['method']) ?><?= $change !== '' ? ', ' . e($change) : '' ?><?= $p['note'] !== '' ? ', ' . e($p['note']) : '' ?>
+                            <br>записал(а) <?= e($p['staff_name'] ?? 'система') ?>, <?= e(ru_datetime($p['created_at'])) ?></small>
+<?php if ($void): ?>
+                            <small class="pay-row__void">Аннулировано <?= e(ru_datetime($p['voided_at'])) ?>, <?= e($p['voided_by_name'] ?? '') ?>: <?= e($p['void_reason']) ?></small>
+<?php endif; ?>
+                        </td>
+                        <td class="num"><span class="pay-row__sum"><?= (int) $p['amount'] < 0 ? '−' : '' ?><?= e(money(abs((int) $p['amount']))) ?></span></td>
+                        <td class="num">
+<?php if (!$void && is_owner()): ?>
+                            <details class="pay-void">
+                                <summary class="link-button">Аннулировать</summary>
+                                <form method="post" class="pay-void__form">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id" value="<?= $targetId ?>">
+                                    <input type="hidden" name="action" value="payment_void">
+                                    <input type="hidden" name="payment_id" value="<?= (int) $p['id'] ?>">
+                                    <label class="visually-hidden" for="void-<?= (int) $p['id'] ?>">Причина</label>
+                                    <input id="void-<?= (int) $p['id'] ?>" name="reason" required maxlength="255" placeholder="Почему запись ошибочная">
+                                    <button class="btn btn--danger btn--sm" type="submit" data-confirm="Аннулировать запись? Она останется в истории зачёркнутой.">Аннулировать</button>
+                                </form>
+                            </details>
+<?php endif; ?>
+                        </td>
+                    </tr>
+<?php endforeach; ?>
+                </tbody>
+            </table>
+<?php endif; ?>
+            <p class="hint">Записанную оплату удалить нельзя. <?= is_owner() ? 'Ошибочную запись можно аннулировать с указанием причины — она останется в истории.' : 'Если записали по ошибке — сообщите владельцу: он аннулирует запись с указанием причины.' ?></p>
+            <form method="post" class="form-grid">
+                <?= csrf_field() ?>
+                <input type="hidden" name="id" value="<?= $targetId ?>">
+                <input type="hidden" name="action" value="payment_add">
+                <div class="field"><label for="p-amount">Сумма, ₽</label><input id="p-amount" name="amount" inputmode="numeric" required value="<?= $suggest ?? '' ?>"></div>
+                <div class="field"><label for="p-method">Способ</label>
+                    <select id="p-method" name="method">
+<?php foreach (PAYMENT_METHODS as $k => $label): ?>
+                        <option value="<?= e($k) ?>"><?= e($label) ?></option>
+<?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field"><label for="p-date">Дата</label><input id="p-date" name="paid_on" type="date" value="<?= e(today()->format('Y-m-d')) ?>"></div>
+                <div class="field"><label for="p-kind">Это</label>
+                    <select id="p-kind" name="kind"><option value="payment">Оплата</option><option value="refund">Возврат гостю</option></select>
+                </div>
+                <div class="field" data-cash-only><label for="p-received">Гость дал наличными, ₽</label><input id="p-received" name="received" inputmode="numeric" placeholder="Если нужна сдача"></div>
+                <div class="field" data-cash-only><label for="p-change">Сдача гостю</label><output id="p-change" class="pay-change" for="p-amount p-received" data-pay-change>—</output></div>
+                <div class="field span-all"><label for="p-note">Комментарий</label><input id="p-note" name="note" maxlength="255" placeholder="<?= e($notePlaceholder) ?>"></div>
+                <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit"><?= icon('banknote') ?>Записать</button></div>
+            </form>
+<?php
+    return ob_get_clean();
 }

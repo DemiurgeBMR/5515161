@@ -7,7 +7,8 @@
  *    администратор отметил выезд раньше — сразу;
  *  • текущая уборка у проживающих — раз в N дней (настраивается на
  *    странице «Уборка», 0 — только по просьбе);
- *  • разовая — администратор добавляет вручную (гость попросил).
+ *  • разовая — администратор добавляет вручную (гость попросил);
+ *  • баня — после каждого сеанса, к его окончанию.
  *
  * Когда подходит время уборки, горничным приходит письмо. Отметку
  * «Убрано» ставит горничная в своём кабинете или администратор.
@@ -19,6 +20,7 @@ const CLEANING_KINDS = [
     'checkout' => 'После выезда',
     'stay'     => 'Текущая уборка',
     'extra'    => 'Разовая уборка',
+    'bath'     => 'После сеанса',
 ];
 
 const CLEANING_STATUSES = ['pending' => 'Нужно убрать', 'done' => 'Убрано', 'skipped' => 'Не нужна'];
@@ -76,9 +78,24 @@ function cleaning_sync(string $date): void
             [$roomId, $bookingId, $kind, $date, $dueAt, now()]);
         $keep[$roomId . '|' . $bookingId . '|' . $kind] = true;
     }
+    // Баня: уборка после каждого сеанса, к его окончанию.
+    $bathKeep = [];
+    if (bath_enabled()) {
+        foreach (q_all("SELECT id, ends_at FROM bath_bookings WHERE source <> 'block' AND status IN ('new', 'confirmed', 'done')
+                        AND ends_at >= ? AND ends_at < ?", [$date . ' 00:00:00', parse_date($date)->modify('+1 day')->format('Y-m-d') . ' 00:00:00']) as $x) {
+            q("INSERT IGNORE INTO cleanings (room_id, bath_booking_id, kind, due_date, due_at, created_at) VALUES (NULL, ?, 'bath', ?, ?, ?)",
+                [$x['id'], $date, $x['ends_at'], now()]);
+            // Сеанс перенесли на другое время того же дня — уборка переезжает вместе с ним.
+            q("UPDATE cleanings SET due_at = ? WHERE bath_booking_id = ? AND kind = 'bath' AND status = 'pending' AND due_at <> ?", [$x['ends_at'], $x['id'], $x['ends_at']]);
+            $bathKeep[(int) $x['id']] = true;
+        }
+    }
     $changed = false;
-    foreach (q_all("SELECT id, room_id, booking_id, kind FROM cleanings WHERE due_date = ? AND status = 'pending' AND kind IN ('checkout', 'stay')", [$date]) as $c) {
-        if (!isset($keep[$c['room_id'] . '|' . (int) $c['booking_id'] . '|' . $c['kind']])) {
+    foreach (q_all("SELECT id, room_id, booking_id, bath_booking_id, kind FROM cleanings WHERE due_date = ? AND status = 'pending' AND kind IN ('checkout', 'stay', 'bath')", [$date]) as $c) {
+        $needed = $c['kind'] === 'bath'
+            ? isset($bathKeep[(int) $c['bath_booking_id']])
+            : isset($keep[$c['room_id'] . '|' . (int) $c['booking_id'] . '|' . $c['kind']]);
+        if (!$needed) {
             q('DELETE FROM cleanings WHERE id = ?', [$c['id']]);
             $changed = true;
         }
@@ -102,8 +119,8 @@ function cleaning_list(string $date): array
     $today = $date === today()->format('Y-m-d');
     $rows = q_all('SELECT c.*, r.name AS room_name, t.name AS type_name, s.name AS done_by_name
                    FROM cleanings c
-                   JOIN rooms r ON r.id = c.room_id
-                   JOIN room_types t ON t.id = r.room_type_id
+                   LEFT JOIN rooms r ON r.id = c.room_id
+                   LEFT JOIN room_types t ON t.id = r.room_type_id
                    LEFT JOIN staff s ON s.id = c.done_by
                    WHERE c.due_date = ?' . ($today ? " OR (c.status = 'pending' AND c.due_date < ?)" : '') . '
                    ORDER BY c.status = \'pending\' DESC, c.due_at, r.sort, r.name', $today ? [$date, $date] : [$date]);
@@ -116,15 +133,40 @@ function cleaning_list(string $date): array
                     AND status IN ('new', 'confirmed', 'checked_in') ORDER BY check_in", [$date, $next]) as $a) {
         $arrivals[(int) $a['room_id']] ??= $a;
     }
+    $bathNext = [];
+    foreach (q_all("SELECT starts_at, guests_count FROM bath_bookings WHERE source <> 'block' AND status IN ('new', 'confirmed')
+                    AND starts_at >= ? AND starts_at < ? ORDER BY starts_at", [$date . ' 00:00:00', $next . ' 00:00:00']) as $x) {
+        $bathNext[] = $x;
+    }
     foreach ($rows as &$c) {
         $c['id'] = (int) $c['id'];
         $c['room_id'] = (int) $c['room_id'];
-        $a = $arrivals[$c['room_id']] ?? null;
-        $c['arrival'] = $a ? ['date' => $a['check_in'], 'today' => $a['check_in'] === $date, 'guests' => (int) $a['guests_count']] : null;
-        $c['urgent'] = $c['status'] === 'pending' && $a && $a['check_in'] === $date;
+        $c['is_bath'] = !$c['room_id'];
+        $c['place'] = cleaning_place($c);
+        if ($c['is_bath']) {
+            // Для бани важен следующий сеанс сегодня: убрать нужно до него.
+            $a = null;
+            foreach ($bathNext as $x) {
+                if ($x['starts_at'] >= $c['due_at']) {
+                    $a = ['date' => $date, 'today' => true, 'guests' => (int) $x['guests_count'], 'time' => substr($x['starts_at'], 11, 5)];
+                    break;
+                }
+            }
+            $c['arrival'] = $a;
+        } else {
+            $a = $arrivals[$c['room_id']] ?? null;
+            $c['arrival'] = $a ? ['date' => $a['check_in'], 'today' => $a['check_in'] === $date, 'guests' => (int) $a['guests_count'], 'time' => null] : null;
+        }
+        $c['urgent'] = $c['status'] === 'pending' && $c['arrival'] && $c['arrival']['today'];
         $c['is_due'] = $c['status'] === 'pending' && $c['due_at'] <= now();
     }
     return $rows;
+}
+
+/** «Номер Стандарт 1» или «Баня». */
+function cleaning_place(array $c): string
+{
+    return $c['room_id'] ? 'Номер ' . $c['room_name'] : 'Баня';
 }
 
 /** «После выезда · 12:00» и т. п. */
@@ -152,10 +194,10 @@ function cleaning_mark(int $id, string $status): void
         throw new BookingError('Уборка не найдена — обновите страницу');
     }
     if ($c['status'] !== 'pending') {
-        throw new BookingError('Номер ' . $c['room_name'] . ' уже отмечен: ' . CLEANING_STATUSES[$c['status']] . ($c['done_by_name'] ? ' (' . $c['done_by_name'] . ')' : ''));
+        throw new BookingError(cleaning_place($c) . ' уже отмечен' . ($c['room_id'] ? '' : 'а') . ': ' . CLEANING_STATUSES[$c['status']] . ($c['done_by_name'] ? ' (' . $c['done_by_name'] . ')' : ''));
     }
     q("UPDATE cleanings SET status = ?, done_at = ?, done_by = ? WHERE id = ? AND status = 'pending'", [$status, now(), $me['id'] ?? null, $id]);
-    audit('cleaning', $id, $status, 'Номер ' . $c['room_name'] . ', ' . mb_strtolower(CLEANING_KINDS[$c['kind']]) . ', ' . ru_date($c['due_date']));
+    audit('cleaning', $id, $status, cleaning_place($c) . ', ' . mb_strtolower(CLEANING_KINDS[$c['kind']]) . ', ' . ru_date($c['due_date']));
     touch_data_version();
 }
 
@@ -171,17 +213,17 @@ function cleaning_reopen(int $id): void
         throw new BookingError('Снять отметку может администратор');
     }
     q("UPDATE cleanings SET status = 'pending', done_at = NULL, done_by = NULL WHERE id = ?", [$id]);
-    audit('cleaning', $id, 'reopened', 'Номер ' . $c['room_name'] . ', ' . ru_date($c['due_date']));
+    audit('cleaning', $id, 'reopened', cleaning_place($c) . ', ' . ru_date($c['due_date']));
     touch_data_version();
 }
 
-/** Разовая уборка (гость попросил, генеральная…) — только администратор. */
+/** Разовая уборка (гость попросил, генеральная…) — только администратор. $roomId = 0 — баня. */
 function cleaning_add(int $roomId, string $date, string $time, string $note): int
 {
     if (is_housekeeper()) {
         throw new BookingError('Добавлять уборки может администратор');
     }
-    $room = q_one('SELECT * FROM rooms WHERE id = ? AND is_active = 1', [$roomId]);
+    $room = $roomId ? q_one('SELECT * FROM rooms WHERE id = ? AND is_active = 1', [$roomId]) : (bath_enabled() ? ['name' => null] : null);
     if (!$room) {
         throw new BookingError('Выберите комнату', 'room_id');
     }
@@ -193,10 +235,10 @@ function cleaning_add(int $roomId, string $date, string $time, string $note): in
     }
     $note = clean_line($note, 255);
     $id = q_insert('cleanings', [
-        'room_id' => $roomId, 'booking_id' => null, 'kind' => 'extra', 'due_date' => $date, 'due_at' => $date . ' ' . $time . ':00',
+        'room_id' => $roomId ?: null, 'booking_id' => null, 'kind' => 'extra', 'due_date' => $date, 'due_at' => $date . ' ' . $time . ':00',
         'note' => $note, 'created_by' => current_staff()['id'] ?? null, 'created_at' => now(),
     ]);
-    audit('cleaning', $id, 'added', 'Номер ' . $room['name'] . ', ' . ru_date($date) . ' с ' . $time . ($note !== '' ? ', ' . $note : ''));
+    audit('cleaning', $id, 'added', ($roomId ? 'Номер ' . $room['name'] : 'Баня') . ', ' . ru_date($date) . ' с ' . $time . ($note !== '' ? ', ' . $note : ''));
     touch_data_version();
     cleaning_notify_due();
     return $id;
@@ -204,7 +246,7 @@ function cleaning_add(int $roomId, string $date, string $time, string $note): in
 
 function cleaning_get(int $id): ?array
 {
-    return q_one('SELECT c.*, r.name AS room_name, s.name AS done_by_name FROM cleanings c JOIN rooms r ON r.id = c.room_id
+    return q_one('SELECT c.*, r.name AS room_name, s.name AS done_by_name FROM cleanings c LEFT JOIN rooms r ON r.id = c.room_id
                   LEFT JOIN staff s ON s.id = c.done_by WHERE c.id = ?', [$id]);
 }
 

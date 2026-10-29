@@ -124,12 +124,12 @@ function notify_admins(array $mail, string $replyTo = ''): void
 function mail_cleaning_due(array $list): array
 {
     $n = count($list);
-    $subject = $n === 1 ? 'Уборка: номер ' . $list[0]['room_name'] : 'Уборка: ' . $n . ' ' . plural($n, 'номер', 'номера', 'номеров');
+    $subject = $n === 1 ? 'Уборка: ' . mb_strtolower(mb_substr($list[0]['place'], 0, 1)) . mb_substr($list[0]['place'], 1) : 'Уборка: ' . $n . ' ' . (array_filter($list, fn ($c) => $c['is_bath']) ? plural($n, 'место', 'места', 'мест') : plural($n, 'номер', 'номера', 'номеров'));
     $lines = ['Здравствуйте! Пора убрать:', ''];
     foreach ($list as $c) {
-        $line = '• Номер ' . $c['room_name'] . ' (' . $c['type_name'] . ') — ' . mb_strtolower(CLEANING_KINDS[$c['kind']] ?? $c['kind']);
+        $line = '• ' . $c['place'] . ($c['is_bath'] ? '' : ' (' . $c['type_name'] . ')') . ' — ' . mb_strtolower(CLEANING_KINDS[$c['kind']] ?? $c['kind']);
         if ($c['urgent']) {
-            $line .= '. Сегодня заезд с ' . hotel()['check_in'] . ' — успейте до заезда';
+            $line .= $c['is_bath'] ? '. Следующий сеанс в ' . $c['arrival']['time'] . ' — успейте до него' : '. Сегодня заезд с ' . hotel()['check_in'] . ' — успейте до заезда';
         }
         if ($c['note'] !== '') {
             $line .= '. ' . $c['note'];
@@ -259,7 +259,94 @@ function mail_admin_guest_message(array $b, string $kind, string $message, ?stri
     return ['Гость просит: ' . mb_strtolower(MESSAGE_KINDS[$kind] ?? $kind) . ' (' . booking_number($b) . ')', $text];
 }
 
+// -------------------------------------------------------------------
+// Баня
+// -------------------------------------------------------------------
+
+function mail_bath_details(array $b): string
+{
+    $lines = [
+        bath_number($b),
+        'Когда: ' . bath_when($b),
+        'Гостей: ' . $b['guests_count'],
+    ];
+    foreach ($b['extras_list'] as $x) {
+        $lines[] = $x['name'] . ' × ' . $x['qty'];
+    }
+    $lines[] = 'Стоимость: ' . ($b['total_price'] !== null ? money($b['total_price']) : 'рассчитает администратор')
+        . ($b['hotel_guest'] ? ' (со скидкой для гостей гостиницы — покажите бронь администратору)' : '');
+    return implode("\n", $lines);
+}
+
+function mail_bath_signature(): string
+{
+    return "\n—\n" . mail_hotel_name() . ', ' . mb_strtolower(bath_settings()['title']) . "\n" . full_address() . "\nТелефон: " . hotel()['phone'];
+}
+
+function mail_bath_received(array $b): array
+{
+    $h = hotel();
+    $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
+        . "Мы получили вашу заявку в баню — время уже держим за вами.\n\n"
+        . mail_bath_details($b) . "\n\n"
+        . 'Администратор подтвердит запись в течение ' . $h['response_time'] . ' (' . $h['admin_hours'] . ").\n"
+        . "\nВаша запись и её статус:\n" . bath_url($b) . "\n"
+        . mail_bath_signature();
+    return ['Заявка в баню принята — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
+}
+
+function mail_bath_confirmed(array $b): array
+{
+    $h = hotel();
+    $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
+        . "Запись в баню подтверждена. Ждём вас!\n\n"
+        . mail_bath_details($b) . "\n\n"
+        . 'Адрес: ' . full_address() . "\n"
+        . (filled($h['address']['entrance']) ? $h['address']['entrance'] . "\n" : '')
+        . 'Маршрут: ' . route_href() . "\n\n"
+        . "Приходите за 5–10 минут до начала. Если планы изменятся — позвоните нам.\n"
+        . bath_url($b) . "\n"
+        . mail_bath_signature();
+    return ['Запись в баню подтверждена — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
+}
+
+function mail_bath_cancelled(array $b): array
+{
+    $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
+        . 'Запись в баню на ' . bath_when($b) . " отменена.\n"
+        . ($b['cancel_reason'] !== '' ? 'Причина: ' . $b['cancel_reason'] . "\n" : '')
+        . "\nЕсли это ошибка или хотите выбрать другое время — позвоните нам.\n"
+        . mail_bath_signature();
+    return ['Запись в баню отменена — ' . ru_date($b['date']), $text];
+}
+
+function mail_bath_reminder(array $b): array
+{
+    $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
+        . 'Напоминаем: ждём вас в бане ' . bath_when($b) . ".\n"
+        . "Приходите за 5–10 минут до начала.\n\n"
+        . 'Адрес: ' . full_address() . "\n"
+        . 'Маршрут: ' . route_href() . "\n\n"
+        . "Если что-то изменилось — позвоните нам.\n" . bath_url($b) . "\n"
+        . mail_bath_signature();
+    return ['Ждём вас в бане ' . ru_date($b['date']) . ' в ' . $b['time_from'], $text];
+}
+
+function mail_admin_new_bath(array $b): array
+{
+    $text = "Новая заявка в баню с сайта.\n\n"
+        . 'Гость: ' . $b['guest_name'] . "\n"
+        . 'Телефон: ' . ($b['guest_phone'] !== '' ? $b['guest_phone'] : '—') . "\n"
+        . ($b['guest_email'] ? 'Почта: ' . $b['guest_email'] . "\n" : '')
+        . 'Связаться: ' . (CONTACT_PREFS[$b['contact_pref']] ?? $b['contact_pref']) . "\n"
+        . ($b['hotel_guest'] ? "Говорит, что живёт в гостинице — проверьте бронь (скидка уже в сумме).\n" : '')
+        . "\n" . mail_bath_details($b) . "\n"
+        . ($b['guest_comment'] ? "\nКомментарий: " . $b['guest_comment'] . "\n" : '')
+        . "\nОткрыть в админке: " . base_url() . '/admin/bath_booking.php?id=' . $b['id'] . "\n";
+    return ['Баня: заявка на ' . ru_date($b['date']) . ', ' . $b['time_from'] . '–' . $b['time_to'] . ', ' . $b['guest_name'], $text];
+}
+
 function mail_admin_waitlist(string $phone): array
 {
-    return ['Баня и хамам: сообщить об открытии', "Гость просит сообщить об открытии бани и хамама.\n\nТелефон: " . $phone . "\n\nВсе такие просьбы — в админке: Гости → Ждут открытия бани.\n"];
+    return ['Баня и хамам: сообщить об открытии', "Гость просит сообщить об открытии бани и хамама.\n\nТелефон: " . $phone . "\n\nВсе такие просьбы — в админке: Баня → Лист ожидания.\n"];
 }

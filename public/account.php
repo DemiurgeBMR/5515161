@@ -45,9 +45,11 @@ if (is_post()) {
 
 $guestEmail = current_guest_email();
 $bookings = [];
+$baths = [];
 if ($guestEmail) {
     $step = 'list';
     $bookings = array_map('booking_hydrate', q_all(booking_select_sql() . ' WHERE g.email = ? ORDER BY b.check_in DESC', [$guestEmail]));
+    $baths = array_map('bath_hydrate', q_all(bath_select_sql() . " WHERE g.email = ? AND x.source <> 'block' ORDER BY x.starts_at DESC LIMIT 50", [$guestEmail]));
 } elseif ($step === 'email' && !empty($_SESSION['code_email']) && !is_post()) {
     $step = 'code';
 }
@@ -70,7 +72,7 @@ require __DIR__ . '/../src/partials/header.php';
 
 <?php if ($step === 'list'): ?>
         <p class="doc__meta">Вы вошли как <?= e($guestEmail) ?>.</p>
-<?php if (!$bookings): ?>
+<?php if (!$bookings && !$baths): ?>
         <p class="lead">На эту почту броней нет. Если бронировали по телефону — администратор может добавить почту в вашу бронь.</p>
 <?php endif; ?>
         <ul class="acc-list">
@@ -83,8 +85,17 @@ require __DIR__ . '/../src/partials/header.php';
                 <span class="status status--<?= e($b['status']) ?>"><?= e($b['status_label']) ?></span>
             </li>
 <?php endforeach; ?>
+<?php foreach ($baths as $x): ?>
+            <li class="acc-item card">
+                <a href="/bath_booking.php?t=<?= e($x['token']) ?>">
+                    <span class="acc-item__dates"><?= e(ru_date($x['date'])) ?>, <?= e($x['time_from']) ?>–<?= e($x['time_to']) ?></span>
+                    <span class="acc-item__meta"><?= e(bath_settings()['title']) ?> · <?= e(bath_duration($x['minutes'])) ?> · запись №<?= $x['id'] ?></span>
+                </a>
+                <span class="status status--<?= e($x['status']) ?>"><?= e($x['status_label']) ?></span>
+            </li>
+<?php endforeach; ?>
         </ul>
-        <p><a class="btn btn--primary" href="/#booking">Новая бронь</a></p>
+        <p><a class="btn btn--primary" href="/#booking">Новая бронь</a><?php if (bath_is_open()): ?> <a class="btn btn--outline" href="/bath.php#book">Записаться в баню</a><?php endif; ?></p>
         <form method="post" class="acc-logout">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="logout">

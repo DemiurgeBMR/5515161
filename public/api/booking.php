@@ -61,7 +61,7 @@ if ($type === 'bath') {
     rate_hit('waitlist_ip', client_ip());
     q_insert('waitlist', ['topic' => 'bath', 'phone' => $phone, 'created_at' => now()]);
     notify_admins(mail_admin_waitlist($phone));
-    $wantsJson ? json_response(['ok' => true]) : redirect('/?notify=ok#bath');
+    $wantsJson ? json_response(['ok' => true]) : redirect(post('back') === 'bath' ? '/bath.php?notify=ok#notify' : '/?notify=ok#bath');
 }
 
 if (rate_limited('booking_ip', client_ip(), RATE_LIMIT_MAX, RATE_LIMIT_WINDOW)) {

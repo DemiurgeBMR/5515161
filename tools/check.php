@@ -86,9 +86,15 @@ if (!db_ready()) {
             $add('админка → Цены: скидки', $d['label'] . ' — ' . $d['note']);
         }
     }
-    foreach (['hero' => 'первый экран', 'bath' => 'баня', 'hammam' => 'хамам'] as $slot => $label) {
-        if (!setting('photo_' . $slot)) {
-            $add('админка → Номера и фото', 'нет фото «' . $label . '» на главной');
+    if (!setting('photo_hero')) {
+        $add('админка → Номера и фото', 'нет фото «первый экран» на главной');
+    }
+    if (bath_enabled()) {
+        if (!bath_photos() && !setting('photo_bath')) {
+            $add('админка → Баня → Настройки', 'нет фото бани');
+        }
+        if (bath_settings()['price'] <= 0) {
+            $add('админка → Баня → Настройки', 'не указана цена за час — без неё баню не открыть');
         }
     }
     $last = (int) setting('cron_last_run', '0');

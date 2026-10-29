@@ -21,6 +21,7 @@ function audit_link(array $a): ?string
         'room_type' => '/admin/room_type.php?id=' . $id,
         'staff'     => is_owner() ? '/admin/users.php' : null,
         'cleaning'  => '/admin/cleaning.php',
+        'bath'      => in_array($a['action'], ['deleted', 'unblocked'], true) ? null : ($id ? '/admin/bath_booking.php?id=' . $id : '/admin/bath.php?tab=settings'),
         default     => null,
     };
 }

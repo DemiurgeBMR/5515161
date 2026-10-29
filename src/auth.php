@@ -277,7 +277,8 @@ function guest_send_code(string $email): ?string
     rate_hit('code_ip', client_ip());
     rate_hit('code_email', $email);
     rate_hit('code_email_day', $email);
-    $has = q_val('SELECT b.id FROM bookings b JOIN guests g ON g.id = b.guest_id WHERE g.email = ? LIMIT 1', [$email]);
+    $has = q_val('SELECT b.id FROM bookings b JOIN guests g ON g.id = b.guest_id WHERE g.email = ? LIMIT 1', [$email])
+        || q_val('SELECT x.id FROM bath_bookings x JOIN guests g ON g.id = x.guest_id WHERE g.email = ? LIMIT 1', [$email]);
     if (!$has) {
         return null;
     }

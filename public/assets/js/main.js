@@ -934,7 +934,7 @@
             if (Object.keys(errors).length) { showErrors(notify, errors); return; }
             submitForm(notify, function () {
                 goal('bath_waitlist');
-                notify.innerHTML = '<p class="notice notice--light" role="status">Спасибо! Сообщим, как только откроемся.</p>';
+                notify.innerHTML = '<p class="notice ' + (notify.closest('.section--dark') ? 'notice--light' : 'notice--ok') + '" role="status">Спасибо! Сообщим, как только откроемся.</p>';
             }, function () {
                 notifyMsg.textContent = 'Не получилось отправить. Позвоните нам: ' + (site ? site.phone : '');
                 notifyMsg.hidden = false;
@@ -958,6 +958,153 @@
             map.appendChild(iframe);
         });
     });
+
+    // ---------------------------------------------------------------
+    // Баня: галерея, свободное время на дату, расчёт стоимости, запись
+    // ---------------------------------------------------------------
+
+    var bathTrack = $('[data-bath-track]');
+    if (bathTrack) {
+        var bathCount = $$('.bath-gallery__item', bathTrack).length;
+        var bathCur = $('[data-bath-current]');
+        var bathIdx = function () { return Math.round(bathTrack.scrollLeft / Math.max(1, bathTrack.clientWidth)); };
+        var bathGo = function (i) {
+            i = (i + bathCount) % bathCount;
+            bathTrack.scrollTo({ left: i * bathTrack.clientWidth, behavior: 'smooth' });
+        };
+        var bp = $('[data-bath-prev]'), bn = $('[data-bath-next]');
+        if (bp) bp.addEventListener('click', function () { bathGo(bathIdx() - 1); });
+        if (bn) bn.addEventListener('click', function () { bathGo(bathIdx() + 1); });
+        bathTrack.addEventListener('scroll', function () { if (bathCur) bathCur.textContent = bathIdx() + 1; }, { passive: true });
+        bathTrack.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight') { e.preventDefault(); bathGo(bathIdx() + 1); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); bathGo(bathIdx() - 1); }
+        });
+    }
+
+    var bathForm = $('[data-bath-form]');
+    if (bathForm && window.fetch && window.FormData) {
+        bathForm.noValidate = true;
+        var bcfg = (site && site.bath) || { price: 0, included: 1, extra_guest: 0, discount: 0 };
+        var bDate = $('[data-bath-date]', bathForm);
+        var bTimes = $('[data-bath-times]', bathForm);
+        var bHint = $('[data-bath-times-hint]', bathForm);
+        var bHours = $('[data-bath-hours]', bathForm);
+        var bGuests = $('[data-bath-guests]', bathForm);
+        var bHotel = $('[data-bath-hotel]', bathForm);
+        var bSum = $('[data-bath-sum]', bathForm);
+        var bError = $('[data-form-error]', bathForm);
+        var bSlots = [];
+        var bHourPrice = bcfg.price;
+
+        var bTime = function () {
+            var r = bathForm.querySelector('input[name=time]:checked');
+            return r ? r.value : '';
+        };
+        var bSet = function (sel, text) { var el = $(sel, bathForm); if (el) el.textContent = text; };
+        var bRow = function (sel, show) { var el = $(sel, bathForm); if (el) el.hidden = !show; };
+
+        var bSyncHours = function () {
+            var max = 0;
+            bSlots.forEach(function (sl) { if (sl.time === bTime()) max = sl.max_hours; });
+            $$('option', bHours).forEach(function (o) { o.disabled = max > 0 && +o.value > max; });
+            if (max && +bHours.value > max) bHours.value = String(max);
+        };
+
+        var bCalc = function () {
+            var hours = +bHours.value, guests = +bGuests.value;
+            if (!bTime() || !bHourPrice) { bSum.hidden = true; return; }
+            var base = bHourPrice * hours;
+            var extraGuests = Math.max(0, guests - bcfg.included);
+            var extraSum = extraGuests * bcfg.extra_guest * hours;
+            var disc = bHotel && bHotel.checked ? Math.round((base + extraSum) * bcfg.discount / 100) : 0;
+            var xs = 0;
+            $$('[data-bath-extra]', bathForm).forEach(function (el) {
+                xs += Math.max(0, Math.min(20, parseInt(el.value, 10) || 0)) * (+el.getAttribute('data-bath-extra'));
+            });
+            bSet('[data-bath-sum-base]', hours + ' ' + plural(hours, 'час', 'часа', 'часов') + ' × ' + money(bHourPrice));
+            bSet('[data-bath-sum-base-v]', money(base));
+            bRow('[data-bath-sum-extra-row]', extraSum > 0);
+            bSet('[data-bath-sum-extra]', 'Ещё ' + extraGuests + ' ' + plural(extraGuests, 'гость', 'гостя', 'гостей'));
+            bSet('[data-bath-sum-extra-v]', money(extraSum));
+            bRow('[data-bath-sum-disc-row]', disc > 0);
+            bSet('[data-bath-sum-disc-v]', '−' + money(disc));
+            bRow('[data-bath-sum-x-row]', xs > 0);
+            bSet('[data-bath-sum-x-v]', money(xs));
+            bSet('[data-bath-sum-total]', money(base + extraSum - disc + xs));
+            bSum.hidden = false;
+        };
+
+        var bRender = function (data) {
+            bSlots = data.slots || [];
+            if (data.hour_price) bHourPrice = data.hour_price;
+            var keep = bTime();
+            bTimes.innerHTML = '';
+            bSlots.forEach(function (sl) {
+                var l = document.createElement('label');
+                l.className = 'chip';
+                l.innerHTML = '<input type="radio" name="time" value="' + esc(sl.time) + '" required><span>' + esc(sl.time) + '</span>';
+                bTimes.appendChild(l);
+            });
+            var again = keep && bathForm.querySelector('input[name=time][value="' + keep + '"]');
+            if (again) again.checked = true;
+            bHint.textContent = data.working_day === false ? 'В этот день баня не работает — выберите другую дату.'
+                : bSlots.length ? 'Свободное время на ' + shortDate(bDate.value) + '.'
+                : 'На ' + shortDate(bDate.value) + ' свободного времени нет — выберите другую дату.';
+            bSyncHours();
+            bCalc();
+        };
+
+        var bLoad = function () {
+            if (!bDate.value) return;
+            bTimes.setAttribute('aria-busy', 'true');
+            fetch('/api/bath.php?date=' + encodeURIComponent(bDate.value), { headers: { Accept: 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(bRender)
+                .catch(function () { bHint.textContent = 'Не получилось загрузить свободное время — позвоните нам.'; })
+                .then(function () { bTimes.removeAttribute('aria-busy'); });
+        };
+
+        bDate.addEventListener('change', bLoad);
+        bTimes.addEventListener('change', function () { bSyncHours(); bCalc(); });
+        [bHours, bGuests, bHotel].forEach(function (el) { if (el) el.addEventListener('change', bCalc); });
+        $$('[data-bath-extra]', bathForm).forEach(function (el) { el.addEventListener('input', bCalc); });
+        bLoad();
+
+        bathForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearErrors(bathForm);
+            bError.hidden = true;
+            var errors = {};
+            if (!bDate.value) errors.date = 'Выберите дату';
+            if (!bTime()) errors.time = 'Выберите время начала';
+            if (!bathForm.elements.name.value.trim()) errors.name = 'Как к вам обращаться?';
+            var d = phoneDigits(bathForm.elements.phone.value);
+            if (d.length < 10 || d.length > 15) errors.phone = 'Проверьте номер телефона';
+            var em = bathForm.elements.email.value.trim();
+            if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) errors.email = 'Проверьте адрес почты';
+            if (!bathForm.elements.consent.checked) errors.consent = 'Без согласия мы не можем принять заявку';
+            if (Object.keys(errors).length) { showErrors(bathForm, errors); return; }
+            var label = $('[data-submit-label]', bathForm);
+            var initial = label.textContent;
+            label.textContent = 'Отправляем…';
+            submitForm(bathForm, function (data) {
+                goal('bath_booking_sent');
+                location.href = data.booking && data.booking.url ? data.booking.url : '/bath.php';
+            }, function (reason) {
+                var phone = site ? site.phone : '';
+                var digits = phoneDigits(phone);
+                bError.innerHTML = '<strong>' + esc(reason === 'rate_limit' ? 'Слишком много заявок подряд.' : reason === 'network' ? 'Похоже, пропал интернет.' : 'Не получилось записаться.')
+                    + '</strong> Позвоните нам — запишем по телефону.<div class="form-error__actions"><a class="btn btn--primary btn--sm" href="'
+                    + esc(digits.length === 11 ? 'tel:+' + digits : '#') + '">Позвонить ' + esc(phone) + '</a></div>';
+                bError.hidden = false;
+            }).then(function () {
+                label.textContent = initial;
+                // Время могли занять, пока заполняли форму, — обновим список.
+                if (bathForm.querySelector('.has-error input[name=time]')) bLoad();
+            });
+        });
+    }
 
     // ---------------------------------------------------------------
     // Нижняя панель на телефоне прячется, когда видна форма или подвал,

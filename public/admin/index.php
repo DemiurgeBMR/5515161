@@ -27,6 +27,8 @@ $freeTonight = array_sum($grid['free'][$today] ?? []);
 $waitlist = (int) q_val('SELECT COUNT(*) FROM waitlist');
 cleaning_sync($today);
 $toClean = cleaning_due_count();
+$bathToday = bath_enabled() ? bath_list($today, today()->modify('+1 day')->format('Y-m-d')) : [];
+$bathNew = bath_new_count();
 
 admin_header('Сегодня', 'today', 'adm-autoreload');
 ?>
@@ -148,6 +150,23 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
 <?php endif; ?>
         </section>
 
+<?php if (bath_enabled() && ($bathToday || $bathNew || bath_state() === 'open')): ?>
+        <section class="panel">
+            <h2 class="panel__title">Баня сегодня<?php if ($bathNew): ?> <small><a href="/admin/bath.php"><?= $bathNew ?> <?= plural($bathNew, 'новая заявка', 'новые заявки', 'новых заявок') ?></a></small><?php endif; ?></h2>
+<?php if (!$bathToday): ?>
+            <p class="empty">Сегодня сеансов нет.</p>
+<?php else: ?>
+            <div class="blist">
+<?php foreach ($bathToday as $x): ?>
+                <a class="brow" href="/admin/bath_booking.php?id=<?= $x['id'] ?>"><span class="brow__name"><?= e($x['time_from'] . '–' . $x['time_to']) ?> · <?= e($x['is_block'] ? 'Время закрыто' : ($x['guest_name'] ?? 'Гость')) ?></span>
+                    <span class="status status--<?= e($x['is_block'] ? 'cancelled' : $x['status']) ?>"><?= e($x['is_block'] ? 'Закрыто' : $x['status_label']) ?></span>
+                    <span class="brow__meta"><?= $x['is_block'] ? e($x['admin_note'] ?? '') : $x['guests_count'] . ' ' . plural($x['guests_count'], 'гость', 'гостя', 'гостей') . ($x['balance'] > 0 ? ' · к оплате ' . e(money($x['balance'])) : '') ?></span></a>
+<?php endforeach; ?>
+            </div>
+<?php endif; ?>
+        </section>
+<?php endif; ?>
+
         <section class="panel">
             <h2 class="panel__title">Заезды на неделе</h2>
 <?php if (!$upcoming): ?>
@@ -161,7 +180,7 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
 <?php endif; ?>
         </section>
 <?php if ($waitlist): ?>
-        <a class="kpi" href="/admin/guests.php?tab=waitlist"><b><?= $waitlist ?></b><span><?= plural($waitlist, 'человек просит', 'человека просят', 'человек просят') ?> сообщить об открытии бани</span></a>
+        <a class="kpi" href="/admin/bath.php?tab=waitlist"><b><?= $waitlist ?></b><span><?= plural($waitlist, 'человек просит', 'человека просят', 'человек просят') ?> сообщить об открытии бани</span></a>
 <?php endif; ?>
     </div>
 </div>

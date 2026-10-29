@@ -201,7 +201,7 @@ admin_header('Номера и фото', 'rooms');
 
 <section class="panel" id="site-photos">
     <h2 class="panel__title">Фото на главной</h2>
-    <p class="hint">Фото номеров загружаются в карточке каждого типа номера. Подойдут JPEG, PNG или WebP до 15 МБ — сайт сам уменьшит фото и уберёт из него геометки.</p>
+    <p class="hint">Фото номеров загружаются в карточке каждого типа номера, фото бани — в разделе <a href="/admin/bath.php?tab=settings#photos">«Баня»</a> (здесь «Баня» и «Хамам» — запасные, пока там нет своих фото). Подойдут JPEG, PNG или WebP до 15 МБ — сайт сам уменьшит фото и уберёт из него геометки.</p>
     <div class="photo-grid">
 <?php foreach (SITE_PHOTO_SLOTS as $slot => $label): $path = setting('photo_' . $slot); ?>
         <figure>

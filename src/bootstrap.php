@@ -505,3 +505,4 @@ require __DIR__ . '/uploads.php';
 require __DIR__ . '/ical.php';
 require __DIR__ . '/cron.php';
 require __DIR__ . '/cleaning.php';
+require __DIR__ . '/bath.php';

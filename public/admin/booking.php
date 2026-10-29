@@ -345,61 +345,7 @@ foreach ($transitions as [$to, $label, $btn]):
                 <div class="money-line <?= $b['balance'] > 0 ? 'money-line--due' : 'money-line--ok' ?>"><span><?= $b['balance'] > 0 ? 'Осталось оплатить' : ($b['balance'] < 0 ? 'Переплата' : 'Оплачено полностью') ?></span><b><?= e(money(abs($b['balance']))) ?></b></div>
 <?php endif; ?>
             </div>
-<?php if ($payments): ?>
-            <table class="table">
-                <tbody>
-<?php foreach ($payments as $p): $void = $p['voided_at'] !== null; $change = payment_change_text($p); ?>
-                    <tr class="pay-row<?= $void ? ' pay-row--void' : '' ?>">
-                        <td><?= e(ru_date($p['paid_on'])) ?> · <?= (int) $p['amount'] < 0 ? 'возврат' : 'оплата' ?><small><?= e(PAYMENT_METHODS[$p['method']] ?? $p['method']) ?><?= $change !== '' ? ', ' . e($change) : '' ?><?= $p['note'] !== '' ? ', ' . e($p['note']) : '' ?>
-                            <br>записал(а) <?= e($p['staff_name'] ?? 'система') ?>, <?= e(ru_datetime($p['created_at'])) ?></small>
-<?php if ($void): ?>
-                            <small class="pay-row__void">Аннулировано <?= e(ru_datetime($p['voided_at'])) ?>, <?= e($p['voided_by_name'] ?? '') ?>: <?= e($p['void_reason']) ?></small>
-<?php endif; ?>
-                        </td>
-                        <td class="num"><span class="pay-row__sum"><?= (int) $p['amount'] < 0 ? '−' : '' ?><?= e(money(abs((int) $p['amount']))) ?></span></td>
-                        <td class="num">
-<?php if (!$void && is_owner()): ?>
-                            <details class="pay-void">
-                                <summary class="link-button">Аннулировать</summary>
-                                <form method="post" class="pay-void__form">
-                                    <?= csrf_field() ?>
-                                    <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                                    <input type="hidden" name="action" value="payment_void">
-                                    <input type="hidden" name="payment_id" value="<?= (int) $p['id'] ?>">
-                                    <label class="visually-hidden" for="void-<?= (int) $p['id'] ?>">Причина</label>
-                                    <input id="void-<?= (int) $p['id'] ?>" name="reason" required maxlength="255" placeholder="Почему запись ошибочная">
-                                    <button class="btn btn--danger btn--sm" type="submit" data-confirm="Аннулировать запись? Она останется в истории зачёркнутой.">Аннулировать</button>
-                                </form>
-                            </details>
-<?php endif; ?>
-                        </td>
-                    </tr>
-<?php endforeach; ?>
-                </tbody>
-            </table>
-<?php endif; ?>
-            <p class="hint">Записанную оплату удалить нельзя. <?= is_owner() ? 'Ошибочную запись можно аннулировать с указанием причины — она останется в истории.' : 'Если записали по ошибке — сообщите владельцу: он аннулирует запись с указанием причины.' ?></p>
-            <form method="post" class="form-grid">
-                <?= csrf_field() ?>
-                <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                <input type="hidden" name="action" value="payment_add">
-                <div class="field"><label for="p-amount">Сумма, ₽</label><input id="p-amount" name="amount" inputmode="numeric" required value="<?= $b['paid'] < $b['prepayment'] ? $b['prepayment'] - $b['paid'] : ($b['balance'] > 0 ? $b['balance'] : '') ?>"></div>
-                <div class="field"><label for="p-method">Способ</label>
-                    <select id="p-method" name="method">
-<?php foreach (PAYMENT_METHODS as $k => $label): ?>
-                        <option value="<?= e($k) ?>"><?= e($label) ?></option>
-<?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="field"><label for="p-date">Дата</label><input id="p-date" name="paid_on" type="date" value="<?= e(today()->format('Y-m-d')) ?>"></div>
-                <div class="field"><label for="p-kind">Это</label>
-                    <select id="p-kind" name="kind"><option value="payment">Оплата</option><option value="refund">Возврат гостю</option></select>
-                </div>
-                <div class="field" data-cash-only><label for="p-received">Гость дал наличными, ₽</label><input id="p-received" name="received" inputmode="numeric" placeholder="Если нужна сдача"></div>
-                <div class="field" data-cash-only><label for="p-change">Сдача гостю</label><output id="p-change" class="pay-change" for="p-amount p-received" data-pay-change>—</output></div>
-                <div class="field span-all"><label for="p-note">Комментарий</label><input id="p-note" name="note" maxlength="255" placeholder="Например: предоплата по СБП"></div>
-                <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit"><?= icon('banknote') ?>Записать</button></div>
-            </form>
+            <?= admin_payments_html($payments, $b['id'], $b['paid'] < $b['prepayment'] ? $b['prepayment'] - $b['paid'] : ($b['balance'] > 0 ? $b['balance'] : null), 'Например: предоплата по СБП') ?>
         </section>
 
         <section class="panel">

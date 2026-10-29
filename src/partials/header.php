@@ -8,6 +8,10 @@ $nav = [
     '/#contacts' => 'Контакты',
     '/account.php' => 'Мои брони',
 ];
+if (bath_enabled()) {
+    // «Баня» — после «Цен»; «Вопросы» уходят, чтобы шапка не переполнялась.
+    $nav = ['/#rooms' => 'Номера', '/#calendar' => 'Свободные даты', '/#prices' => 'Цены', '/bath.php' => 'Баня', '/#contacts' => 'Контакты', '/account.php' => 'Мои брони'];
+}
 ?>
 <header class="site-header" data-header>
     <div class="container site-header__inner">

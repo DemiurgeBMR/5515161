@@ -498,3 +498,40 @@ a.chess__cell:hover { background: var(--accent-soft); }
 .panel__title small { color: var(--ink-3); font-weight: 600; }
 .clean-card__actions .link-button { display: inline-flex; align-items: center; gap: 6px; }
 .clean-card__actions .link-button .i { width: 1em; height: 1em; }
+
+/* Баня */
+.state { display: inline-block; padding: 3px 10px; border-radius: 999px; font-family: var(--font-sans, inherit); font-size: 0.8rem; font-weight: 700; vertical-align: middle; }
+.state--soon { background: #fbe9d0; color: #774719; }
+.state--open { background: var(--olive-soft); color: var(--olive-dark); }
+.state--closed { background: #f3e2df; color: #8c2f22; }
+.state-pick { display: grid; gap: 8px; width: 100%; }
+.state-pick__item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: 1.5px solid var(--line-strong); border-radius: 14px; cursor: pointer; }
+.state-pick__item:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.state-pick__item input { margin-top: 4px; }
+.state-pick__item strong, .state-pick__item small { display: block; }
+.state-pick__item small { color: var(--ink-3); }
+.ready-list { display: grid; gap: 8px; font-size: 0.92rem; }
+.ready-list li { display: flex; gap: 8px; align-items: flex-start; }
+.ready-list .i { flex: none; width: 1.1em; height: 1.1em; margin-top: 0.2em; }
+.ready-list .is-ok .i { color: var(--olive); }
+.ready-list .is-todo { color: #8c2f22; }
+.days-strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 6px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; }
+.days-strip__day { display: grid; justify-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.days-strip__day small { color: var(--ink-3); }
+.days-strip__day b { font-size: 1.15rem; }
+.days-strip__day span { font-size: 0.72rem; color: var(--ink-3); white-space: nowrap; }
+.days-strip__day.is-off { opacity: 0.55; }
+.days-strip__day.is-active { border-color: var(--ink); background: var(--ink); color: #fff; }
+.days-strip__day.is-active small, .days-strip__day.is-active span { color: #e8dcd0; }
+.panel__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.day-nav { display: flex; gap: 6px; align-items: center; }
+.day-nav input { min-height: 36px; padding: 4px 8px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--cream); }
+.free-times { display: flex; flex-wrap: wrap; gap: 6px; }
+.free-times small { color: var(--ink-3); font-weight: 400; }
+.brow-wrap { display: grid; gap: 6px; }
+.brow-wrap__action { justify-self: start; }
+.weekdays { border: 0; padding: 0; margin: 0; min-width: 0; }
+.weekdays__list { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.weekdays__list .inline-check { width: auto; margin: 0; }
+.weekdays legend { width: 100%; padding: 0; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; }
+.money-line--small { font-size: 0.82rem; color: var(--ink-3); }

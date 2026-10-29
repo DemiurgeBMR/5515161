@@ -579,20 +579,43 @@ require __DIR__ . '/../src/partials/header.php';
         </div>
     </section>
 
-<?php if (!empty($h['bath']['enabled'])): ?>
+<?php if (bath_enabled()): $bs = bath_settings(); $bathPhotos = bath_photos(); ?>
     <!-- ============================================================
-         Баня и хамам
+         Баня и хамам: вид зависит от статуса, который ставит владелец
+         (скоро открытие / работает / временно закрыта)
          ============================================================ -->
-    <section class="section section--dark bath" id="bath" aria-labelledby="bath-title">
+    <section class="section section--dark bath bath--<?= e($bs['state']) ?>" id="bath" aria-labelledby="bath-title">
         <div class="container bath__grid">
-            <div class="bath__media">
-                <?= site_photo('bath', 'Баня', 'ph--dark bath__ph') ?>
-                <?= site_photo('hammam', 'Хамам', 'ph--dark arch bath__ph') ?>
-            </div>
+            <a class="bath__media" href="/bath.php" aria-label="<?= e($bs['title']) ?> — фото и подробности">
+                <?= isset($bathPhotos[0]) ? bath_photo_img($bathPhotos[0], $bs['title'], 'ph--dark bath__ph', '(max-width: 760px) 50vw, 25vw') : site_photo('bath', 'Баня', 'ph--dark bath__ph') ?>
+                <?= isset($bathPhotos[1]) ? bath_photo_img($bathPhotos[1], $bs['title'], 'ph--dark arch bath__ph', '(max-width: 760px) 50vw, 25vw') : site_photo('hammam', 'Хамам', 'ph--dark arch bath__ph') ?>
+<?php if (count($bathPhotos) > 2): ?>
+                <span class="bath__more"><?= icon('camera') ?>Ещё <?= count($bathPhotos) - 2 ?> фото</span>
+<?php endif; ?>
+            </a>
             <div class="bath__text">
-                <p class="eyebrow eyebrow--light"><?= e($h['bath']['status']) ?> · <?= e($h['bath']['opening']) ?></p>
-                <h2 class="h2" id="bath-title">Баня <em>и хамам</em></h2>
-                <p>Место, где можно выдохнуть после долгого дня. Для гостей гостиницы и жителей города — с отдельным входом, так что в гостинице остаётся тихо.</p>
+                <p class="eyebrow eyebrow--light"><?= e(bath_eyebrow()) ?></p>
+                <h2 class="h2" id="bath-title"><?= bath_title_html() ?></h2>
+                <p><?= e($bs['lead']) ?></p>
+<?php if ($bs['features']): ?>
+                <ul class="bath__features">
+<?php foreach (array_slice($bs['features'], 0, 5) as $f): ?>
+                    <li><?= icon('check') ?><?= e($f) ?></li>
+<?php endforeach; ?>
+                </ul>
+<?php endif; ?>
+<?php if ($bs['state'] === 'open'): ?>
+                <p class="bath__price"><strong><?= e(bath_price_from()) ?></strong> · от <?= $bs['min_hours'] ?> <?= plural($bs['min_hours'], 'часа', 'часов', 'часов') ?>, до <?= $bs['guests_included'] ?> <?= plural($bs['guests_included'], 'гостя', 'гостей', 'гостей') ?><?php if ($bs['hotel_discount'] > 0): ?><br>Гостям гостиницы — скидка <?= $bs['hotel_discount'] ?>%<?php endif; ?></p>
+                <div class="bath__actions">
+                    <a class="btn btn--copper" href="/bath.php#book"><?= icon('calendar-days') ?>Выбрать время</a>
+                    <a class="btn btn--light" href="/bath.php">Фото и цены</a>
+                </div>
+<?php elseif ($bs['state'] === 'closed'): ?>
+                <p class="bath__price"><?= e($bs['closed_note'] !== '' ? $bs['closed_note'] : 'Баня временно не работает. Подробности — по телефону.') ?></p>
+                <div class="bath__actions">
+                    <a class="btn btn--light" href="<?= e(tel_href()) ?>"><?= icon('phone') ?><?= e($h['phone']) ?></a>
+                </div>
+<?php else: ?>
 <?php if ($notifyResult === 'ok'): ?>
                 <p class="notice notice--light" role="status"><?= icon('check') ?>Спасибо! Сообщим, как только откроемся.</p>
 <?php elseif ($notifyResult === 'error'): ?>
@@ -618,6 +641,10 @@ require __DIR__ . '/../src/partials/header.php';
                         <p class="form-msg" role="status" data-notify-msg hidden></p>
                     </form>
                 </details>
+<?php if ($bathPhotos): ?>
+                <p class="bath__link"><a href="/bath.php">Фото и подробности<?= icon('arrow-right') ?></a></p>
+<?php endif; ?>
+<?php endif; ?>
             </div>
         </div>
     </section>

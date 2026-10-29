@@ -69,12 +69,12 @@ function cleaning_card(array $c, array $me, string $self): string
     $hk = is_housekeeper($me);
     $pending = $c['status'] === 'pending';
     $out = '<article class="clean-card' . ($c['urgent'] ? ' is-urgent' : '') . ($pending ? '' : ' is-finished') . '" id="cl-' . $c['id'] . '">';
-    $out .= '<div class="clean-card__head"><h3 class="clean-card__room">Номер ' . e($c['room_name']) . '</h3><span class="clean-card__type">' . e($c['type_name']) . '</span></div>';
+    $out .= '<div class="clean-card__head"><h3 class="clean-card__room">' . e($c['place']) . '</h3>' . ($c['is_bath'] ? '' : '<span class="clean-card__type">' . e($c['type_name']) . '</span>') . '</div>';
     $out .= '<p class="clean-card__what">' . e(cleaning_when($c)) . '</p>';
     if ($c['arrival'] && $pending) {
         $a = $c['arrival'];
         $out .= '<p class="clean-card__arrival">' . icon($a['today'] ? 'triangle-alert' : 'calendar-days')
-            . '<span>' . ($a['today'] ? 'Сегодня заезд с ' . e(hotel()['check_in']) . ' — успеть до заезда' : 'Заезд ' . e(ru_date($a['date']))) . ' · '
+            . '<span>' . ($c['is_bath'] ? 'Следующий сеанс в ' . e($a['time']) . ' — успеть до него' : ($a['today'] ? 'Сегодня заезд с ' . e(hotel()['check_in']) . ' — успеть до заезда' : 'Заезд ' . e(ru_date($a['date'])))) . ' · '
             . $a['guests'] . ' ' . plural($a['guests'], 'гость', 'гостя', 'гостей') . '</span></p>';
     }
     if ($c['note'] !== '') {
@@ -88,7 +88,7 @@ function cleaning_card(array $c, array $me, string $self): string
     if ($pending) {
         $out .= '<div class="clean-card__actions">' . $form('done', icon('check') . 'Убрано', 'btn btn--primary clean-card__done');
         if (!$hk) {
-            $out .= $form('skip', 'Не нужна', 'btn btn--outline btn--sm', 'Уборка номера ' . $c['room_name'] . ' не нужна?');
+            $out .= $form('skip', 'Не нужна', 'btn btn--outline btn--sm', 'Уборка «' . $c['place'] . '» не нужна?');
         }
         $out .= '</div>';
     } else {
@@ -104,7 +104,7 @@ function cleaning_card(array $c, array $me, string $self): string
 }
 
 $dueIds = implode(',', array_map(fn ($c) => $c['id'], array_filter($due, fn ($c) => !$tomorrowView)));
-$dueNames = implode(', ', array_map(fn ($c) => $c['room_name'], $due));
+$dueNames = implode(', ', array_map(fn ($c) => $c['place'], $due));
 
 admin_header('Уборка', 'cleaning', 'adm-autoreload');
 ?>
@@ -175,6 +175,9 @@ admin_header('Уборка', 'cleaning', 'adm-autoreload');
 <?php foreach ($rooms as $r): ?>
                 <option value="<?= (int) $r['id'] ?>"><?= e($r['name']) ?> · <?= e($r['type_name'] ?? '') ?></option>
 <?php endforeach; ?>
+<?php if (bath_enabled()): ?>
+                <option value="0">Баня</option>
+<?php endif; ?>
             </select></div>
             <div class="field"><label for="c-date">Дата</label><input id="c-date" type="date" name="date" required min="<?= e(today()->format('Y-m-d')) ?>" value="<?= e($day) ?>"></div>
             <div class="field"><label for="c-time">С какого времени</label><input id="c-time" type="time" name="time" required value="<?= e($tomorrowView ? cleaning_stay_time() : date('H:i')) ?>"></div>

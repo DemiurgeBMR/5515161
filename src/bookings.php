@@ -167,6 +167,9 @@ function guest_anonymize(int $id, string $why): void
     q('UPDATE booking_messages SET message = NULL WHERE booking_id IN (SELECT id FROM bookings WHERE guest_id = ?)', [$id]);
     q("UPDATE audit_log SET details = NULL WHERE entity = 'booking' AND action IN ('guest_message', 'reminder_sent', 'deleted', 'mail', 'status')
        AND entity_id IN (SELECT id FROM bookings WHERE guest_id = ?)", [$id]);
+    q("UPDATE bath_bookings SET guest_comment = NULL, admin_note = NULL, cancel_reason = '' WHERE guest_id = ?", [$id]);
+    q("UPDATE audit_log SET details = NULL WHERE entity = 'bath' AND action IN ('reminder_sent', 'deleted', 'mail', 'status', 'created')
+       AND entity_id IN (SELECT id FROM bath_bookings WHERE guest_id = ?)", [$id]);
     if ($guest['email'] !== '') {
         q('DELETE FROM login_codes WHERE email = ?', [$guest['email']]);
     }
@@ -567,17 +570,31 @@ function booking_set_status(int $id, string $status, string $reason = ''): array
 
 function booking_payments(int $bookingId): array
 {
+    return payments_of('booking', $bookingId);
+}
+
+/** Оплаты брони номера ('booking') или записи в баню ('bath'), с аннулированными. */
+function payments_of(string $target, int $id): array
+{
+    $col = $target === 'bath' ? 'bath_booking_id' : 'booking_id';
     return q_all('SELECT p.*, s.name AS staff_name, v.name AS voided_by_name FROM payments p
                   LEFT JOIN staff s ON s.id = p.created_by LEFT JOIN staff v ON v.id = p.voided_by
-                  WHERE p.booking_id = ? ORDER BY p.paid_on, p.id', [$bookingId]);
+                  WHERE p.' . $col . ' = ? ORDER BY p.paid_on, p.id', [$id]);
 }
 
 /**
- * Записать оплату (сумма > 0) или возврат гостю (сумма < 0).
+ * Записать оплату (сумма > 0) или возврат гостю (сумма < 0) по брони номера.
  * $received — сколько гость дал наличными; сдача считается сама.
  */
 function payment_add(int $bookingId, int $amount, string $method, string $date, string $note, ?int $received = null): int
 {
+    return payment_record('booking', $bookingId, $amount, $method, $date, $note, $received);
+}
+
+/** Оплата брони номера ('booking') или записи в баню ('bath'). */
+function payment_record(string $target, int $targetId, int $amount, string $method, string $date, string $note, ?int $received = null): int
+{
+    $target = $target === 'bath' ? 'bath' : 'booking';
     if ($amount === 0) {
         throw new BookingError('Укажите сумму', 'amount');
     }
@@ -599,7 +616,8 @@ function payment_add(int $bookingId, int $amount, string $method, string $date, 
     }
     $note = clean_line($note, 255);
     $id = q_insert('payments', [
-        'booking_id'   => $bookingId,
+        'booking_id'      => $target === 'booking' ? $targetId : null,
+        'bath_booking_id' => $target === 'bath' ? $targetId : null,
         'amount'       => $amount,
         'method'       => $method,
         'received'     => $received,
@@ -609,7 +627,7 @@ function payment_add(int $bookingId, int $amount, string $method, string $date, 
         'created_by'   => current_staff()['id'] ?? null,
         'created_at'   => now(),
     ]);
-    audit('booking', $bookingId, $amount > 0 ? 'payment' : 'refund', money(abs($amount)) . ', ' . PAYMENT_METHODS[$method]
+    audit($target, $targetId, $amount > 0 ? 'payment' : 'refund', money(abs($amount)) . ', ' . PAYMENT_METHODS[$method]
         . ($received !== null ? ', гость дал ' . money($received) . ', сдача ' . money($change) : '')
         . ($note !== '' ? ', ' . $note : ''));
     return $id;
@@ -633,7 +651,8 @@ function payment_void(int $paymentId, string $reason): void
         throw new BookingError('Эта запись уже аннулирована');
     }
     q('UPDATE payments SET voided_at = ?, voided_by = ?, void_reason = ? WHERE id = ? AND voided_at IS NULL', [now(), current_staff()['id'], $reason, $paymentId]);
-    audit('booking', (int) $p['booking_id'], 'payment_voided', money(abs((int) $p['amount'])) . ' от ' . ru_date($p['paid_on']) . ' — ' . $reason);
+    [$entity, $entityId] = $p['booking_id'] !== null ? ['booking', (int) $p['booking_id']] : ['bath', (int) $p['bath_booking_id']];
+    audit($entity, $entityId, 'payment_voided', money(abs((int) $p['amount'])) . ' от ' . ru_date($p['paid_on']) . ' — ' . $reason);
 }
 
 /** Строка о сдаче: «гость дал 5 000 ₽, сдача 500 ₽». */
