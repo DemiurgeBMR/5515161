@@ -477,6 +477,15 @@ function hotel_fail(Throwable $e): void
         json_response(['ok' => false, 'error' => 'server', 'message' => 'Что-то пошло не так — позвоните нам.'], 500);
     }
     $errorCode = 500;
+    // На своём компьютере (Open Server) показываем, что именно сломалось:
+    // гостям на хостинге этого не видно, им — только телефон.
+    if (is_local_request()) {
+        $errorDetail = get_class($e) . ': ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')';
+        // Нет таблицы или столбца — код обновили, а базу ещё нет.
+        if ($e instanceof PDOException && in_array((string) $e->getCode(), ['42S02', '42S22'], true)) {
+            $errorHint = 'База данных не обновлена после git pull. В консоли Open Server в папке проекта выполните: php tools\\migrate.php — и обновите страницу.';
+        }
+    }
     require __DIR__ . '/partials/error_page.php';
     exit;
 }

@@ -5,6 +5,8 @@
  * можно звонком. Перед подключением задайте $errorCode.
  *
  * Использует только config/hotel.php — работает и без базы данных.
+ * $errorDetail и $errorHint (необязательно) — подробности для разработчика,
+ * задаются только для запросов с этого же компьютера.
  */
 $errorCode = $errorCode ?? 503;
 http_response_code($errorCode);
@@ -34,6 +36,12 @@ require __DIR__ . '/header.php';
 <?php endif; ?>
         </p>
         <p class="muted"><?= e(full_address()) ?></p>
+<?php if (!empty($errorHint)): ?>
+        <div class="notice notice--ok" role="alert"><?= icon('info') ?><div><strong>Как исправить.</strong> <?= e($errorHint) ?></div></div>
+<?php endif; ?>
+<?php if (!empty($errorDetail)): ?>
+        <p class="muted"><small>Видно только на этом компьютере: <?= e($errorDetail) ?></small></p>
+<?php endif; ?>
     </div>
 </main>
 <?php require __DIR__ . '/footer.php'; ?>
