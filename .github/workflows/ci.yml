@@ -5,36 +5,90 @@ on:
   pull_request:
 
 jobs:
-  smoke:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 8.1 — минимальная версия для хостинга, 8.5 — как в Open Server.
+        php: ['8.1', '8.5']
 
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: riveg_rent_ci
+          MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval=10s
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=20
+
+    env:
+      HOTEL_DB_HOST: 127.0.0.1
+      HOTEL_DB_USER: root
+      HOTEL_DB_PASS: root
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: pdo_mysql, mysqli, mbstring, gd, curl, json
+          php-version: ${{ matrix.php }}
+          ini-values: error_reporting=E_ALL, display_errors=On
+          extensions: mbstring, pdo_mysql, gd, curl, exif
           coverage: none
 
-      - name: Run smoke tests
+      - name: Проверка синтаксиса PHP
+        run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: Тесты бронирования на MySQL 8
+        run: php tests/run.php
+
+      - name: Страницы открываются
         env:
-          DB_HOST: 127.0.0.1
-          DB_USER: root
-          DB_PASS: ''
-          DB_NAME: riveg_rent_ci
-        run: bash tests/smoke.sh
+          HOTEL_DB_NAME: hotel_ci
+          HOTEL_MAIL_TRANSPORT: log
+        run: |
+          php tools/migrate.php
+          php -S 127.0.0.1:8090 -t public > /tmp/server.log 2>&1 &
+          sleep 1
+          for page in / /rules.php /privacy.php /consent.php /account.php /bath.php /sitemap.php /robots.php /api/availability.php "/api/bath.php?date=$(date -d '+3 days' +%F)" /admin/login.php; do
+            code=$(curl -s -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
+            echo "$page → $code"
+            [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
+            if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
+          done
+          # Страница «не найдено» и заголовки безопасности.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/404.php)
+          echo "/404.php → $code"
+          [ "$code" = 404 ] || exit 1
+          curl -s -D - -o /dev/null http://127.0.0.1:8090/ | grep -qi '^content-security-policy:' || { echo 'нет Content-Security-Policy'; exit 1; }
+          # Вебхук Telegram-бота без секрета — отказ.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' http://127.0.0.1:8090/api/telegram.php)
+          echo "/api/telegram.php без секрета → $code"
+          [ "$code" = 403 ] || exit 1
+          # Админка без входа — только переход на страницу входа.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/admin/bookings.php)
+          echo "/admin/bookings.php без входа → $code"
+          [ "$code" = 303 ] || exit 1
+          # Вход владельцем и все страницы админки.
+          php -r 'require "src/bootstrap.php"; staff_create("ci@example.com", "CI", "owner", "ci-password-123");'
+          jar=/tmp/cookies.txt
+          token=$(curl -s -c $jar http://127.0.0.1:8090/admin/login.php | grep -o 'name="_csrf" value="[^"]*"' | head -1 | sed 's/.*value="//; s/"$//')
+          code=$(curl -s -b $jar -c $jar -o /dev/null -w '%{http_code}' --data-urlencode "_csrf=$token" -d action=login -d email=ci@example.com -d password=ci-password-123 http://127.0.0.1:8090/admin/login.php)
+          echo "вход → $code"
+          [ "$code" = 303 ] || exit 1
+          # Лист ожидания бани переехал из «Гостей» в «Баню» — старый адрес перенаправляет.
+          code=$(curl -s -b $jar -o /dev/null -w '%{http_code}' 'http://127.0.0.1:8090/admin/guests.php?tab=waitlist')
+          echo "/admin/guests.php?tab=waitlist → $code"
+          [ "$code" = 303 ] || exit 1
+          for page in /admin/ /admin/calendar.php /admin/bookings.php '/admin/booking.php?new=1' /admin/guests.php /admin/bath.php '/admin/bath.php?tab=settings' '/admin/bath.php?tab=waitlist' /admin/cleaning.php /admin/rooms.php '/admin/room_type.php?id=1' /admin/prices.php /admin/reports.php '/admin/reports.php?export=bookings' /admin/channels.php /admin/users.php /admin/journal.php /admin/profile.php /admin/api/version.php; do
+            code=$(curl -s -b $jar -o /tmp/page.html -w '%{http_code}' "http://127.0.0.1:8090$page")
+            echo "$page → $code"
+            [ "$code" = 200 ] || { cat /tmp/page.html; cat /tmp/server.log; exit 1; }
+            if grep -qiE 'Fatal error|Warning:|Notice:|Deprecated:' /tmp/page.html; then cat /tmp/page.html; exit 1; fi
+          done
+          if grep -qiE 'Fatal|Warning|Notice|Deprecated' /tmp/server.log; then cat /tmp/server.log; exit 1; fi

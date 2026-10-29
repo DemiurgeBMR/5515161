@@ -1,0 +1,265 @@
+/*
+ * Админка — поведение страниц. Без библиотек.
+ * Всё работает и без JS (обычные формы), скрипт только добавляет удобство.
+ */
+(function () {
+    'use strict';
+
+    var $ = function (sel, root) { return (root || document).querySelector(sel); };
+    var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+    // Меню на телефоне
+    var toggle = $('[data-adm-toggle]');
+    var side = $('[data-adm-nav]');
+    if (toggle && side) {
+        toggle.addEventListener('click', function () {
+            var open = toggle.getAttribute('aria-expanded') !== 'true';
+            toggle.setAttribute('aria-expanded', String(open));
+            side.classList.toggle('is-open', open);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && side.classList.contains('is-open')) toggle.click();
+        });
+        // Тап мимо меню закрывает его
+        document.addEventListener('click', function (e) {
+            if (side.classList.contains('is-open') && !side.contains(e.target) && !toggle.contains(e.target)) toggle.click();
+        });
+    }
+
+    // Сообщение «Сохранено» показываем у того блока, к которому вернула страница
+    // (адрес с #якорем), а не вверху — иначе на телефоне его не видно.
+    var anchor = location.hash.length > 1 && document.getElementById(location.hash.slice(1));
+    if (anchor && anchor.tagName === 'SECTION') {
+        var title = $('.panel__title', anchor);
+        $$('.adm-content > .notice').reverse().forEach(function (n) {
+            if (title && title.parentNode === anchor) title.insertAdjacentElement('afterend', n);
+            else anchor.insertBefore(n, anchor.firstChild);
+        });
+    }
+
+    // Подтверждение опасных действий: <button data-confirm="Отменить бронь?">
+    document.addEventListener('submit', function (e) {
+        var btn = e.submitter || $('[type=submit]', e.target);
+        var text = (btn && btn.getAttribute('data-confirm')) || e.target.getAttribute('data-confirm');
+        if (text && !window.confirm(text)) e.preventDefault();
+    }, true);
+
+    // Поле, которое сразу отправляет форму (выбор даты и периода в шахматке)
+    $$('[data-autosubmit]').forEach(function (el) {
+        el.addEventListener('change', function () { if (el.form) el.form.submit(); });
+    });
+
+    // Оплата наличными: «Гость дал» → сдача считается сразу. Поля про сдачу
+    // видны только для наличных и для оплаты (не для возврата).
+    var payChange = $('[data-pay-change]');
+    if (payChange) {
+        var pf = payChange.form || payChange.closest('form');
+        var num = function (name) { var el = pf.elements[name]; return el ? parseInt(String(el.value).replace(/\D+/g, ''), 10) || 0 : 0; };
+        var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + '\u00a0₽'; };
+        var syncPay = function () {
+            var cash = pf.elements.method.value === 'cash' && pf.elements.kind.value === 'payment';
+            $$('[data-cash-only]', pf).forEach(function (f) { f.hidden = !cash; });
+            if (!cash) pf.elements.received.value = '';
+            var amount = num('amount'), received = num('received');
+            payChange.classList.toggle('is-bad', received > 0 && received < amount);
+            payChange.textContent = !received ? '—' : (received < amount ? 'гость дал меньше суммы' : rub(received - amount));
+        };
+        ['input', 'change'].forEach(function (ev) { pf.addEventListener(ev, syncPay); });
+        syncPay();
+    }
+
+    // Баня → время работы: выходной день прячет часы; «на все дни» копирует
+    // часы первого рабочего дня во все отмеченные.
+    var week = $('[data-week]');
+    if (week) {
+        var rows = $$('[data-week-row]', week);
+        rows.forEach(function (row) {
+            var on = $('[data-week-on]', row);
+            on.addEventListener('change', function () { row.classList.toggle('is-off', !on.checked); });
+        });
+        var copy = $('[data-week-copy]', week);
+        if (copy) copy.addEventListener('click', function () {
+            var first = rows.filter(function (r) { return $('[data-week-on]', r).checked; })[0];
+            if (!first) return;
+            var f = $('[data-week-from]', first).value, t = $('[data-week-to]', first).value;
+            rows.forEach(function (r) {
+                if ($('[data-week-on]', r).checked) { $('[data-week-from]', r).value = f; $('[data-week-to]', r).value = t; }
+            });
+        });
+    }
+
+    // Пароль: «показать», предупреждение о Caps Lock и русской раскладке,
+    // а у «Ещё раз» — что пароли не совпадают. Частые причины «не подходит».
+    $$('[data-pw]').forEach(function (wrap) {
+        var input = $('input', wrap);
+        var btn = $('[data-pw-toggle]', wrap);
+        var warn = wrap.parentNode.querySelector('[data-pw-warn]');
+        var caps = false;
+        btn.addEventListener('click', function () {
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(show));
+            btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+            input.focus();
+        });
+        var twin = input.name === 'password2' && input.form ? input.form.elements.password : null;
+        var check = function () {
+            var msgs = [];
+            if (caps) msgs.push('Включён Caps Lock');
+            if (/[а-яё]/i.test(input.value)) msgs.push('В пароле русские буквы — при входе нужна та же раскладка');
+            if (twin && input.value && twin.value && input.value !== twin.value) msgs.push('Пароли пока не совпадают');
+            warn.textContent = msgs.join('. ');
+            warn.hidden = !msgs.length;
+        };
+        var key = function (e) { if (e.getModifierState) caps = e.getModifierState('CapsLock'); check(); };
+        input.addEventListener('keydown', key);
+        input.addEventListener('keyup', key);
+        input.addEventListener('input', check);
+        input.addEventListener('blur', function () { caps = false; check(); });
+    });
+
+    // Копировать ссылку: <button data-copy="#id-поля">
+    $$('[data-copy]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var input = $(btn.getAttribute('data-copy'));
+            if (!input) return;
+            input.select();
+            var done = function () {
+                var old = btn.textContent;
+                btn.textContent = 'Скопировано';
+                setTimeout(function () { btn.textContent = old; }, 1500);
+            };
+            if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, function () { document.execCommand('copy'); done(); });
+            else { document.execCommand('copy'); done(); }
+        });
+    });
+
+    // Форма отмены брони открывается по кнопке
+    $$('[data-open]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var el = $(btn.getAttribute('data-open'));
+            if (!el) return;
+            el.classList.toggle('is-open');
+            var input = $('input, textarea', el);
+            if (input && el.classList.contains('is-open')) input.focus();
+        });
+    });
+
+    // Карточка брони: своя цена, число ночей, комнаты выбранного типа
+    var bookingForm = $('[data-booking-form]');
+    if (bookingForm) {
+        var manual = $('[name=price_manual]', bookingForm);
+        var total = $('[name=total_price]', bookingForm);
+        var syncManual = function () { if (manual && total) total.disabled = !manual.checked; };
+        if (manual) manual.addEventListener('change', syncManual);
+        syncManual();
+
+        var ci = $('[name=check_in]', bookingForm);
+        var co = $('[name=check_out]', bookingForm);
+        var nightsEl = $('[data-nights]', bookingForm);
+        var syncNights = function () {
+            if (!nightsEl) return;
+            var a = new Date(ci.value + 'T00:00:00'), b = new Date(co.value + 'T00:00:00');
+            var n = Math.round((b - a) / 86400000);
+            nightsEl.textContent = n > 0 ? n + ' ' + (n % 10 === 1 && n % 100 !== 11 ? 'ночь' : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'ночи' : 'ночей')) : '';
+            if (ci.value && (!co.value || co.value <= ci.value)) {
+                var d = new Date(ci.value + 'T00:00:00');
+                d.setDate(d.getDate() + 1);
+                var m = d.getMonth() + 1, day = d.getDate();
+                co.value = d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+                syncNights();
+            }
+        };
+        if (ci && co) {
+            ci.addEventListener('change', syncNights);
+            co.addEventListener('change', syncNights);
+            syncNights();
+        }
+
+        var typeSel = $('[name=room_type_id]', bookingForm);
+        var roomSel = $('[name=room_id]', bookingForm);
+        var syncRooms = function () {
+            if (!typeSel || !roomSel) return;
+            var t = typeSel.value;
+            $$('option[data-type]', roomSel).forEach(function (o) {
+                o.hidden = t !== '' && o.getAttribute('data-type') !== t;
+            });
+            var cur = roomSel.options[roomSel.selectedIndex];
+            if (cur && cur.hidden) roomSel.value = '0';
+        };
+        if (typeSel && roomSel) {
+            typeSel.addEventListener('change', syncRooms);
+            roomSel.addEventListener('change', function () {
+                var o = roomSel.options[roomSel.selectedIndex];
+                if (o && o.getAttribute('data-type')) typeSel.value = o.getAttribute('data-type');
+            });
+            syncRooms();
+        }
+    }
+
+    // Уборка: уведомление на телефоне, пока страница открыта. Страница сама
+    // перезагружается, когда появляется новая уборка; если среди «пора убрать»
+    // есть номера, которых раньше не было, — показываем уведомление и вибрируем.
+    var cleanDue = $('[data-clean-due]');
+    if (cleanDue) {
+        var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+        var ids = cleanDue.getAttribute('data-clean-due').split(',').filter(Boolean);
+        var seen = (store('cleaning_seen') || '').split(',');
+        var fresh = ids.filter(function (id) { return seen.indexOf(id) === -1; });
+        store('cleaning_seen', ids.join(','));
+        if (fresh.length && store('cleaning_seen_init')) {
+            var text = 'Пора убрать: ' + cleanDue.getAttribute('data-clean-names');
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try { new Notification('Уборка', { body: text, tag: 'cleaning' }); } catch (e) {}
+            }
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        }
+        store('cleaning_seen_init', '1');
+        var pushBtn = $('[data-clean-push]');
+        if (pushBtn && 'Notification' in window && Notification.permission === 'default') {
+            pushBtn.hidden = false;
+            pushBtn.addEventListener('click', function () {
+                Notification.requestPermission().then(function (p) { pushBtn.hidden = p !== 'default'; });
+            });
+        } else if (pushBtn && !('Notification' in window)) {
+            var hint = $('[data-clean-push-hint]');
+            if (hint) hint.hidden = true;
+        }
+    }
+
+    // Новые данные: раз в 30 секунд спрашиваем сервер, не изменилось ли что-то
+    // (новая заявка, сообщение гостя). Страница не перезагружается сама, если
+    // вы что-то печатаете, — появляется кнопка «Обновить».
+    var body = document.body;
+    var bar = $('[data-adm-refresh]');
+    var reloadBtn = $('[data-adm-reload]');
+    if (reloadBtn) reloadBtn.addEventListener('click', function () { location.reload(); });
+    var typing = false;
+    document.addEventListener('input', function () { typing = true; });
+
+    function poll() {
+        if (document.visibilityState !== 'visible') return;
+        fetch('/admin/api/version.php', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+                if (!data) return;
+                $$('[data-badge]').forEach(function (b) {
+                    var key = b.getAttribute('data-badge');
+                    if (data.badges && key in data.badges) {
+                        b.textContent = data.badges[key];
+                        b.hidden = !data.badges[key];
+                    }
+                });
+                if (data.version && data.version !== body.getAttribute('data-version')) {
+                    if (body.classList.contains('adm-autoreload') && !typing) location.reload();
+                    else if (bar) bar.hidden = false;
+                }
+            })
+            .catch(function () {});
+    }
+    // На странице входа обновлять нечего.
+    if (body.hasAttribute('data-version')) {
+        setInterval(poll, 30000);
+        document.addEventListener('visibilitychange', poll);
+    }
+})();
