@@ -204,6 +204,78 @@ for ($i = 0; $i < 8; $i++) {
 check(staff_login('owner@example.com', 'secret-pass-1') === 'Слишком много попыток. Подождите 15 минут.', 'после 8 ошибок вход временно закрыт');
 check(in_array('owner@example.com', admin_recipients(), true), 'владелец получает уведомления');
 
+echo "\nОплаты нельзя удалить\n";
+check(!function_exists('payment_delete'), 'функции удаления оплаты больше нет');
+$pid = payment_add($b1['id'], 1000, 'cash', d(0), 'доплата', 1500);
+$pay = q_one('SELECT * FROM payments WHERE id = ?', [$pid]);
+check((int) $pay['received'] === 1500 && (int) $pay['change_given'] === 500, 'гость дал 1 500 ₽ за 1 000 ₽ — записана сдача 500 ₽');
+expect_error(fn () => payment_add($b1['id'], 1000, 'cash', d(0), '', 900), 'гость дал меньше суммы — не записывается', 'меньше');
+expect_error(fn () => payment_add($b1['id'], 1000, 'card', d(0), '', 1500), 'сдача по карте — нельзя', 'наличными');
+$adm = staff_create('admin@example.com', 'Ольга', 'admin', 'admin-pass-1');
+staff_login('admin@example.com', 'admin-pass-1');
+expect_error(fn () => payment_void($pid, 'ошибка'), 'администратор не может аннулировать оплату', 'владелец');
+check(booking_get($b1['id'])['paid'] === 8500, 'оплата осталась в сумме');
+rate_clear('staff_email', 'owner@example.com');
+staff_login('owner@example.com', 'secret-pass-1');
+expect_error(fn () => payment_void($pid, '  '), 'аннулировать без причины нельзя', 'почему');
+payment_void($pid, 'записали дважды');
+check(booking_get($b1['id'])['paid'] === 7500, 'аннулированная запись не входит в оплаченное');
+check(q_val('SELECT COUNT(*) FROM payments WHERE id = ?', [$pid]) == 1, 'аннулированная запись осталась в истории');
+check((int) q_val("SELECT COUNT(*) FROM audit_log WHERE entity = 'booking' AND entity_id = ? AND action = 'payment_voided'", [$b1['id']]) === 1, 'аннулирование записано в журнал');
+expect_error(fn () => payment_void($pid, 'ещё раз'), 'дважды аннулировать нельзя', 'уже');
+try {
+    q('DELETE FROM bookings WHERE id = ?', [$b1['id']]);
+    check(false, 'база не даёт удалить бронь с оплатами');
+} catch (PDOException $e) {
+    check(true, 'база не даёт удалить бронь с оплатами');
+}
+
+echo "\nУборка\n";
+@unlink(HOTEL_ROOT . '/storage/mail.log');
+$hk = staff_create('maid@example.com', 'Мария', 'housekeeper', 'maid-pass-12');
+check(!in_array('maid@example.com', admin_recipients(), true), 'горничной не приходят письма о заявках с данными гостей');
+check(cleaning_recipients() === ['maid@example.com'], 'горничной приходят письма об уборке');
+set_setting('cleaning_every_days', '3');
+$out = booking_create(guest(['check_in' => d(-2), 'check_out' => d(0), 'room_type_id' => $large['id'], 'status' => 'checked_in']), true);
+$next = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $large['id'], 'room_id' => $out['room_id'], 'status' => 'confirmed', 'guests' => 2]), true);
+$stay = booking_create(guest(['check_in' => d(-3), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
+cleaning_sync(d(0));
+$list = cleaning_list(d(0));
+$co = array_values(array_filter($list, fn ($c) => $c['kind'] === 'checkout' && (int) $c['booking_id'] === $out['id']))[0] ?? null;
+check($co !== null && substr($co['due_at'], 11, 5) === hotel()['check_out'], 'в день выезда появилась уборка к расчётному часу');
+check($co && $co['urgent'] && $co['arrival']['guests'] === 2, 'в номер сегодня заезд — уборка срочная, видно число гостей');
+check((bool) array_filter($list, fn ($c) => $c['kind'] === 'stay' && (int) $c['booking_id'] === $stay['id']), 'у проживающего — текущая уборка раз в 3 дня');
+cleaning_sync(d(0));
+check(count(cleaning_list(d(0))) === count($list), 'повторный расчёт не создаёт дублей');
+booking_set_status($out['id'], 'checked_out');
+$co = cleaning_get($co['id']);
+check($co['due_at'] <= now() && $co['notified_at'] !== null, 'гость выехал — уборка нужна сразу, письмо ушло');
+$log = (string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log');
+check(str_contains($log, 'maid@example.com') && str_contains($log, 'Уборка: ') && !str_contains($log, (string) $out['guest_name']), 'письмо горничной без имени гостя');
+cleaning_notify_due();
+check(substr_count((string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log'), 'после выезда') === 1, 'повторно о той же уборке письмо не приходит');
+booking_set_status($stay['id'], 'cancelled');
+check(!array_filter(cleaning_list(d(0)), fn ($c) => $c['kind'] === 'stay' && (int) $c['booking_id'] === $stay['id']), 'бронь отменили — текущая уборка исчезла');
+staff_login('maid@example.com', 'maid-pass-12');
+check(is_housekeeper() && HOUSEKEEPER_PAGES === ['cleaning.php', 'profile.php'], 'горничной открыты только уборка и профиль');
+expect_error(fn () => cleaning_mark($co['id'], 'skipped'), 'горничная не может отменить уборку', 'администратор');
+cleaning_mark($co['id'], 'done');
+check(cleaning_get($co['id'])['status'] === 'done' && (int) cleaning_get($co['id'])['done_by'] === $hk['id'], 'горничная отметила «Убрано»');
+expect_error(fn () => cleaning_mark($co['id'], 'done'), 'второй раз отметить нельзя', 'уже отмечен');
+cleaning_reopen($co['id']);
+cleaning_mark($co['id'], 'done');
+q('UPDATE cleanings SET done_at = ? WHERE id = ?', [date('Y-m-d H:i:s', time() - 3600), $co['id']]);
+expect_error(fn () => cleaning_reopen($co['id']), 'через час горничная свою отметку уже не снимет', 'администратор');
+expect_error(fn () => cleaning_add($out['room_id'], d(0), '15:00', 'полотенца'), 'горничная не добавляет уборки', 'администратор');
+staff_login('admin@example.com', 'admin-pass-1');
+cleaning_reopen($co['id']);
+cleaning_mark($co['id'], 'done');
+check(cleaning_get($co['id'])['done_by'] == $adm['id'], 'администратор тоже может отметить «Убрано»');
+$extra = cleaning_add($stay['room_id'], d(0), '00:00', 'гость попросил');
+check(cleaning_get($extra)['notified_at'] !== null, 'разовая уборка «на сейчас» — письмо горничной сразу');
+expect_error(fn () => cleaning_add($stay['room_id'], d(-1), '10:00', ''), 'уборку на прошедший день не добавить', 'сегодня');
+staff_login('owner@example.com', 'secret-pass-1');
+
 echo "\nПисьма\n";
 @unlink(HOTEL_ROOT . '/storage/mail.log');
 $b = booking_get($b1['id']);

@@ -84,7 +84,7 @@ function report_period(string $from, string $to): array
             $r['by_source'][$s]['bookings']++;
         }
     }
-    foreach (q_all('SELECT method, SUM(amount) AS s FROM payments WHERE paid_on >= ? AND paid_on < ? GROUP BY method', [$from, $to]) as $p) {
+    foreach (q_all('SELECT method, SUM(amount) AS s FROM payments WHERE paid_on >= ? AND paid_on < ? AND voided_at IS NULL GROUP BY method', [$from, $to]) as $p) {
         $r['by_method'][$p['method']] = (int) $p['s'];
         $r['payments'] += (int) $p['s'];
     }
@@ -171,10 +171,10 @@ if ($export === 'bookings' || $export === 'payments') {
     $rows = [];
     foreach (q_all('SELECT p.*, g.name AS guest_name, s.name AS staff_name FROM payments p JOIN bookings b ON b.id = p.booking_id
                     LEFT JOIN guests g ON g.id = b.guest_id LEFT JOIN staff s ON s.id = p.created_by
-                    WHERE p.paid_on >= ? AND p.paid_on < ? ORDER BY p.paid_on, p.id', [$eFrom, $eToExcl]) as $p) {
-        $rows[] = [$p['paid_on'], (int) $p['amount'], PAYMENT_METHODS[$p['method']] ?? $p['method'], (int) $p['booking_id'], $p['guest_name'] ?? '', $p['note'], $p['staff_name'] ?? ''];
+                    WHERE p.paid_on >= ? AND p.paid_on < ? AND p.voided_at IS NULL ORDER BY p.paid_on, p.id', [$eFrom, $eToExcl]) as $p) {
+        $rows[] = [$p['paid_on'], (int) $p['amount'], PAYMENT_METHODS[$p['method']] ?? $p['method'], $p['received'] !== null ? (int) $p['received'] : '', $p['received'] !== null ? (int) $p['change_given'] : '', (int) $p['booking_id'], $p['guest_name'] ?? '', $p['note'], $p['staff_name'] ?? ''];
     }
-    csv_send('oplaty_' . $eFrom . '_' . $eTo . '.csv', ['Дата', 'Сумма', 'Способ', 'Бронь №', 'Гость', 'Заметка', 'Записал'], $rows);
+    csv_send('oplaty_' . $eFrom . '_' . $eTo . '.csv', ['Дата', 'Сумма', 'Способ', 'Гость дал', 'Сдача', 'Бронь №', 'Гость', 'Заметка', 'Записал'], $rows);
 }
 
 $r = report_period($from, $to);

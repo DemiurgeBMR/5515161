@@ -1,6 +1,6 @@
 <?php
 /**
- * Профиль сотрудника: имя, письма о заявках, смена пароля.
+ * Профиль сотрудника: имя, письма о заявках (горничной — об уборке), смена пароля.
  * Сюда же попадают после входа с временным паролем (?first=1).
  */
 
@@ -59,7 +59,7 @@ admin_header('Профиль', '');
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="save">
         <div class="field"><label for="p-name">Имя</label><input id="p-name" name="name" required maxlength="100" value="<?= e($me['name']) ?>"></div>
-        <label class="inline-check"><input type="checkbox" name="notify" value="1"<?= $me['notify'] ? ' checked' : '' ?>> Присылать мне письма о новых заявках и сообщениях гостей</label>
+        <label class="inline-check"><input type="checkbox" name="notify" value="1"<?= $me['notify'] ? ' checked' : '' ?>> <?= is_housekeeper($me) ? 'Присылать мне письма, когда пора убирать номер' : 'Присылать мне письма о новых заявках и сообщениях гостей' ?></label>
         <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit">Сохранить</button></div>
     </form>
 </section>

@@ -8,6 +8,12 @@ require __DIR__ . '/../../src/bootstrap.php';
 require HOTEL_ROOT . '/src/admin/layout.php';
 $me = require_staff(true);
 
+/** Роль из формы; неизвестная — администратор. */
+function staff_role_input(): string
+{
+    return isset(STAFF_ROLES[post('role')]) ? post('role') : 'admin';
+}
+
 /** Сколько активных владельцев останется, если этого сотрудника изменить. */
 function owners_left_without(int $id): int
 {
@@ -20,12 +26,12 @@ if (is_post()) {
     $s = q_one('SELECT * FROM staff WHERE id = ?', [(int) post('staff_id')]);
     try {
         if ($action === 'add') {
-            $new = staff_create(post('email'), post('name'), post('role') === 'owner' ? 'owner' : 'admin');
+            $new = staff_create(post('email'), post('name'), staff_role_input());
             flash('ok', 'Сотрудник добавлен. Почта для входа: ' . $new['email'] . ', временный пароль: ' . $new['password']
                 . ' — передайте его лично или в мессенджере. При первом входе админка попросит придумать свой пароль.');
         } elseif ($action === 'save' && $s) {
             $id = (int) $s['id'];
-            $role = post('role') === 'owner' ? 'owner' : 'admin';
+            $role = staff_role_input();
             $active = post('is_active') === '1' ? 1 : 0;
             if ($id === $me['id'] && !$active) {
                 throw new BookingError('Нельзя отключить самого себя');
@@ -70,7 +76,7 @@ admin_header('Сотрудники', 'users');
 <div class="adm-head">
     <div>
         <h1>Сотрудники</h1>
-        <p class="adm-head__sub">Владелец видит всё и управляет сотрудниками. Администратор работает с бронями, гостями, номерами и ценами.</p>
+        <p class="adm-head__sub">Владелец видит всё и управляет сотрудниками. Администратор работает с бронями, гостями, номерами и ценами. Горничная видит только список уборки — без данных гостей и денег.</p>
     </div>
 </div>
 
@@ -89,7 +95,7 @@ admin_header('Сотрудники', 'users');
 <?php endforeach; ?>
                     </select></td>
                     <td data-label="Настройки"><div class="checks">
-                        <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="notify" value="1"<?= $s['notify'] ? ' checked' : '' ?>> письма о заявках</label>
+                        <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="notify" value="1"<?= $s['notify'] ? ' checked' : '' ?>> <?= $s['role'] === 'housekeeper' ? 'письма об уборке' : 'письма о заявках' ?></label>
                         <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="is_active" value="1"<?= $s['is_active'] ? ' checked' : '' ?><?= $sid === $me['id'] ? ' disabled' : '' ?>> может входить</label><?php if ($sid === $me['id']): ?><input form="<?= $fid ?>" type="hidden" name="is_active" value="1"><?php endif; ?>
                     </div></td>
                     <td data-label="Последний вход"><?= $s['last_login_at'] ? e(ru_datetime($s['last_login_at'])) : '—' ?></td>
@@ -117,10 +123,11 @@ admin_header('Сотрудники', 'users');
         <div class="field"><label for="u-email">Почта</label><input id="u-email" type="email" name="email" required maxlength="190" placeholder="olga@mail.ru"></div>
         <div class="field"><label for="u-role">Роль</label><select id="u-role" name="role">
             <option value="admin">Администратор</option>
+            <option value="housekeeper">Горничная</option>
             <option value="owner">Владелец</option>
         </select></div>
         <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit"><?= icon('plus') ?>Добавить</button></div>
     </form>
-    <p class="hint">Сайт придумает временный пароль и покажет его здесь один раз. Письма о новых заявках и сообщениях гостей приходят всем, у кого включено «получать».</p>
+    <p class="hint">Сайт придумает временный пароль и покажет его здесь один раз. Письма о новых заявках и сообщениях гостей приходят администраторам и владельцам, у кого они включены, а горничным — письма, когда пора убирать номер.</p>
 </section>
 <?php admin_footer(); ?>

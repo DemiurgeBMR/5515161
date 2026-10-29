@@ -12,8 +12,11 @@ if (!current_staff()) {
 }
 $c = admin_counters();
 session_write_close();
+// Пока админка или кабинет горничной открыты, фоновые задачи (письма об
+// уборке, календари площадок) идут и без планировщика.
+cron_maybe_run();
 json_response([
     'ok'      => true,
     'version' => setting('data_version', '0'),
-    'badges'  => ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new']],
+    'badges'  => admin_badges($c),
 ]);

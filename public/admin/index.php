@@ -25,6 +25,8 @@ $rooms = rooms_list(true);
 $grid = availability_grid($today, today()->modify('+1 day')->format('Y-m-d'));
 $freeTonight = array_sum($grid['free'][$today] ?? []);
 $waitlist = (int) q_val('SELECT COUNT(*) FROM waitlist');
+cleaning_sync($today);
+$toClean = cleaning_due_count();
 
 admin_header('Сегодня', 'today', 'adm-autoreload');
 ?>
@@ -43,6 +45,7 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
     <a class="kpi" href="#arrivals"><b><?= count($arrivals) ?></b><span><?= plural(count($arrivals), 'заезд', 'заезда', 'заездов') ?> сегодня</span></a>
     <a class="kpi" href="#departures"><b><?= count($departures) ?></b><span><?= plural(count($departures), 'выезд', 'выезда', 'выездов') ?> сегодня</span></a>
     <a class="kpi" href="#inhouse"><b><?= count($inHouse) ?></b><span><?= plural(count($inHouse), 'номер занят', 'номера заняты', 'номеров занято') ?> гостями</span></a>
+    <a class="kpi<?= $toClean ? ' kpi--accent' : '' ?>" href="/admin/cleaning.php"><b><?= $toClean ?></b><span><?= $toClean ? plural($toClean, 'номер ждёт', 'номера ждут', 'номеров ждут') . ' уборки' : 'все номера убраны' ?></span></a>
     <a class="kpi" href="/admin/calendar.php"><b><?= $freeTonight ?> <small>из <?= count($rooms) ?></small></b><span><?= plural($freeTonight, 'комната свободна', 'комнаты свободны', 'комнат свободно') ?> сегодня</span></a>
 </div>
 

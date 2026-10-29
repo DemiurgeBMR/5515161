@@ -465,3 +465,36 @@ a.chess__cell:hover { background: var(--accent-soft); }
 @media (max-width: 560px) {
     .table:not(.table--cards) th, .table:not(.table--cards) td { padding: 8px 6px; }
 }
+
+/* Оплаты: аннулированные записи и сдача */
+.pay-row--void td { color: var(--ink-3); }
+.pay-row--void .pay-row__sum { text-decoration: line-through; }
+.pay-row__void { color: var(--danger) !important; margin-top: 4px; }
+.pay-void summary { list-style: none; font-size: 0.88rem; }
+.pay-void summary::-webkit-details-marker { display: none; }
+.pay-void__form { display: grid; gap: 6px; margin-top: 6px; min-width: 200px; }
+.pay-change { display: block; padding: 12px 0; font-weight: 800; font-size: 1.05rem; }
+.pay-change.is-bad { color: var(--danger); font-weight: 600; font-size: 0.92rem; }
+
+/* Уборка — крупные карточки и кнопки: горничная отмечает с телефона */
+.clean-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.clean-card { display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.clean-card.is-urgent { border-color: #ebc7bd; background: #fdf3f0; }
+.clean-card.is-finished { background: transparent; }
+.clean-card.is-finished .clean-card__room { color: var(--ink-3); }
+.clean-card__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 10px; }
+.clean-card__room { margin: 0; font-size: 1.35rem; font-weight: 800; }
+.clean-card__type { color: var(--ink-3); font-size: 0.9rem; }
+.clean-card p { margin: 0; }
+.clean-card__what { font-weight: 600; }
+.clean-card__arrival, .clean-card__status { display: flex; gap: 8px; align-items: flex-start; font-size: 0.93rem; }
+.clean-card__arrival .i, .clean-card__status .i { flex: none; width: 1.1em; height: 1.1em; margin-top: 0.2em; }
+.clean-card.is-urgent .clean-card__arrival { color: #8c2f22; font-weight: 700; }
+.clean-card__status { color: var(--olive); font-weight: 700; }
+.clean-card__note { padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 0.93rem; }
+.clean-card__actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.clean-card__actions form:first-child { flex: 1 1 auto; }
+.clean-card__done { width: 100%; min-height: 52px; font-size: 1.05rem; }
+.panel__title small { color: var(--ink-3); font-weight: 600; }
+.clean-card__actions .link-button { display: inline-flex; align-items: center; gap: 6px; }
+.clean-card__actions .link-button .i { width: 1em; height: 1em; }

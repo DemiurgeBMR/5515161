@@ -31,21 +31,35 @@ function flashes_html(): string
     return $out;
 }
 
-/** Счётчики для меню: новые заявки, сообщения гостей, двойные продажи. */
+/** Счётчики для меню: новые заявки, сообщения гостей, двойные продажи, уборка. */
 function admin_counters(): array
 {
+    if (is_housekeeper()) {
+        return ['new' => 0, 'messages' => 0, 'conflicts' => 0, 'cleaning' => cleaning_due_count()];
+    }
     return [
         'new'       => (int) q_val("SELECT COUNT(*) FROM bookings WHERE status = 'new'"),
         'messages'  => (int) q_val('SELECT COUNT(*) FROM booking_messages WHERE handled_at IS NULL'),
         'conflicts' => count(ical_conflicts()),
+        'cleaning'  => cleaning_due_count(),
     ];
+}
+
+/** Числа на пунктах меню. */
+function admin_badges(array $c): array
+{
+    return ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new'], 'cleaning' => $c['cleaning']];
 }
 
 function admin_nav(): array
 {
+    if (is_housekeeper()) {
+        return ['cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can']];
+    }
     $nav = [
         'today'    => ['/admin/', 'Сегодня', 'house'],
         'calendar' => ['/admin/calendar.php', 'Шахматка', 'calendar-days'],
+        'cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can'],
         'bookings' => ['/admin/bookings.php', 'Брони', 'bed-double'],
         'guests'   => ['/admin/guests.php', 'Гости', 'users'],
         'rooms'    => ['/admin/rooms.php', 'Номера и фото', 'key-round'],
@@ -63,8 +77,7 @@ function admin_nav(): array
 function admin_header(string $title, string $active = '', string $bodyClass = ''): void
 {
     $me = current_staff();
-    $c = admin_counters();
-    $badges = ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new']];
+    $badges = admin_badges(admin_counters());
     cron_maybe_run();
     ?>
 <!DOCTYPE html>
@@ -84,7 +97,7 @@ function admin_header(string $title, string $active = '', string $bodyClass = ''
 <a class="skip-link" href="#main">Перейти к содержимому</a>
 <div class="adm-shell">
     <aside class="adm-side" id="adm-nav" data-adm-nav>
-        <a class="adm-brand" href="/admin/">
+        <a class="adm-brand" href="<?= is_housekeeper($me) ? '/admin/cleaning.php' : '/admin/' ?>">
             <span class="logo__name"><?= e(hotel()['name']) ?></span>
             <span class="adm-brand__sub">Администрирование</span>
         </a>
@@ -102,7 +115,9 @@ function admin_header(string $title, string $active = '', string $bodyClass = ''
         </nav>
         <div class="adm-side__foot">
             <a class="adm-me" href="/admin/profile.php"><?= icon('users') ?><span><?= e($me['name']) ?><small><?= e(STAFF_ROLES[$me['role']] ?? '') ?></small></span></a>
+<?php if (!is_housekeeper($me)): ?>
             <a class="adm-side__site" href="/" target="_blank" rel="noopener">Открыть сайт</a>
+<?php endif; ?>
             <form method="post" action="/admin/logout.php">
                 <?= csrf_field() ?>
                 <button class="link-button" type="submit">Выйти</button>
@@ -117,7 +132,9 @@ function admin_header(string $title, string $active = '', string $bodyClass = ''
                 <span class="visually-hidden">Меню</span>
             </button>
             <span class="adm-top__title"><?= e($title) ?></span>
+<?php if (!is_housekeeper($me)): ?>
             <a class="btn btn--primary btn--sm" href="/admin/booking.php?new=1"><?= icon('calendar-days') ?><span class="adm-hide-sm">Новая бронь</span><span class="adm-show-sm">Бронь</span></a>
+<?php endif; ?>
         </header>
         <div class="adm-refresh" data-adm-refresh hidden>
             <span>Появились новые данные — например, новая заявка.</span>
@@ -142,7 +159,7 @@ function admin_footer(): void
 
 const AUDIT_ENTITIES = [
     'booking' => 'Бронь', 'guest' => 'Гость', 'room' => 'Комната', 'room_type' => 'Тип номера',
-    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник',
+    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник', 'cleaning' => 'Уборка',
 ];
 
 /** Понятное название действия из журнала: «Оплата», «Комната закрыта»… */
@@ -151,7 +168,7 @@ function audit_action_label(string $entity, string $action): string
     $labels = [
         'booking' => [
             'created' => 'Создана', 'updated' => 'Изменена', 'status' => 'Статус', 'payment' => 'Оплата', 'refund' => 'Возврат',
-            'payment_deleted' => 'Удалён платёж', 'guest_message' => 'Сообщение гостя', 'message_handled' => 'Сообщение обработано',
+            'payment_deleted' => 'Удалён платёж', 'payment_voided' => 'Аннулирована оплата', 'guest_message' => 'Сообщение гостя', 'message_handled' => 'Сообщение обработано',
             'mail' => 'Почта', 'reminder_sent' => 'Напоминание о заезде', 'deleted' => 'Удалена',
         ],
         'guest' => ['updated' => 'Изменены данные', 'anonymized' => 'Данные обезличены', 'waitlist_cleared' => 'Очищен лист ожидания'],
@@ -159,6 +176,7 @@ function audit_action_label(string $entity, string $action): string
         'room_type' => ['created' => 'Добавлен', 'updated' => 'Изменён', 'photos_added' => 'Добавлены фото'],
         'price' => ['base_price' => 'Цена за ночь', 'rule_added' => 'Добавлена сезонная цена', 'rule_deleted' => 'Удалена сезонная цена', 'discounts' => 'Скидки за срок', 'prepayment' => 'Предоплата'],
         'settings' => ['site_photo' => 'Фото на сайте', 'updated' => 'Изменены', 'export' => 'Выгрузка в Excel'],
+        'cleaning' => ['done' => 'Убрано', 'skipped' => 'Не нужна', 'reopened' => 'Снята отметка', 'added' => 'Добавлена', 'settings' => 'Настройки'],
         'staff' => [
             'login' => 'Вход', 'created' => 'Добавлен', 'updated' => 'Изменён', 'password_reset' => 'Сброшен пароль',
             'password_changed' => 'Сменил пароль',

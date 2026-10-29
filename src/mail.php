@@ -92,7 +92,8 @@ function send_mail_smtp(string $to, string $subject, string $text, string $reply
 /** Кому слать уведомления: сотрудники с включёнными уведомлениями + адреса из настроек. */
 function admin_recipients(): array
 {
-    $list = q_all('SELECT email FROM staff WHERE is_active = 1 AND notify = 1');
+    // Горничным письма о заявках не нужны (в них данные гостей) — им приходят только письма об уборке.
+    $list = q_all("SELECT email FROM staff WHERE is_active = 1 AND notify = 1 AND role <> 'housekeeper'");
     $emails = array_column($list, 'email');
     foreach (preg_split('/[\s,;]+/', (string) hotel_secrets()['notify_extra']) as $e) {
         if (filter_var($e, FILTER_VALIDATE_EMAIL)) {
@@ -118,6 +119,27 @@ function notify_admins(array $mail, string $replyTo = ''): void
 // -------------------------------------------------------------------
 // Тексты писем
 // -------------------------------------------------------------------
+
+/** Горничным: какие номера пора убрать. Без имён и телефонов гостей. */
+function mail_cleaning_due(array $list): array
+{
+    $n = count($list);
+    $subject = $n === 1 ? 'Уборка: номер ' . $list[0]['room_name'] : 'Уборка: ' . $n . ' ' . plural($n, 'номер', 'номера', 'номеров');
+    $lines = ['Здравствуйте! Пора убрать:', ''];
+    foreach ($list as $c) {
+        $line = '• Номер ' . $c['room_name'] . ' (' . $c['type_name'] . ') — ' . mb_strtolower(CLEANING_KINDS[$c['kind']] ?? $c['kind']);
+        if ($c['urgent']) {
+            $line .= '. Сегодня заезд с ' . hotel()['check_in'] . ' — успейте до заезда';
+        }
+        if ($c['note'] !== '') {
+            $line .= '. ' . $c['note'];
+        }
+        $lines[] = $line;
+    }
+    $lines[] = '';
+    $lines[] = 'Когда закончите, отметьте «Убрано»: ' . base_url() . '/admin/cleaning.php';
+    return [$subject, implode("\n", $lines) . "\n\n—\n" . mail_hotel_name()];
+}
 
 function mail_hotel_name(): string
 {

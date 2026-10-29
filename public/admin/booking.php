@@ -85,13 +85,15 @@ if (is_post()) {
                 break;
             case 'payment_add':
                 $amount = (int) preg_replace('/\D+/', '', post('amount'));
-                payment_add($id, post('kind') === 'refund' ? -$amount : $amount, post('method'), post('paid_on'), post('note'));
-                flash('ok', (post('kind') === 'refund' ? 'Возврат ' : 'Оплата ') . money($amount) . ' записана.');
+                $received = (int) preg_replace('/\D+/', '', post('received'));
+                $pid = payment_add($id, post('kind') === 'refund' ? -$amount : $amount, post('method'), post('paid_on'), post('note'), $received ?: null);
+                $change = (int) q_val('SELECT change_given FROM payments WHERE id = ?', [$pid]);
+                flash('ok', (post('kind') === 'refund' ? 'Возврат ' : 'Оплата ') . money($amount) . ' записана.' . ($change > 0 ? ' Сдача гостю: ' . money($change) . '.' : ''));
                 redirect($back . '#money');
                 break;
-            case 'payment_delete':
-                payment_delete((int) post('payment_id'));
-                flash('ok', 'Платёж удалён.');
+            case 'payment_void':
+                payment_void((int) post('payment_id'), post('reason'));
+                flash('ok', 'Запись аннулирована — она осталась в истории зачёркнутой и не входит в суммы.');
                 redirect($back . '#money');
                 break;
             case 'message_done':
@@ -107,6 +109,9 @@ if (is_post()) {
             case 'delete':
                 if (!is_owner()) {
                     throw new BookingError('Удалять брони может только владелец');
+                }
+                if (q_val('SELECT COUNT(*) FROM payments WHERE booking_id = ?', [$id])) {
+                    throw new BookingError('По брони записаны оплаты — её нельзя удалить, только отменить');
                 }
                 q('DELETE FROM bookings WHERE id = ?', [$id]);
                 audit('booking', $id, 'deleted', ru_date_range($b['check_in'], $b['check_out']) . ', ' . $b['type_name'] . ($b['guest_id'] ? ', гость №' . $b['guest_id'] : ''));
@@ -343,24 +348,37 @@ foreach ($transitions as [$to, $label, $btn]):
 <?php if ($payments): ?>
             <table class="table">
                 <tbody>
-<?php foreach ($payments as $p): ?>
-                    <tr>
-                        <td><?= e(ru_date($p['paid_on'])) ?><small><?= e(PAYMENT_METHODS[$p['method']] ?? $p['method']) ?><?= $p['note'] !== '' ? ', ' . e($p['note']) : '' ?></small></td>
-                        <td class="num"><?= (int) $p['amount'] < 0 ? '−' : '' ?><?= e(money(abs((int) $p['amount']))) ?></td>
+<?php foreach ($payments as $p): $void = $p['voided_at'] !== null; $change = payment_change_text($p); ?>
+                    <tr class="pay-row<?= $void ? ' pay-row--void' : '' ?>">
+                        <td><?= e(ru_date($p['paid_on'])) ?> · <?= (int) $p['amount'] < 0 ? 'возврат' : 'оплата' ?><small><?= e(PAYMENT_METHODS[$p['method']] ?? $p['method']) ?><?= $change !== '' ? ', ' . e($change) : '' ?><?= $p['note'] !== '' ? ', ' . e($p['note']) : '' ?>
+                            <br>записал(а) <?= e($p['staff_name'] ?? 'система') ?>, <?= e(ru_datetime($p['created_at'])) ?></small>
+<?php if ($void): ?>
+                            <small class="pay-row__void">Аннулировано <?= e(ru_datetime($p['voided_at'])) ?>, <?= e($p['voided_by_name'] ?? '') ?>: <?= e($p['void_reason']) ?></small>
+<?php endif; ?>
+                        </td>
+                        <td class="num"><span class="pay-row__sum"><?= (int) $p['amount'] < 0 ? '−' : '' ?><?= e(money(abs((int) $p['amount']))) ?></span></td>
                         <td class="num">
-                            <form method="post" class="inline">
-                                <?= csrf_field() ?>
-                                <input type="hidden" name="id" value="<?= $b['id'] ?>">
-                                <input type="hidden" name="action" value="payment_delete">
-                                <input type="hidden" name="payment_id" value="<?= (int) $p['id'] ?>">
-                                <button class="icon-button" type="submit" aria-label="Удалить платёж" data-confirm="Удалить этот платёж?"><?= icon('trash-2') ?></button>
-                            </form>
+<?php if (!$void && is_owner()): ?>
+                            <details class="pay-void">
+                                <summary class="link-button">Аннулировать</summary>
+                                <form method="post" class="pay-void__form">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id" value="<?= $b['id'] ?>">
+                                    <input type="hidden" name="action" value="payment_void">
+                                    <input type="hidden" name="payment_id" value="<?= (int) $p['id'] ?>">
+                                    <label class="visually-hidden" for="void-<?= (int) $p['id'] ?>">Причина</label>
+                                    <input id="void-<?= (int) $p['id'] ?>" name="reason" required maxlength="255" placeholder="Почему запись ошибочная">
+                                    <button class="btn btn--danger btn--sm" type="submit" data-confirm="Аннулировать запись? Она останется в истории зачёркнутой.">Аннулировать</button>
+                                </form>
+                            </details>
+<?php endif; ?>
                         </td>
                     </tr>
 <?php endforeach; ?>
                 </tbody>
             </table>
 <?php endif; ?>
+            <p class="hint">Записанную оплату удалить нельзя. <?= is_owner() ? 'Ошибочную запись можно аннулировать с указанием причины — она останется в истории.' : 'Если записали по ошибке — сообщите владельцу: он аннулирует запись с указанием причины.' ?></p>
             <form method="post" class="form-grid">
                 <?= csrf_field() ?>
                 <input type="hidden" name="id" value="<?= $b['id'] ?>">
@@ -377,6 +395,8 @@ foreach ($transitions as [$to, $label, $btn]):
                 <div class="field"><label for="p-kind">Это</label>
                     <select id="p-kind" name="kind"><option value="payment">Оплата</option><option value="refund">Возврат гостю</option></select>
                 </div>
+                <div class="field" data-cash-only><label for="p-received">Гость дал наличными, ₽</label><input id="p-received" name="received" inputmode="numeric" placeholder="Если нужна сдача"></div>
+                <div class="field" data-cash-only><label for="p-change">Сдача гостю</label><output id="p-change" class="pay-change" for="p-amount p-received" data-pay-change>—</output></div>
                 <div class="field span-all"><label for="p-note">Комментарий</label><input id="p-note" name="note" maxlength="255" placeholder="Например: предоплата по СБП"></div>
                 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit"><?= icon('banknote') ?>Записать</button></div>
             </form>
@@ -441,12 +461,12 @@ foreach ($transitions as [$to, $label, $btn]):
             </ul>
         </section>
 
-<?php if (is_owner()): ?>
+<?php if (is_owner() && !$payments): ?>
         <form method="post">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= $b['id'] ?>">
             <input type="hidden" name="action" value="delete">
-            <button class="btn btn--danger btn--sm" type="submit" data-confirm="Удалить бронь совсем, вместе с платежами? Обычно достаточно отменить."><?= icon('trash-2') ?>Удалить бронь</button>
+            <button class="btn btn--danger btn--sm" type="submit" data-confirm="Удалить бронь совсем? Обычно достаточно отменить."><?= icon('trash-2') ?>Удалить бронь</button>
         </form>
 <?php endif; ?>
     </div>

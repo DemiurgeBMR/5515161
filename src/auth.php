@@ -7,7 +7,10 @@
  * обычные страницы сайта cookie не ставят.
  */
 
-const STAFF_ROLES = ['owner' => 'Владелец', 'admin' => 'Администратор'];
+const STAFF_ROLES = ['owner' => 'Владелец', 'admin' => 'Администратор', 'housekeeper' => 'Горничная'];
+
+/** Куда может заходить горничная: свой кабинет уборки и профиль (смена пароля). */
+const HOUSEKEEPER_PAGES = ['cleaning.php', 'profile.php'];
 const SESSION_LIFETIME = 30 * 24 * 3600; // 30 дней — чтобы администратор с телефона не входил заново каждый день
 
 function session_boot(): void
@@ -132,6 +135,10 @@ function require_staff(bool $ownerOnly = false): array
     }
     if ($s['must_change_password'] && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'profile.php') {
         redirect('/admin/profile.php?first=1');
+    }
+    // Горничная видит только уборку: ни броней, ни гостей, ни денег.
+    if ($s['role'] === 'housekeeper' && !in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''), HOUSEKEEPER_PAGES, true)) {
+        redirect('/admin/cleaning.php');
     }
     if ($ownerOnly && $s['role'] !== 'owner') {
         http_response_code(403);

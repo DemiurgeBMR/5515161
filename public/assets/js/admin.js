@@ -49,6 +49,25 @@
         el.addEventListener('change', function () { if (el.form) el.form.submit(); });
     });
 
+    // Оплата наличными: «Гость дал» → сдача считается сразу. Поля про сдачу
+    // видны только для наличных и для оплаты (не для возврата).
+    var payChange = $('[data-pay-change]');
+    if (payChange) {
+        var pf = payChange.form || payChange.closest('form');
+        var num = function (name) { var el = pf.elements[name]; return el ? parseInt(String(el.value).replace(/\D+/g, ''), 10) || 0 : 0; };
+        var rub = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') + '\u00a0₽'; };
+        var syncPay = function () {
+            var cash = pf.elements.method.value === 'cash' && pf.elements.kind.value === 'payment';
+            $$('[data-cash-only]', pf).forEach(function (f) { f.hidden = !cash; });
+            if (!cash) pf.elements.received.value = '';
+            var amount = num('amount'), received = num('received');
+            payChange.classList.toggle('is-bad', received > 0 && received < amount);
+            payChange.textContent = !received ? '—' : (received < amount ? 'гость дал меньше суммы' : rub(received - amount));
+        };
+        ['input', 'change'].forEach(function (ev) { pf.addEventListener(ev, syncPay); });
+        syncPay();
+    }
+
     // Копировать ссылку: <button data-copy="#id-поля">
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -125,6 +144,36 @@
                 if (o && o.getAttribute('data-type')) typeSel.value = o.getAttribute('data-type');
             });
             syncRooms();
+        }
+    }
+
+    // Уборка: уведомление на телефоне, пока страница открыта. Страница сама
+    // перезагружается, когда появляется новая уборка; если среди «пора убрать»
+    // есть номера, которых раньше не было, — показываем уведомление и вибрируем.
+    var cleanDue = $('[data-clean-due]');
+    if (cleanDue) {
+        var store = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+        var ids = cleanDue.getAttribute('data-clean-due').split(',').filter(Boolean);
+        var seen = (store('cleaning_seen') || '').split(',');
+        var fresh = ids.filter(function (id) { return seen.indexOf(id) === -1; });
+        store('cleaning_seen', ids.join(','));
+        if (fresh.length && store('cleaning_seen_init')) {
+            var text = 'Пора убрать: ' + cleanDue.getAttribute('data-clean-names');
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try { new Notification('Уборка', { body: text, tag: 'cleaning' }); } catch (e) {}
+            }
+            if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        }
+        store('cleaning_seen_init', '1');
+        var pushBtn = $('[data-clean-push]');
+        if (pushBtn && 'Notification' in window && Notification.permission === 'default') {
+            pushBtn.hidden = false;
+            pushBtn.addEventListener('click', function () {
+                Notification.requestPermission().then(function (p) { pushBtn.hidden = p !== 'default'; });
+            });
+        } else if (pushBtn && !('Notification' in window)) {
+            var hint = $('[data-clean-push-hint]');
+            if (hint) hint.hidden = true;
         }
     }
 

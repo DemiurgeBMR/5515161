@@ -181,7 +181,7 @@ function booking_select_sql(): string
 {
     return 'SELECT b.*, g.name AS guest_name, g.phone AS guest_phone, g.email AS guest_email,
                    t.name AS type_name, t.slug AS type_slug, r.name AS room_name,
-                   (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id) AS paid,
+                   (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.voided_at IS NULL) AS paid,
                    (SELECT COUNT(*) FROM booking_messages m WHERE m.booking_id = b.id AND m.handled_at IS NULL) AS open_messages
             FROM bookings b
             LEFT JOIN guests g ON g.id = b.guest_id
@@ -495,6 +495,7 @@ function booking_update(int $id, array $d): array
         audit('booking', $id, 'updated', $changes ? implode('; ', $changes) : 'изменены данные');
         touch_data_version();
     });
+    cleaning_sync(today()->format('Y-m-d')); // продлили или перенесли в другую комнату
     return booking_get($id);
 }
 
@@ -545,19 +546,37 @@ function booking_set_status(int $id, string $status, string $reason = ''): array
         audit('booking', $id, 'status', $details);
         touch_data_version();
     });
+    // Выехал — горничной сразу уходит письмо; отмена или «не приехал» —
+    // уборка после выезда больше не нужна.
+    if ($status === 'checked_out') {
+        cleaning_after_checkout($id);
+    } else {
+        cleaning_sync(today()->format('Y-m-d'));
+    }
     return booking_get($id);
 }
 
 // -------------------------------------------------------------------
 // Оплаты
+//
+// Записанную оплату удалить нельзя — ни из админки, ни вместе с бронью
+// (это запрещает и сама база). Ошибочную запись владелец аннулирует с
+// причиной: она остаётся в карточке брони зачёркнутой, не входит в суммы
+// и отчёты, а в журнале видно, кто, когда и почему её аннулировал.
 // -------------------------------------------------------------------
 
 function booking_payments(int $bookingId): array
 {
-    return q_all('SELECT p.*, s.name AS staff_name FROM payments p LEFT JOIN staff s ON s.id = p.created_by WHERE p.booking_id = ? ORDER BY p.paid_on, p.id', [$bookingId]);
+    return q_all('SELECT p.*, s.name AS staff_name, v.name AS voided_by_name FROM payments p
+                  LEFT JOIN staff s ON s.id = p.created_by LEFT JOIN staff v ON v.id = p.voided_by
+                  WHERE p.booking_id = ? ORDER BY p.paid_on, p.id', [$bookingId]);
 }
 
-function payment_add(int $bookingId, int $amount, string $method, string $date, string $note): void
+/**
+ * Записать оплату (сумма > 0) или возврат гостю (сумма < 0).
+ * $received — сколько гость дал наличными; сдача считается сама.
+ */
+function payment_add(int $bookingId, int $amount, string $method, string $date, string $note, ?int $received = null): int
 {
     if ($amount === 0) {
         throw new BookingError('Укажите сумму', 'amount');
@@ -565,26 +584,62 @@ function payment_add(int $bookingId, int $amount, string $method, string $date, 
     if (!parse_date($date)) {
         throw new BookingError('Укажите дату оплаты', 'paid_on');
     }
-    q_insert('payments', [
-        'booking_id' => $bookingId,
-        'amount'     => $amount,
-        'method'     => isset(PAYMENT_METHODS[$method]) ? $method : 'other',
-        'paid_on'    => $date,
-        'note'       => mb_substr(trim($note), 0, 255),
-        'created_by' => current_staff()['id'] ?? null,
-        'created_at' => now(),
+    $method = isset(PAYMENT_METHODS[$method]) ? $method : 'other';
+    $change = 0;
+    if ($received !== null && $received > 0) {
+        if ($amount < 0 || $method !== 'cash') {
+            throw new BookingError('«Гость дал» и сдача — только для оплаты наличными', 'received');
+        }
+        if ($received < $amount) {
+            throw new BookingError('Гость дал меньше суммы оплаты — запишите оплату на ту сумму, что он дал', 'received');
+        }
+        $change = $received - $amount;
+    } else {
+        $received = null;
+    }
+    $note = clean_line($note, 255);
+    $id = q_insert('payments', [
+        'booking_id'   => $bookingId,
+        'amount'       => $amount,
+        'method'       => $method,
+        'received'     => $received,
+        'change_given' => $change,
+        'paid_on'      => $date,
+        'note'         => $note,
+        'created_by'   => current_staff()['id'] ?? null,
+        'created_at'   => now(),
     ]);
-    audit('booking', $bookingId, $amount > 0 ? 'payment' : 'refund', money(abs($amount)) . ', ' . (PAYMENT_METHODS[$method] ?? $method) . ($note !== '' ? ', ' . $note : ''));
+    audit('booking', $bookingId, $amount > 0 ? 'payment' : 'refund', money(abs($amount)) . ', ' . PAYMENT_METHODS[$method]
+        . ($received !== null ? ', гость дал ' . money($received) . ', сдача ' . money($change) : '')
+        . ($note !== '' ? ', ' . $note : ''));
+    return $id;
 }
 
-function payment_delete(int $paymentId): void
+/** Аннулировать ошибочную запись — только владелец и только с причиной. */
+function payment_void(int $paymentId, string $reason): void
 {
+    if (!is_owner()) {
+        throw new BookingError('Аннулировать оплату может только владелец');
+    }
+    $reason = clean_line($reason, 255);
+    if ($reason === '') {
+        throw new BookingError('Напишите, почему запись ошибочная', 'reason');
+    }
     $p = q_one('SELECT * FROM payments WHERE id = ?', [$paymentId]);
     if (!$p) {
-        return;
+        throw new BookingError('Платёж не найден');
     }
-    q('DELETE FROM payments WHERE id = ?', [$paymentId]);
-    audit('booking', (int) $p['booking_id'], 'payment_deleted', money((int) $p['amount']) . ' от ' . ru_date($p['paid_on']));
+    if ($p['voided_at'] !== null) {
+        throw new BookingError('Эта запись уже аннулирована');
+    }
+    q('UPDATE payments SET voided_at = ?, voided_by = ?, void_reason = ? WHERE id = ? AND voided_at IS NULL', [now(), current_staff()['id'], $reason, $paymentId]);
+    audit('booking', (int) $p['booking_id'], 'payment_voided', money(abs((int) $p['amount'])) . ' от ' . ru_date($p['paid_on']) . ' — ' . $reason);
+}
+
+/** Строка о сдаче: «гость дал 5 000 ₽, сдача 500 ₽». */
+function payment_change_text(array $p): string
+{
+    return $p['received'] !== null ? 'гость дал ' . money((int) $p['received']) . ', сдача ' . money((int) $p['change_given']) : '';
 }
 
 // -------------------------------------------------------------------

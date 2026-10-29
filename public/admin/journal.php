@@ -20,6 +20,7 @@ function audit_link(array $a): ?string
         'room'      => '/admin/rooms.php#room-' . $id,
         'room_type' => '/admin/room_type.php?id=' . $id,
         'staff'     => is_owner() ? '/admin/users.php' : null,
+        'cleaning'  => '/admin/cleaning.php',
         default     => null,
     };
 }
