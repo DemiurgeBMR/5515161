@@ -96,6 +96,9 @@ admin_header('Сотрудники', 'users');
                     </select></td>
                     <td data-label="Настройки"><div class="checks">
                         <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="notify" value="1"<?= $s['notify'] ? ' checked' : '' ?>> <?= $s['role'] === 'housekeeper' ? 'письма об уборке' : 'письма о заявках' ?></label>
+<?php if (max_enabled()): ?>
+                        <small><?= $s['max_user_id'] ? 'MAX подключён' . ($s['max_notify'] ? '' : ', уведомления выключены') : 'MAX не подключён' ?></small>
+<?php endif; ?>
                         <label class="inline-check"><input form="<?= $fid ?>" type="checkbox" name="is_active" value="1"<?= $s['is_active'] ? ' checked' : '' ?><?= $sid === $me['id'] ? ' disabled' : '' ?>> может входить</label><?php if ($sid === $me['id']): ?><input form="<?= $fid ?>" type="hidden" name="is_active" value="1"><?php endif; ?>
                     </div></td>
                     <td data-label="Последний вход"><?= $s['last_login_at'] ? e(ru_datetime($s['last_login_at'])) : '—' ?></td>

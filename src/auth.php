@@ -119,6 +119,21 @@ function current_staff(): ?array
     return $cache['staff'] = $s;
 }
 
+/**
+ * Действовать от имени сотрудника вне браузера — когда он нажал кнопку в
+ * MAX: права и запись в журнале те же, что в админке. null — вернуть как было.
+ */
+function act_as_staff(?array $staff): void
+{
+    $cache = &app_cache();
+    if ($staff === null) {
+        unset($cache['staff']);
+        return;
+    }
+    $staff['id'] = (int) $staff['id'];
+    $cache['staff'] = $staff;
+}
+
 function is_owner(): bool
 {
     return (current_staff()['role'] ?? '') === 'owner';

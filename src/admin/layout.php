@@ -190,7 +190,7 @@ function audit_action_label(string $entity, string $action): string
         'cleaning' => ['done' => 'Убрано', 'skipped' => 'Не нужна', 'reopened' => 'Снята отметка', 'added' => 'Добавлена', 'settings' => 'Настройки'],
         'staff' => [
             'login' => 'Вход', 'created' => 'Добавлен', 'updated' => 'Изменён', 'password_reset' => 'Сброшен пароль',
-            'password_changed' => 'Сменил пароль',
+            'password_changed' => 'Сменил пароль', 'max_linked' => 'Подключил MAX', 'max_unlinked' => 'Отключил MAX',
         ],
     ];
     return $labels[$entity][$action] ?? $action;

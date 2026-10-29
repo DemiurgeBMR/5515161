@@ -81,6 +81,7 @@ rate_hit('bath_ip', client_ip());
 
 // Письма — после записи в базу: если почта не ушла, заявка всё равно в админке.
 notify_admins(mail_admin_new_bath($b), (string) $b['guest_email']);
+max_notify_new_bath($b);
 $emailSent = false;
 if ($b['guest_email']) {
     [$subject, $text] = mail_bath_received($b);

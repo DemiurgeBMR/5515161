@@ -36,6 +36,7 @@ if ($b && is_post() && post('action') === 'message') {
             message_add($b, $kind, post('message'), $newOut);
             rate_hit('message', $b['token']);
             notify_admins(mail_admin_guest_message($b, $kind, post('message'), $kind === 'extend' ? $newOut : null), (string) $b['guest_email']);
+            max_notify_guest_message($b, $kind, post('message'), $kind === 'extend' ? $newOut : null);
             redirect('/booking.php?t=' . $b['token'] . '&sent=1#message');
         } catch (BookingError $e) {
             $errors[$e->field ?: 'form'] = $e->getMessage();

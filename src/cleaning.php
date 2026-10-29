@@ -287,6 +287,7 @@ function cleaning_notify_due(): int
             send_mail($email, $subject, $text);
         }
     }
+    max_notify_cleaning($due);
     $ids = array_column($due, 'id');
     q('UPDATE cleanings SET notified_at = ? WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', array_merge([now()], $ids));
     touch_data_version();

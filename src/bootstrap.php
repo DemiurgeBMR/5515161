@@ -31,7 +31,7 @@ function hotel_secrets(): array
             'db_host' => 'MySQL-8.0', 'db_port' => 3306, 'db_name' => 'hotel', 'db_user' => 'root', 'db_pass' => '',
             'mail_transport' => 'log', 'mail_from' => '', 'mail_from_name' => '',
             'smtp_host' => '', 'smtp_port' => 465, 'smtp_secure' => 'ssl', 'smtp_user' => '', 'smtp_pass' => '',
-            'notify_extra' => '', 'setup_key' => '',
+            'notify_extra' => '', 'setup_key' => '', 'max_bot_token' => '', 'max_webhook_secret' => '',
         ];
         $secrets = is_file($file) ? array_merge($defaults, require $file) : $defaults;
         // Для тестов: письма в лог, что бы ни было в secrets.php.
@@ -515,3 +515,4 @@ require __DIR__ . '/ical.php';
 require __DIR__ . '/cron.php';
 require __DIR__ . '/cleaning.php';
 require __DIR__ . '/bath.php';
+require __DIR__ . '/max.php';

@@ -23,6 +23,7 @@ set_error_handler(function (int $no, string $msg, string $file, int $line): bool
 
 putenv('HOTEL_DB_NAME=' . (getenv('HOTEL_DB_NAME') ?: 'hotel_test'));
 putenv('HOTEL_MAIL_TRANSPORT=log');
+putenv('HOTEL_MAX_TRANSPORT=log'); // бот MAX — запросы в storage/max.log, без сети
 ob_start();
 
 require __DIR__ . '/../src/bootstrap.php';
@@ -389,6 +390,75 @@ guest_anonymize($ok15['guest_id'], 'по просьбе');
 check(bath_get($ok15['id'])['guest_comment'] === null && bath_get($ok15['id'])['guest_name'] === 'Данные удалены', 'удаление данных гостя стирает и комментарии к бане');
 check(bath_by_token($ok15['token'])['id'] === $ok15['id'] && bath_by_token('x') === null, 'страница записи по секретной ссылке');
 bath_set_state('soon');
+
+echo "\nБот MAX\n";
+@unlink(HOTEL_ROOT . '/storage/max.log');
+$maxLog = function (): array {
+    $out = [];
+    foreach (explode("\n", (string) @file_get_contents(HOTEL_ROOT . '/storage/max.log')) as $line) {
+        if ($line !== '') {
+            $out[] = json_decode($line, true);
+        }
+    }
+    return $out;
+};
+$toChat = fn (int $chat) => array_values(array_filter($maxLog(), fn ($r) => $r['path'] === 'messages' && (int) ($r['query']['chat_id'] ?? 0) === $chat));
+$msg = fn (int $uid, int $chat, string $text) => ['update_type' => 'message_created', 'message' => ['sender' => ['user_id' => $uid, 'first_name' => 'Тест', 'is_bot' => false], 'recipient' => ['chat_id' => $chat, 'chat_type' => 'dialog'], 'body' => ['text' => $text]]];
+$press = fn (int $uid, string $payload) => ['update_type' => 'message_callback', 'callback' => ['callback_id' => 'cb-' . $payload, 'payload' => $payload, 'user' => ['user_id' => $uid]], 'message' => ['body' => ['text' => 'Уведомление']]];
+check(max_enabled(), 'бот включён (в тестах — запись в storage/max.log)');
+$admCode = max_link_code_create($adm['id']);
+check(strlen($admCode) === 8, 'код привязки — 8 символов');
+max_handle_update($msg(501, 9001, 'ZZZZ2222'));
+check(!q_val('SELECT max_user_id FROM staff WHERE id = ?', [$adm['id']]) && str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), 'не подошёл'), 'неверный код не привязывает и бот об этом говорит');
+max_handle_update(['update_type' => 'bot_started', 'chat_id' => 9001, 'user' => ['user_id' => 501, 'first_name' => 'Ольга'], 'payload' => strtolower($admCode)]);
+$admRow = q_one('SELECT * FROM staff WHERE id = ?', [$adm['id']]);
+check((int) $admRow['max_user_id'] === 501 && (int) $admRow['max_chat_id'] === 9001 && $admRow['max_link_code'] === null, 'ссылка с кодом привязывает MAX, код одноразовый');
+$hkCode = max_link_code_create($hk['id']);
+for ($i = 0; $i < 5; $i++) {
+    max_handle_update($msg(666, 9666, 'AAAA' . $i . 'BBB'));
+}
+max_handle_update($msg(666, 9666, $hkCode));
+check(!q_val('SELECT max_user_id FROM staff WHERE id = ?', [$hk['id']]), 'после 5 неверных кодов чужой аккаунт MAX не привяжется даже верным кодом');
+max_handle_update($msg(502, 9002, $hkCode));
+check((int) q_val('SELECT max_chat_id FROM staff WHERE id = ?', [$hk['id']]) === 9002, 'горничная подключила MAX своим кодом');
+@unlink(HOTEL_ROOT . '/storage/max.log');
+$mb = booking_create(guest(['check_in' => d(120), 'check_out' => d(122), 'room_type_id' => $std['id'], 'name' => 'Анна Максова']));
+max_notify_new_booking($mb);
+max_flush();
+$adminMsg = $toChat(9001);
+check(count($adminMsg) === 1 && str_contains($adminMsg[0]['body']['text'], 'Анна Максова') && $adminMsg[0]['body']['attachments'][0]['payload']['buttons'][0][0]['payload'] === 'b:ok:' . $mb['id'], 'администратору — новая заявка с кнопкой «Подтвердить»');
+check($toChat(9002) === [], 'горничной заявки с данными гостей не приходят');
+check(!str_contains(json_encode($adminMsg), '"type":"link"'), 'ссылка-кнопка на админку — только если сайт на https');
+max_handle_update($press(502, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'new', 'горничная не может подтвердить бронь кнопкой');
+max_handle_update($press(999, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'new', 'чужой аккаунт MAX ничего не подтвердит');
+max_handle_update($press(501, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'confirmed', 'администратор подтвердил бронь кнопкой в MAX');
+check((int) q_val("SELECT staff_id FROM audit_log WHERE entity = 'booking' AND entity_id = ? AND action = 'status' ORDER BY id DESC LIMIT 1", [$mb['id']]) === $adm['id'], 'в журнале видно, кто нажал кнопку');
+check(current_staff()['id'] === $owner['id'], 'после кнопки — снова прежний сотрудник (без подмены сессии)');
+$answers = array_values(array_filter($maxLog(), fn ($r) => $r['path'] === 'answers' && $r['query']['callback_id'] === 'cb-b:ok:' . $mb['id']));
+check(str_contains(end($answers)['body']['notification'] ?? '', 'подтверждена') && end($answers)['body']['message']['attachments'] === [], 'ответ на кнопку: «подтверждена», кнопки убраны');
+max_handle_update($press(501, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'confirmed', 'повторное нажатие ничего не ломает');
+@unlink(HOTEL_ROOT . '/storage/max.log');
+$cid = cleaning_add((int) q_val('SELECT id FROM rooms WHERE is_active = 1 ORDER BY id LIMIT 1'), d(0), '00:00', 'поменять полотенца');
+max_flush();
+$hkMsg = $toChat(9002);
+check(count($hkMsg) === 1 && str_contains($hkMsg[0]['body']['text'], 'полотенца') && $hkMsg[0]['body']['attachments'][0]['payload']['buttons'][0][0]['payload'] === 'c:done:' . $cid, 'горничной — «пора убрать» с кнопкой «Убрано»');
+max_handle_update($press(502, 'c:done:' . $cid));
+check(cleaning_get($cid)['status'] === 'done' && (int) cleaning_get($cid)['done_by'] === $hk['id'], 'кнопка «Убрано» отмечает уборку от имени горничной');
+@unlink(HOTEL_ROOT . '/storage/max.log');
+max_handle_update($msg(501, 9001, 'сегодня'));
+check(str_contains($toChat(9001)[0]['body']['text'] ?? '', 'Заезды'), 'команда «сегодня» — сводка дня');
+max_handle_update($msg(502, 9002, 'сегодня'));
+check(!str_contains(json_encode($toChat(9002), JSON_UNESCAPED_UNICODE), 'Заезды'), 'горничной сводка с гостями не приходит');
+q('UPDATE staff SET is_active = 0 WHERE id = ?', [$hk['id']]);
+check(max_staff(['housekeeper']) === [], 'отключённому сотруднику уведомления не приходят');
+q('UPDATE staff SET is_active = 1 WHERE id = ?', [$hk['id']]);
+check(!max_webhook_authorized('что-угодно'), 'без секрета в настройках вебхук закрыт');
+max_unlink($adm['id']);
+check(q_val('SELECT max_user_id FROM staff WHERE id = ?', [$adm['id']]) === null && max_staff(['admin']) === [], 'после «Отключить» уведомления не приходят');
 
 echo "\nПисьма\n";
 @unlink(HOTEL_ROOT . '/storage/mail.log');

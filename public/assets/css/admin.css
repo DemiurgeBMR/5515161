@@ -559,3 +559,4 @@ a.chess__cell:hover { background: var(--accent-soft); }
 .pw-field__hide, .pw-field__toggle[aria-pressed="true"] .pw-field__show { display: none; }
 .pw-field__toggle[aria-pressed="true"] .pw-field__hide { display: block; }
 .pw-warn { margin: 6px 0 0; color: #8c2f22; font-size: 0.88rem; font-weight: 600; }
+.max-code { margin: 8px 0; font: 700 1.8rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.12em; }
