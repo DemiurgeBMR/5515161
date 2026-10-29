@@ -68,6 +68,26 @@
         syncPay();
     }
 
+    // Баня → время работы: выходной день прячет часы; «на все дни» копирует
+    // часы первого рабочего дня во все отмеченные.
+    var week = $('[data-week]');
+    if (week) {
+        var rows = $$('[data-week-row]', week);
+        rows.forEach(function (row) {
+            var on = $('[data-week-on]', row);
+            on.addEventListener('change', function () { row.classList.toggle('is-off', !on.checked); });
+        });
+        var copy = $('[data-week-copy]', week);
+        if (copy) copy.addEventListener('click', function () {
+            var first = rows.filter(function (r) { return $('[data-week-on]', r).checked; })[0];
+            if (!first) return;
+            var f = $('[data-week-from]', first).value, t = $('[data-week-to]', first).value;
+            rows.forEach(function (r) {
+                if ($('[data-week-on]', r).checked) { $('[data-week-from]', r).value = f; $('[data-week-to]', r).value = t; }
+            });
+        });
+    }
+
     // Копировать ссылку: <button data-copy="#id-поля">
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {

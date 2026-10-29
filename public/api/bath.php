@@ -41,7 +41,7 @@ if (!is_post()) {
     $r = bath_slots($date);
     header('Cache-Control: no-store');
     json_response(['ok' => true, 'open' => true, 'date' => $date, 'working_day' => $r['working_day'], 'slots' => $r['slots'],
-        'hour_price' => bath_hour_price($date)]);
+        'hours' => $r['hours'] ?? null, 'note' => $r['note'] ?? '', 'hour_price' => bath_hour_price($date)]);
 }
 
 $ts = (int) post('ts', '0');

@@ -307,11 +307,33 @@ expect_error(fn () => bath_create($bathReq(['date' => d(6), 'time' => '22:00']))
 expect_error(fn () => bath_create($bathReq(['date' => d(6), 'hours' => 1])), 'короче минимума — нельзя', 'записаться на');
 expect_error(fn () => bath_create($bathReq(['date' => d(6), 'guests' => 20])), 'гостей больше максимума — нельзя', 'Гостей');
 expect_error(fn () => bath_create($bathReq(['date' => d(6), 'time' => '12:30'])), 'с сайта — только с начала часа', 'время');
-set_setting('bath_days', '12345');
+// Своё время на каждый день: будни 14–23, суббота 10–02 ночи, воскресенье — выходной.
+set_setting('bath_week', bath_week_encode([1 => ['from' => 14, 'to' => 23], 2 => ['from' => 14, 'to' => 23], 3 => ['from' => 14, 'to' => 23],
+    4 => ['from' => 14, 'to' => 23], 5 => ['from' => 14, 'to' => 23], 6 => ['from' => 10, 'to' => 26], 7 => null]));
+check(bath_hours_text() === 'пн–пт, 14:00–23:00; сб, 10:00–02:00', 'расписание недели одной строкой: ' . bath_hours_text());
 $sunday = today()->modify('next sunday')->format('Y-m-d');
-expect_error(fn () => bath_create($bathReq(['date' => $sunday])), 'в нерабочий день с сайта не записаться', 'не работает');
-check(bath_slots($sunday)['slots'] === [], 'в нерабочий день свободного времени нет');
-set_setting('bath_days', '1234567');
+$monday = today()->modify('next monday')->format('Y-m-d');
+expect_error(fn () => bath_create($bathReq(['date' => $sunday])), 'в выходной с сайта не записаться', 'не работает');
+check(bath_slots($sunday)['slots'] === [], 'в выходной свободного времени нет');
+expect_error(fn () => bath_create($bathReq(['date' => $monday, 'time' => '12:00'])), 'в будни до 14:00 записаться нельзя', '14:00–23:00');
+check(array_key_first(array_column(bath_slots($monday)['slots'], 'max_hours', 'time')) === '14:00', 'в будни свободное время — с 14:00');
+$late = bath_create($bathReq(['date' => $sat, 'time' => '23:00', 'hours' => 3, 'phone' => '+7 978 700-00-09']));
+check($late['ends_at'] === parse_date($sat)->modify('+1 day')->format('Y-m-d') . ' 02:00:00', 'в субботу можно до 02:00 ночи — сеанс заканчивается на следующий день');
+expect_error(fn () => bath_create($bathReq(['date' => $sat, 'time' => '21:00', 'hours' => 6, 'phone' => '+7 978 700-00-10'])), 'позже закрытия ночью — нельзя', 'работает');
+bath_set_status($late['id'], 'cancelled');
+// Особые дни: выходной и своё время на конкретную дату.
+$special = [$monday => ['from' => null, 'to' => null, 'note' => 'санитарный день'], $sat => ['from' => 10, 'to' => 18, 'note' => 'короткий день']];
+set_setting('bath_special', bath_special_encode($special));
+expect_error(fn () => bath_create($bathReq(['date' => $monday, 'time' => '15:00'])), 'особый выходной: записаться нельзя, гость видит причину', 'санитарный день');
+check(bath_hours_on($sat)['to'] === 18 && bath_hours_on($sat)['special'], 'особый день: своё время вместо расписания недели');
+expect_error(fn () => bath_create($bathReq(['date' => $sat, 'time' => '17:00', 'hours' => 2])), 'в короткий день позже закрытия — нельзя', '10:00–18:00');
+check(bath_parse_special(bath_special_encode($special)) == $special, 'особые дни сохраняются и читаются без потерь');
+$moved = bath_create($bathReq(['date' => d(20), 'time' => '20:00', 'hours' => 2, 'phone' => '+7 978 700-00-11']), true);
+set_setting('bath_week', bath_week_encode(array_fill(1, 7, ['from' => 10, 'to' => 18])));
+check(in_array($moved['id'], array_column(bath_sessions_outside_hours(), 'id'), true), 'после сокращения времени работы видно записи, которые в него не попадают');
+bath_set_status($moved['id'], 'cancelled');
+set_setting('bath_week', bath_week_encode(array_fill(1, 7, ['from' => 10, 'to' => 23])));
+set_setting('bath_special', '');
 $blk = bath_block(d(6), '10:00', '16:00', 'санитарный день');
 check(!array_filter(bath_slots(d(6))['slots'], fn ($sl) => $sl['time'] < '17:00'), 'закрытое время не предлагается гостям (и час перерыва после)');
 expect_error(fn () => bath_block(d(5), '11:00', '13:00', ''), 'закрыть время поверх записи нельзя', 'уже есть запись');

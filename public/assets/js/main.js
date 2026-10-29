@@ -1048,8 +1048,9 @@
             });
             var again = keep && bathForm.querySelector('input[name=time][value="' + keep + '"]');
             if (again) again.checked = true;
-            bHint.textContent = data.working_day === false ? 'В этот день баня не работает — выберите другую дату.'
-                : bSlots.length ? 'Свободное время на ' + shortDate(bDate.value) + '.'
+            var note = data.note ? ' (' + data.note + ')' : '';
+            bHint.textContent = data.working_day === false ? 'В этот день баня не работает' + note + ' — выберите другую дату.'
+                : bSlots.length ? 'Свободное время на ' + shortDate(bDate.value) + (data.hours ? '. Баня работает ' + data.hours + note : '') + '.'
                 : 'На ' + shortDate(bDate.value) + ' свободного времени нет — выберите другую дату.';
             bSyncHours();
             bCalc();

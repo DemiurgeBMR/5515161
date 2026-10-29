@@ -85,9 +85,6 @@ function bath_settings(): array
         'max_guests'      => $int('max_guests', 8, 1, 50),
         'min_hours'       => $int('min_hours', 2, 1, 12),
         'max_hours'       => $int('max_hours', 6, 1, 24),
-        'open_from'       => $int('open_from', 10, 0, 23),
-        'open_to'         => $int('open_to', 23, 1, 24),
-        'days'            => preg_replace('/[^1-7]/', '', (string) setting('bath_days', '1234567')),
         'buffer'          => $int('buffer', 60, 0, 240),
         'lead_hours'      => $int('lead_hours', 2, 0, 72),
         'hotel_discount'  => $int('hotel_discount', 10, 0, 100),
@@ -98,10 +95,124 @@ function bath_settings(): array
     $s['extras'] = bath_parse_extras($s['extras_text']);
     $s['max_hours'] = max($s['min_hours'], $s['max_hours']);
     $s['max_guests'] = max($s['guests_included'], $s['max_guests']);
-    if ($s['open_to'] <= $s['open_from']) {
-        $s['open_to'] = min(24, $s['open_from'] + $s['min_hours']);
-    }
+
+    // Время работы: своё на каждый день недели и особые дни (праздники,
+    // санитарные дни). Пока расписание недели не сохраняли, оно собирается
+    // из прежних настроек «дни работы + с/до».
+    $from = $int('open_from', 10, 0, 23);
+    $s['week'] = bath_parse_week(setting('bath_week'), (string) setting('bath_days', '1234567'), $from, max($from + 1, $int('open_to', 23, 1, 24)));
+    $s['special'] = bath_parse_special(setting('bath_special'));
+    $working = array_filter($s['week']);
+    $s['days'] = implode('', array_keys($working));
+    $s['open_from'] = $working ? min(array_column($working, 'from')) : 10;
+    $s['open_to'] = $working ? max(array_column($working, 'to')) : 23;
     return $s;
+}
+
+/** Самое позднее закрытие — 04:00 следующего дня (28 «часов» от начала дня). */
+const BATH_LATEST_CLOSE = 28;
+
+/**
+ * Расписание недели из строк «1=10-23» (день недели 1–7 = пн–вс, часы с–до;
+ * «до» больше 24 — после полуночи, 26 = 02:00), «7=» — выходной.
+ * Возвращает [1 => ['from' => 10, 'to' => 23], …, 7 => null].
+ */
+function bath_parse_week(?string $text, string $legacyDays, int $legacyFrom, int $legacyTo): array
+{
+    $week = [];
+    for ($d = 1; $d <= 7; $d++) {
+        $week[$d] = str_contains($legacyDays, (string) $d) ? ['from' => $legacyFrom, 'to' => $legacyTo] : null;
+    }
+    if ($text === null || trim($text) === '') {
+        return $week;
+    }
+    foreach (bath_lines($text) as $line) {
+        if (preg_match('/^([1-7])=(?:(\d{1,2})-(\d{1,2}))?$/', $line, $m)) {
+            $f = isset($m[2]) ? (int) $m[2] : -1;
+            $t = isset($m[3]) ? (int) $m[3] : -1;
+            $week[(int) $m[1]] = $f >= 0 && $f <= 23 && $t > $f && $t <= BATH_LATEST_CLOSE ? ['from' => $f, 'to' => $t] : null;
+        }
+    }
+    return $week;
+}
+
+function bath_week_encode(array $week): string
+{
+    $lines = [];
+    for ($d = 1; $d <= 7; $d++) {
+        $lines[] = $d . '=' . (!empty($week[$d]) ? $week[$d]['from'] . '-' . $week[$d]['to'] : '');
+    }
+    return implode("\n", $lines);
+}
+
+/**
+ * Особые дни из строк «2026-12-31|10|18|Предпраздничный день»; без часов —
+ * выходной. Возвращает [дата => ['from' => ?int, 'to' => ?int, 'note' => …]].
+ */
+function bath_parse_special(?string $text): array
+{
+    $out = [];
+    foreach (bath_lines($text) as $line) {
+        $p = explode('|', $line, 4) + ['', '', '', ''];
+        if (!parse_date($p[0])) {
+            continue;
+        }
+        $f = $p[1] === '' ? null : (int) $p[1];
+        $t = $p[2] === '' ? null : (int) $p[2];
+        $open = $f !== null && $t !== null && $f >= 0 && $f <= 23 && $t > $f && $t <= BATH_LATEST_CLOSE;
+        $out[$p[0]] = ['from' => $open ? $f : null, 'to' => $open ? $t : null, 'note' => $p[3]];
+    }
+    ksort($out);
+    return $out;
+}
+
+function bath_special_encode(array $special): string
+{
+    ksort($special);
+    $lines = [];
+    foreach ($special as $date => $x) {
+        $lines[] = $date . '|' . ($x['from'] ?? '') . '|' . ($x['to'] ?? '') . '|' . str_replace(["\n", '|'], ' ', (string) $x['note']);
+    }
+    return implode("\n", $lines);
+}
+
+/**
+ * Часы работы в эту дату: ['from' => 10, 'to' => 23, 'special' => bool, 'note' => …]
+ * или null — баня не работает (выходной по расписанию или особый день).
+ */
+function bath_hours_on(string $date): ?array
+{
+    $d = parse_date($date);
+    if (!$d) {
+        return null;
+    }
+    $s = bath_settings();
+    if (isset($s['special'][$date])) {
+        $x = $s['special'][$date];
+        return $x['from'] === null ? null : ['from' => $x['from'], 'to' => $x['to'], 'special' => true, 'note' => $x['note']];
+    }
+    $w = $s['week'][(int) $d->format('N')] ?? null;
+    return $w ? $w + ['special' => false, 'note' => ''] : null;
+}
+
+/** Особый день в эту дату (выходной или своё время) или null. */
+function bath_special_on(string $date): ?array
+{
+    return bath_settings()['special'][$date] ?? null;
+}
+
+/** Ближайшие особые дни: [дата => …] начиная с сегодняшнего. */
+function bath_special_upcoming(int $days = 60): array
+{
+    $from = today()->format('Y-m-d');
+    $to = today()->modify('+' . $days . ' days')->format('Y-m-d');
+    return array_filter(bath_settings()['special'], fn ($d) => $d >= $from && $d <= $to, ARRAY_FILTER_USE_KEY);
+}
+
+/** «10:00–23:00» для часов работы. */
+function bath_range(array $hrs): string
+{
+    return bath_hour($hrs['from']) . '–' . bath_hour($hrs['to']);
 }
 
 function bath_state(): string
@@ -115,10 +226,10 @@ function bath_is_open(): bool
     return bath_enabled() && bath_state() === 'open';
 }
 
-/** «10:00», а 24 — «24:00». */
+/** «10:00»; 24 — «24:00»; после полуночи (25–28) — «01:00»…«04:00». */
 function bath_hour(int $h): string
 {
-    return sprintf('%02d:00', $h);
+    return sprintf('%02d:00', $h > 24 ? $h - 24 : $h);
 }
 
 /** «ежедневно», «пн–пт», «пт, сб, вс». */
@@ -147,11 +258,31 @@ function bath_days_text(?string $days = null): string
     return implode(', ', $parts);
 }
 
-/** «ежедневно, 10:00–23:00». */
+/** «ежедневно, 10:00–23:00» или «пн–пт, 14:00–23:00; сб, вс, 10:00–02:00». */
 function bath_hours_text(): string
 {
-    $s = bath_settings();
-    return bath_days_text($s['days']) . ', ' . bath_hour($s['open_from']) . '–' . bath_hour($s['open_to']);
+    $groups = [];
+    foreach (bath_settings()['week'] as $d => $hrs) {
+        if ($hrs) {
+            $key = $hrs['from'] . '-' . $hrs['to'];
+            $groups[$key] = ($groups[$key] ?? ['days' => '', 'hrs' => $hrs]);
+            $groups[$key]['days'] .= $d;
+        }
+    }
+    if (!$groups) {
+        return 'по договорённости';
+    }
+    return implode('; ', array_map(fn ($g) => bath_days_text($g['days']) . ', ' . bath_range($g['hrs']), $groups));
+}
+
+/** Расписание недели для страницы: [['понедельник', '10:00–23:00' | null], …]. */
+function bath_week_rows(): array
+{
+    $rows = [];
+    foreach (bath_settings()['week'] as $d => $hrs) {
+        $rows[] = [RU_WEEKDAYS[$d % 7], $hrs ? bath_range($hrs) : null];
+    }
+    return $rows;
 }
 
 /** Сменить статус бани — только владелец. Открыть запись без цены нельзя. */
@@ -318,7 +449,7 @@ function bath_day_sessions(string $date, ?int $excludeId = null): array
 {
     $buf = bath_settings()['buffer'] * 60;
     $from = date('Y-m-d H:i:s', strtotime($date . ' 00:00:00') - $buf);
-    $to = date('Y-m-d H:i:s', strtotime($date . ' 00:00:00 +1 day') + $buf);
+    $to = date('Y-m-d H:i:s', strtotime($date . ' 00:00:00') + BATH_LATEST_CLOSE * 3600 + $buf);
     $in = "'" . implode("', '", BATH_OCCUPYING) . "'";
     return q_all("SELECT id, starts_at, ends_at, source FROM bath_bookings WHERE status IN ($in) AND starts_at < ? AND ends_at > ? AND id <> ? ORDER BY starts_at",
         [$to, $from, $excludeId ?? 0]);
@@ -372,8 +503,11 @@ function bath_slots(string $date, bool $public = true, ?int $excludeId = null): 
     if (!$d) {
         return $result;
     }
-    $result['working_day'] = str_contains($s['days'], $d->format('N'));
-    if (!$result['working_day'] && $public) {
+    $hrs = bath_hours_on($date);
+    $result['working_day'] = $hrs !== null;
+    $result['hours'] = $hrs ? bath_range($hrs) : null;
+    $result['note'] = $hrs['note'] ?? (bath_special_on($date)['note'] ?? '');
+    if (!$hrs) {
         return $result;
     }
     if ($public && ($date < today()->format('Y-m-d') || $date > today()->modify('+' . BATH_AHEAD_DAYS . ' days')->format('Y-m-d'))) {
@@ -386,13 +520,13 @@ function bath_slots(string $date, bool $public = true, ?int $excludeId = null): 
         }
     }
     $earliest = time() + $s['lead_hours'] * 3600;
-    for ($h = $s['open_from']; $h + $s['min_hours'] <= $s['open_to']; $h++) {
+    for ($h = $hrs['from']; $h <= 23 && $h + $s['min_hours'] <= $hrs['to']; $h++) {
         $start = $date . ' ' . bath_hour($h) . ':00';
         if ($public && strtotime($start) < $earliest) {
             continue;
         }
         $max = 0;
-        for ($len = $s['min_hours']; $len <= $s['max_hours'] && $h + $len <= $s['open_to']; $len++) {
+        for ($len = $s['min_hours']; $len <= $s['max_hours'] && $h + $len <= $hrs['to']; $len++) {
             if (bath_overlaps($start, date('Y-m-d H:i:s', strtotime($start) + $len * 3600), $sessions)) {
                 break;
             }
@@ -429,12 +563,14 @@ function bath_validate_time(string $date, string $time, int $hours, bool $byStaf
         if ($hours < $s['min_hours'] || $hours > $s['max_hours']) {
             throw new BookingError('Можно записаться на ' . $s['min_hours'] . '–' . $s['max_hours'] . ' ' . plural($s['max_hours'], 'час', 'часа', 'часов'), 'hours');
         }
-        if (!str_contains($s['days'], $d->format('N'))) {
-            throw new BookingError('В этот день баня не работает: ' . bath_hours_text(), 'date');
+        $hrs = bath_hours_on($date);
+        if (!$hrs) {
+            $note = bath_special_on($date)['note'] ?? '';
+            throw new BookingError('В этот день баня не работает' . ($note !== '' ? ' (' . $note . ')' : '') . '. Расписание: ' . bath_hours_text(), 'date');
         }
         $h = (int) substr($time, 0, 2);
-        if ($h < $s['open_from'] || $h + $hours > $s['open_to']) {
-            throw new BookingError('Баня работает ' . bath_hours_text() . ' — выберите время внутри', 'time');
+        if ($h < $hrs['from'] || $h + $hours > $hrs['to']) {
+            throw new BookingError('В этот день баня работает ' . bath_range($hrs) . ' — выберите время внутри', 'time');
         }
         if (strtotime($start) < time() + $s['lead_hours'] * 3600) {
             throw new BookingError($s['lead_hours'] > 0 ? 'Баню нужно протопить — записывайтесь хотя бы за ' . $s['lead_hours'] . ' ' . plural($s['lead_hours'], 'час', 'часа', 'часов') . ', или позвоните нам' : 'Это время уже прошло', 'time');
@@ -747,6 +883,23 @@ function bath_unblock(int $id): void
     q('DELETE FROM bath_bookings WHERE id = ?', [$id]);
     audit('bath', $id, 'unblocked', ru_date($b['date']) . ', ' . $b['time_from'] . '–' . $b['time_to']);
     touch_data_version();
+}
+
+/** Будущие записи, которые не попадают во время работы, — после смены расписания. */
+function bath_sessions_outside_hours(): array
+{
+    $out = [];
+    foreach (bath_list(today()->format('Y-m-d'), today()->modify('+' . BATH_AHEAD_DAYS . ' days')->format('Y-m-d')) as $b) {
+        if ($b['is_block'] || $b['status'] === 'done' || $b['starts_at'] <= now()) {
+            continue;
+        }
+        $hrs = bath_hours_on($b['date']);
+        $day = strtotime($b['date'] . ' 00:00:00');
+        if (!$hrs || strtotime($b['starts_at']) < $day + $hrs['from'] * 3600 || strtotime($b['ends_at']) > $day + $hrs['to'] * 3600) {
+            $out[] = $b;
+        }
+    }
+    return $out;
 }
 
 /** Сколько новых заявок в баню ждут ответа — для меню. */

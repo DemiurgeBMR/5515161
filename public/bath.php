@@ -128,6 +128,22 @@ require __DIR__ . '/../src/partials/header.php';
                     <p class="muted bath-block__note">Цена — за всю баню на время сеанса. Между сеансами баню убирают и протапливают<?= $s['buffer'] ? ' (' . bath_duration($s['buffer']) . ')' : '' ?>, поэтому она всегда чистая и горячая.</p>
                 </section>
 <?php endif; ?>
+                <section class="bath-block" id="hours">
+                    <h2 class="h3">Время работы</h2>
+                    <dl class="bath-prices bath-week">
+<?php foreach (bath_week_rows() as [$dayName, $range]): ?>
+                        <div><dt><?= e(mb_convert_case($dayName, MB_CASE_TITLE)) ?></dt><dd<?= $range ? '' : ' class="muted"' ?>><?= e($range ?? 'выходной') ?></dd></div>
+<?php endforeach; ?>
+                    </dl>
+<?php if ($soonSpecial = bath_special_upcoming(45)): ?>
+                    <h3 class="bath-block__sub">Особые дни</h3>
+                    <dl class="bath-prices">
+<?php foreach ($soonSpecial as $sd => $x): ?>
+                        <div><dt><?= e(ru_date($sd)) ?>, <?= e(RU_WEEKDAYS_SHORT[(int) date('w', strtotime($sd))]) ?><?= $x['note'] !== '' ? ' <span class="muted">— ' . e($x['note']) . '</span>' : '' ?></dt><dd><?= $x['from'] === null ? 'не работаем' : e(bath_hour($x['from']) . '–' . bath_hour($x['to'])) ?></dd></div>
+<?php endforeach; ?>
+                    </dl>
+<?php endif; ?>
+                </section>
 <?php if ($s['rules']): ?>
                 <section class="bath-block">
                     <h2 class="h3">Правила</h2>
@@ -172,7 +188,7 @@ require __DIR__ . '/../src/partials/header.php';
                         <legend>Время начала</legend>
                         <div class="bath-times__list" data-bath-times>
 <?php // Без JS — все часы работы; с JS список заменяется свободным временем на выбранную дату. ?>
-<?php for ($t = $s['open_from']; $t + $s['min_hours'] <= $s['open_to']; $t++): ?>
+<?php $fh = bath_hours_on($firstDay) ?? ['from' => $s['open_from'], 'to' => $s['open_to']]; for ($t = $fh['from']; $t <= 23 && $t + $s['min_hours'] <= $fh['to']; $t++): ?>
                             <label class="chip"><input type="radio" name="time" value="<?= e(bath_hour($t)) ?>" required><span><?= e(bath_hour($t)) ?></span></label>
 <?php endfor; ?>
                         </div>

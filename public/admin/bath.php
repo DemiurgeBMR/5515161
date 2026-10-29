@@ -109,32 +109,91 @@ if (is_post()) {
                 break;
             case 'prices':
                 $num = fn (string $k) => (int) preg_replace('/\D+/', '', post($k));
-                $days = implode('', array_filter(array_map('intval', is_array($_POST['days'] ?? null) ? $_POST['days'] : []), fn ($d) => $d >= 1 && $d <= 7));
-                $from = max(0, min(23, (int) post('open_from')));
-                $to = max(1, min(24, (int) post('open_to')));
                 $min = max(1, min(12, (int) post('min_hours')));
-                if ($to - $from < $min) {
-                    throw new BookingError('Время работы короче минимального сеанса — проверьте часы');
-                }
-                if ($days === '' && bath_state() === 'open') {
-                    throw new BookingError('Отметьте хотя бы один рабочий день — баня сейчас открыта');
-                }
                 $old = bath_settings();
+                foreach ($old['week'] as $d => $hrs) {
+                    if ($hrs && $hrs['to'] - $hrs['from'] < $min) {
+                        throw new BookingError('В ' . RU_WEEKDAYS[$d % 7] . ' баня работает ' . bath_range($hrs) . ' — это меньше сеанса в ' . $min . ' ч. Сначала поправьте время работы');
+                    }
+                }
                 foreach ([
                     'price' => $num('price'), 'price_weekend' => $num('price_weekend'), 'guests_included' => max(1, $num('guests_included')),
                     'extra_guest' => $num('extra_guest'), 'max_guests' => max(1, $num('max_guests')), 'min_hours' => $min,
-                    'max_hours' => max($min, min(24, (int) post('max_hours'))), 'open_from' => $from, 'open_to' => $to,
-                    'buffer' => max(0, min(240, (int) post('buffer'))), 'lead_hours' => max(0, min(72, (int) post('lead_hours'))),
+                    'max_hours' => max($min, min(24, (int) post('max_hours'))),
                     'hotel_discount' => max(0, min(100, (int) post('hotel_discount'))),
                 ] as $k => $v) {
                     set_setting('bath_' . $k, (string) $v);
                 }
-                set_setting('bath_days', $days);
                 set_setting('bath_extras', implode("\n", array_map(fn ($x) => $x['name'] . ' — ' . $x['price'], bath_parse_extras(post('extras')))));
                 $new = bath_settings();
-                audit('bath', null, 'settings', 'цены и время' . ($old['price'] !== $new['price'] ? ': час ' . money($old['price']) . ' → ' . money($new['price']) : ''));
+                audit('bath', null, 'settings', 'цены' . ($old['price'] !== $new['price'] ? ': час ' . money($old['price']) . ' → ' . money($new['price']) : ''));
                 touch_data_version();
                 flash('ok', 'Сохранено. Уже записанные сеансы не пересчитываются.');
+                break;
+            case 'hours':
+                $min = bath_settings()['min_hours'];
+                $in = is_array($_POST['day'] ?? null) ? $_POST['day'] : [];
+                $week = [];
+                for ($d = 1; $d <= 7; $d++) {
+                    $row = is_array($in[$d] ?? null) ? $in[$d] : [];
+                    if (empty($row['on'])) {
+                        $week[$d] = null;
+                        continue;
+                    }
+                    $f = max(0, min(23, (int) ($row['from'] ?? 10)));
+                    $t = max(1, min(BATH_LATEST_CLOSE, (int) ($row['to'] ?? 23)));
+                    if ($t - $f < $min) {
+                        throw new BookingError(mb_convert_case(RU_WEEKDAYS[$d % 7], MB_CASE_TITLE) . ': с ' . bath_hour($f) . ' до ' . bath_hour($t) . ' — меньше минимального сеанса (' . $min . ' ч)');
+                    }
+                    $week[$d] = ['from' => $f, 'to' => $t];
+                }
+                if (!array_filter($week) && bath_state() === 'open') {
+                    throw new BookingError('Отметьте хотя бы один рабочий день — баня сейчас открыта');
+                }
+                set_setting('bath_week', bath_week_encode($week));
+                set_setting('bath_buffer', (string) max(0, min(240, (int) post('buffer'))));
+                set_setting('bath_lead_hours', (string) max(0, min(72, (int) post('lead_hours'))));
+                audit('bath', null, 'settings', 'время работы: ' . bath_hours_text());
+                touch_data_version();
+                $outside = bath_sessions_outside_hours();
+                flash('ok', 'Время работы сохранено: ' . bath_hours_text() . '.');
+                if ($outside) {
+                    flash('error', 'Не попадают в новое время ' . count($outside) . ' ' . plural(count($outside), 'запись', 'записи', 'записей') . ': '
+                        . implode(', ', array_map(fn ($b) => ru_date($b['date']) . ' ' . $b['time_from'] . '–' . $b['time_to'], array_slice($outside, 0, 5)))
+                        . (count($outside) > 5 ? '…' : '') . '. Они остаются в силе — перенесите их или предупредите гостей.');
+                }
+                break;
+            case 'special_add':
+                $date = post('date');
+                if (!parse_date($date) || $date < today()->format('Y-m-d')) {
+                    throw new BookingError('Выберите дату — сегодня или позже');
+                }
+                $closed = post('closed') === '1';
+                $f = max(0, min(23, (int) post('from')));
+                $t = max(1, min(BATH_LATEST_CLOSE, (int) post('to')));
+                if (!$closed && $t - $f < bath_settings()['min_hours']) {
+                    throw new BookingError('Время работы в этот день короче минимального сеанса');
+                }
+                $special = bath_settings()['special'];
+                // Прошедшие особые дни больше не нужны — убираем их при каждом сохранении.
+                $special = array_filter($special, fn ($d) => $d >= today()->format('Y-m-d'), ARRAY_FILTER_USE_KEY);
+                $special[$date] = ['from' => $closed ? null : $f, 'to' => $closed ? null : $t, 'note' => clean_line(post('note'), 100)];
+                set_setting('bath_special', bath_special_encode($special));
+                audit('bath', null, 'settings', 'особый день ' . ru_date($date) . ': ' . ($closed ? 'выходной' : bath_hour($f) . '–' . bath_hour($t)));
+                touch_data_version();
+                $outside = array_filter(bath_sessions_outside_hours(), fn ($b) => $b['date'] === $date);
+                flash('ok', ru_date($date) . ': ' . ($closed ? 'баня не работает' : 'работает ' . bath_hour($f) . '–' . bath_hour($t)) . '.');
+                if ($outside) {
+                    flash('error', 'На ' . ru_date($date) . ' уже есть ' . count($outside) . ' ' . plural(count($outside), 'запись', 'записи', 'записей') . ' вне этого времени — перенесите их или предупредите гостей.');
+                }
+                break;
+            case 'special_delete':
+                $special = bath_settings()['special'];
+                unset($special[post('date')]);
+                set_setting('bath_special', bath_special_encode($special));
+                audit('bath', null, 'settings', 'особый день ' . ru_date(post('date')) . ' убран');
+                touch_data_version();
+                flash('ok', 'Особый день убран — работаем по обычному расписанию.');
                 break;
             case 'upload':
                 $files = bath_uploaded_files();
@@ -179,7 +238,7 @@ if (is_post()) {
     } catch (BookingError $e) {
         flash('error', $e->getMessage());
     }
-    $anchor = ['texts' => '#texts', 'prices' => '#prices', 'upload' => '#photos', 'photo_cover' => '#photos', 'photo_delete' => '#photos', 'state' => '#state', 'block' => '#block'][$action] ?? '';
+    $anchor = ['texts' => '#texts', 'prices' => '#prices', 'hours' => '#hours', 'special_add' => '#special', 'special_delete' => '#special', 'upload' => '#photos', 'photo_cover' => '#photos', 'photo_delete' => '#photos', 'state' => '#state', 'block' => '#block'][$action] ?? '';
     redirect($back . $anchor);
 }
 
@@ -257,7 +316,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
 
 <div class="days-strip" role="navigation" aria-label="Ближайшие дни">
 <?php for ($i = 0; $i < 14; $i++): $dd = today()->modify('+' . $i . ' days'); $ds = $dd->format('Y-m-d'); ?>
-    <a class="days-strip__day<?= $ds === $date ? ' is-active' : '' ?><?= str_contains($s['days'], $dd->format('N')) ? '' : ' is-off' ?>" href="/admin/bath.php?date=<?= $ds ?>">
+    <a class="days-strip__day<?= $ds === $date ? ' is-active' : '' ?><?= bath_hours_on($ds) ? '' : ' is-off' ?><?= bath_special_on($ds) ? ' is-special' : '' ?>" href="/admin/bath.php?date=<?= $ds ?>">
         <small><?= e(RU_WEEKDAYS_SHORT[(int) $dd->format('w')]) ?></small><b><?= $dd->format('j') ?></b><span><?= !empty($counts[$ds]) ? $counts[$ds] . ' ' . plural($counts[$ds], 'сеанс', 'сеанса', 'сеансов') : '—' ?></span>
     </a>
 <?php endfor; ?>
@@ -273,8 +332,11 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
                 <a class="btn btn--outline btn--sm" href="/admin/bath.php?date=<?= $nextDay ?>" aria-label="Следующий день">→</a>
             </form>
         </div>
-<?php if (!str_contains($s['days'], $d->format('N'))): ?>
-        <p class="hint">По расписанию в этот день баня не работает — на сайте записаться нельзя, по телефону можно.</p>
+<?php $dayHours = bath_hours_on($date); $daySpecial = bath_special_on($date); ?>
+<?php if (!$dayHours): ?>
+        <p class="hint">В этот день баня не работает<?= $daySpecial ? ' (особый день' . ($daySpecial['note'] !== '' ? ': ' . e($daySpecial['note']) : '') . ')' : ' по расписанию' ?> — на сайте записаться нельзя, по телефону можно.</p>
+<?php else: ?>
+        <p class="hint">Работает <?= e(bath_range($dayHours)) ?><?= $dayHours['special'] ? ' — особый день' . ($dayHours['note'] !== '' ? ': ' . e($dayHours['note']) : '') : '' ?>. <a href="?tab=settings#hours">Изменить время работы</a></p>
 <?php endif; ?>
 <?php if (!$day): ?>
         <p class="empty">Записей нет.</p>
@@ -311,7 +373,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
                 <input type="hidden" name="action" value="create">
                 <div class="field"><label for="n-date">Дата</label><input id="n-date" type="date" name="date" required value="<?= e($date) ?>"></div>
                 <div class="field"><label for="n-time">Начало</label><select id="n-time" name="time">
-<?php $want = preg_match('/^\d{2}:\d{2}$/', get('time')) ? get('time') : bath_hour($s['open_from']); for ($m = 0; $m < 24 * 60; $m += 30): $t = sprintf('%02d:%02d', intdiv($m, 60), $m % 60); ?>
+<?php $want = preg_match('/^\d{2}:\d{2}$/', get('time')) ? get('time') : bath_hour(bath_hours_on($date)['from'] ?? $s['open_from']); for ($m = 0; $m < 24 * 60; $m += 30): $t = sprintf('%02d:%02d', intdiv($m, 60), $m % 60); ?>
                     <option<?= $t === $want ? ' selected' : '' ?>><?= $t ?></option>
 <?php endfor; ?>
                 </select></div>
@@ -347,8 +409,8 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="block">
                 <div class="field"><label for="k-date">Дата</label><input id="k-date" type="date" name="date" required value="<?= e($date) ?>"></div>
-                <div class="field"><label for="k-from">С</label><input id="k-from" type="time" name="from" required value="<?= e(bath_hour($s['open_from'])) ?>"></div>
-                <div class="field"><label for="k-to">До</label><input id="k-to" type="time" name="to" required value="<?= e($s['open_to'] === 24 ? '23:59' : bath_hour($s['open_to'])) ?>"></div>
+                <div class="field"><label for="k-from">С</label><input id="k-from" type="time" name="from" required value="<?= e(bath_hour(bath_hours_on($date)['from'] ?? $s['open_from'])) ?>"></div>
+                <div class="field"><label for="k-to">До</label><input id="k-to" type="time" name="to" required value="<?= e(($t = bath_hours_on($date)['to'] ?? $s['open_to']) >= 24 ? '23:59' : bath_hour($t)) ?>"></div>
                 <div class="field span-all"><label for="k-reason">Причина</label><input id="k-reason" name="reason" maxlength="200" placeholder="Например: санитарный день"></div>
                 <div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit"><?= icon('lock') ?>Закрыть</button></div>
             </form>
@@ -387,6 +449,42 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
             </ul>
         </section>
 
+<?php
+/** Варианты часа для выпадающего списка: с — 00:00…23:00, до — 01:00…04:00 следующего дня. */
+function bath_hour_options(int $from, int $to, int $selected): string
+{
+    $out = '';
+    for ($h = $from; $h <= $to; $h++) {
+        $out .= '<option value="' . $h . '"' . ($h === $selected ? ' selected' : '') . '>' . bath_hour($h) . ($h > 24 ? ' ночи' : '') . '</option>';
+    }
+    return $out;
+}
+?>
+        <section class="panel" id="hours">
+            <h2 class="panel__title">Время работы</h2>
+            <p class="hint">Сейчас: <?= e(bath_hours_text()) ?>. «До» можно поставить после полуночи — например, до 02:00 ночи.</p>
+            <form method="post" class="stack" data-week>
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="hours">
+                <div class="week-table">
+<?php foreach ($s['week'] as $d => $hrs): ?>
+                    <div class="week-table__row<?= $hrs ? '' : ' is-off' ?>" data-week-row>
+                        <label class="inline-check week-table__day"><input type="checkbox" name="day[<?= $d ?>][on]" value="1"<?= $hrs ? ' checked' : '' ?> data-week-on> <?= e(mb_convert_case(RU_WEEKDAYS[$d % 7], MB_CASE_TITLE)) ?></label>
+                        <label class="week-table__time"><span class="visually-hidden"><?= e(RU_WEEKDAYS[$d % 7]) ?>, с</span>с <select name="day[<?= $d ?>][from]" data-week-from><?= bath_hour_options(0, 23, $hrs['from'] ?? $s['open_from']) ?></select></label>
+                        <label class="week-table__time"><span class="visually-hidden"><?= e(RU_WEEKDAYS[$d % 7]) ?>, до</span>до <select name="day[<?= $d ?>][to]" data-week-to><?= bath_hour_options(1, BATH_LATEST_CLOSE, $hrs['to'] ?? $s['open_to']) ?></select></label>
+                        <span class="week-table__off">выходной</span>
+                    </div>
+<?php endforeach; ?>
+                </div>
+                <button class="link-button" type="button" data-week-copy>Поставить время первого рабочего дня на все отмеченные дни</button>
+                <div class="form-grid">
+                    <div class="field"><label for="h-buf">Перерыв между сеансами, минут</label><input id="h-buf" name="buffer" type="number" min="0" max="240" step="15" value="<?= $s['buffer'] ?>"><p class="field-hint">Уборка и протопка.</p></div>
+                    <div class="field"><label for="h-lead">С сайта — не позже чем за, часов</label><input id="h-lead" name="lead_hours" type="number" min="0" max="72" value="<?= $s['lead_hours'] ?>"><p class="field-hint">Чтобы успеть протопить.</p></div>
+                </div>
+                <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit">Сохранить время работы</button></div>
+            </form>
+        </section>
+
         <section class="panel" id="texts">
             <h2 class="panel__title">Описание на сайте</h2>
             <form method="post" class="form-grid">
@@ -403,7 +501,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
         </section>
 
         <section class="panel" id="prices">
-            <h2 class="panel__title">Цены и время работы</h2>
+            <h2 class="panel__title">Цены</h2>
             <form method="post" class="form-grid">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="prices">
@@ -415,23 +513,13 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
                 <div class="field"><label for="p-disc">Скидка гостям гостиницы, %</label><input id="p-disc" name="hotel_discount" type="number" min="0" max="100" value="<?= $s['hotel_discount'] ?>"></div>
                 <div class="field"><label for="p-minh">Сеанс от, часов</label><input id="p-minh" name="min_hours" type="number" min="1" max="12" value="<?= $s['min_hours'] ?>"></div>
                 <div class="field"><label for="p-maxh">Сеанс до, часов</label><input id="p-maxh" name="max_hours" type="number" min="1" max="24" value="<?= $s['max_hours'] ?>"></div>
-                <div class="field"><label for="p-from">Открыта с, час</label><input id="p-from" name="open_from" type="number" min="0" max="23" value="<?= $s['open_from'] ?>"></div>
-                <div class="field"><label for="p-to">До, час</label><input id="p-to" name="open_to" type="number" min="1" max="24" value="<?= $s['open_to'] ?>"></div>
-                <div class="field"><label for="p-buf">Перерыв между сеансами, минут</label><input id="p-buf" name="buffer" type="number" min="0" max="240" step="15" value="<?= $s['buffer'] ?>"><p class="field-hint">Уборка и протопка.</p></div>
-                <div class="field"><label for="p-lead">Записаться с сайта не позже чем за, часов</label><input id="p-lead" name="lead_hours" type="number" min="0" max="72" value="<?= $s['lead_hours'] ?>"></div>
-                <fieldset class="span-all weekdays"><legend>Дни работы</legend>
-                    <div class="weekdays__list">
-<?php foreach (BATH_WEEKDAYS as $n => $label): ?>
-                        <label class="inline-check"><input type="checkbox" name="days[]" value="<?= $n ?>"<?= str_contains($s['days'], (string) $n) ? ' checked' : '' ?>> <?= e($label) ?></label>
-<?php endforeach; ?>
-                    </div>
-                </fieldset>
                 <div class="field span-all"><label for="p-extras">Дополнительные услуги — «название — цена», по одной на строку</label><textarea id="p-extras" name="extras" rows="4"><?= e(implode("\n", array_map(fn ($x) => $x['name'] . ' — ' . $x['price'], $s['extras']))) ?></textarea></div>
                 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить</button></div>
             </form>
         </section>
     </div>
 
+    <div class="blist">
     <section class="panel" id="photos">
         <h2 class="panel__title">Фото <small><?= count($photos) ?></small></h2>
 <?php if ($photos): ?>
@@ -462,6 +550,34 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
             <div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit"><?= icon('upload') ?>Загрузить</button></div>
         </form>
     </section>
+
+    <section class="panel" id="special">
+        <h2 class="panel__title">Особые дни</h2>
+        <p class="hint">Праздники, санитарный день, короткий день — на эту дату время работы будет другим, чем по расписанию недели. Гости увидят это на странице бани.</p>
+<?php $special = array_filter($s['special'], fn ($d) => $d >= today()->format('Y-m-d'), ARRAY_FILTER_USE_KEY); ?>
+<?php if ($special): ?>
+        <div class="blist">
+<?php foreach ($special as $sd => $x): ?>
+            <div class="special-row">
+                <span><strong><?= e(ru_date($sd)) ?></strong>, <?= e(RU_WEEKDAYS_SHORT[(int) date('w', strtotime($sd))]) ?> — <?= $x['from'] === null ? 'выходной' : e(bath_hour($x['from']) . '–' . bath_hour($x['to'])) ?><?= $x['note'] !== '' ? ' <span class="muted">· ' . e($x['note']) . '</span>' : '' ?></span>
+                <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="special_delete"><input type="hidden" name="date" value="<?= e($sd) ?>">
+                    <button class="icon-button" type="submit" aria-label="Убрать особый день <?= e(ru_date($sd)) ?>" data-confirm="Убрать особый день? В этот день баня будет работать по обычному расписанию."><?= icon('trash-2') ?></button></form>
+            </div>
+<?php endforeach; ?>
+        </div>
+<?php endif; ?>
+        <form method="post" class="form-grid">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="special_add">
+            <div class="field"><label for="sp-date">Дата</label><input id="sp-date" type="date" name="date" required min="<?= e(today()->format('Y-m-d')) ?>"></div>
+            <div class="field"><label for="sp-from">С</label><select id="sp-from" name="from"><?= bath_hour_options(0, 23, $s['open_from']) ?></select></div>
+            <div class="field"><label for="sp-to">До</label><select id="sp-to" name="to"><?= bath_hour_options(1, BATH_LATEST_CLOSE, min(18, $s['open_to'])) ?></select></div>
+            <div class="field span-all"><label for="sp-note">Подпись для гостей</label><input id="sp-note" name="note" maxlength="100" placeholder="Например: короткий предпраздничный день"></div>
+            <div class="field span-all"><label class="inline-check"><input type="checkbox" name="closed" value="1"> Баня в этот день не работает</label></div>
+            <div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit"><?= icon('calendar-plus') ?>Добавить</button></div>
+        </form>
+    </section>
+    </div>
 </div>
 
 <?php else:
