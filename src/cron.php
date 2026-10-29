@@ -32,16 +32,16 @@ function cron_run(): array
         $log[] = 'уборка: письмо горничным, номеров: ' . $n;
     }
 
-    // Бот MAX: без вебхука события (коды привязки, кнопки) забираем здесь;
-    // утренняя сводка администраторам — раз в день после 8 утра.
-    if (max_enabled() && trim((string) hotel_secrets()['max_bot_token']) !== '') {
-        if (!setting('max_webhook_url') && ($n = max_poll(0)) > 0) {
-            $log[] = 'MAX: событий ' . $n;
+    // Telegram-бот: без вебхука события (коды привязки, кнопки) забираем
+    // здесь; утренняя сводка администраторам — раз в день после 8 утра.
+    if (tg_token() !== '') {
+        if (!setting('tg_webhook_url') && ($n = tg_poll(0)) > 0) {
+            $log[] = 'Telegram: событий ' . $n;
         }
-        if ($n = max_morning_summary()) {
-            $log[] = 'MAX: сводка дня, получателей ' . $n;
+        if ($n = tg_morning_summary()) {
+            $log[] = 'Telegram: сводка дня, получателей ' . $n;
         }
-        max_flush();
+        tg_flush();
     }
 
     // Напоминания о заезде — накануне, с 9 до 21 часа.

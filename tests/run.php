@@ -23,7 +23,7 @@ set_error_handler(function (int $no, string $msg, string $file, int $line): bool
 
 putenv('HOTEL_DB_NAME=' . (getenv('HOTEL_DB_NAME') ?: 'hotel_test'));
 putenv('HOTEL_MAIL_TRANSPORT=log');
-putenv('HOTEL_MAX_TRANSPORT=log'); // бот MAX — запросы в storage/max.log, без сети
+putenv('HOTEL_TG_TRANSPORT=log'); // Telegram-бот — запросы в storage/telegram.log, без сети
 ob_start();
 
 require __DIR__ . '/../src/bootstrap.php';
@@ -391,74 +391,90 @@ check(bath_get($ok15['id'])['guest_comment'] === null && bath_get($ok15['id'])['
 check(bath_by_token($ok15['token'])['id'] === $ok15['id'] && bath_by_token('x') === null, 'страница записи по секретной ссылке');
 bath_set_state('soon');
 
-echo "\nБот MAX\n";
-@unlink(HOTEL_ROOT . '/storage/max.log');
-$maxLog = function (): array {
+echo "\nБот в Telegram\n";
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
+$tgLog = function (): array {
     $out = [];
-    foreach (explode("\n", (string) @file_get_contents(HOTEL_ROOT . '/storage/max.log')) as $line) {
+    foreach (explode("\n", (string) @file_get_contents(HOTEL_ROOT . '/storage/telegram.log')) as $line) {
         if ($line !== '') {
             $out[] = json_decode($line, true);
         }
     }
     return $out;
 };
-$toChat = fn (int $chat) => array_values(array_filter($maxLog(), fn ($r) => $r['path'] === 'messages' && (int) ($r['query']['chat_id'] ?? 0) === $chat));
-$msg = fn (int $uid, int $chat, string $text) => ['update_type' => 'message_created', 'message' => ['sender' => ['user_id' => $uid, 'first_name' => 'Тест', 'is_bot' => false], 'recipient' => ['chat_id' => $chat, 'chat_type' => 'dialog'], 'body' => ['text' => $text]]];
-$press = fn (int $uid, string $payload) => ['update_type' => 'message_callback', 'callback' => ['callback_id' => 'cb-' . $payload, 'payload' => $payload, 'user' => ['user_id' => $uid]], 'message' => ['body' => ['text' => 'Уведомление']]];
-check(max_enabled(), 'бот включён (в тестах — запись в storage/max.log)');
-$admCode = max_link_code_create($adm['id']);
+$toChat = fn (int $chat) => array_values(array_filter($tgLog(), fn ($r) => $r['method'] === 'sendMessage' && (int) $r['params']['chat_id'] === $chat));
+$upd = 0;
+$msg = function (int $uid, int $chat, string $text) use (&$upd) {
+    return ['update_id' => ++$upd, 'message' => ['message_id' => $upd, 'from' => ['id' => $uid, 'is_bot' => false, 'first_name' => 'Тест'], 'chat' => ['id' => $chat, 'type' => 'private'], 'text' => $text]];
+};
+$press = function (int $uid, string $data) use (&$upd) {
+    return ['update_id' => ++$upd, 'callback_query' => ['id' => 'cb-' . $data, 'from' => ['id' => $uid], 'data' => $data,
+        'message' => ['message_id' => 77, 'chat' => ['id' => $uid + 8500], 'text' => 'Уведомление']]];
+};
+check(tg_enabled() && !tg_personal(), 'бот включён (в тестах — запись в storage/telegram.log), имена гостей по умолчанию не отправляются');
+$admCode = tg_link_code_create($adm['id']);
 check(strlen($admCode) === 8, 'код привязки — 8 символов');
-max_handle_update($msg(501, 9001, 'ZZZZ2222'));
-check(!q_val('SELECT max_user_id FROM staff WHERE id = ?', [$adm['id']]) && str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), 'не подошёл'), 'неверный код не привязывает и бот об этом говорит');
-max_handle_update(['update_type' => 'bot_started', 'chat_id' => 9001, 'user' => ['user_id' => 501, 'first_name' => 'Ольга'], 'payload' => strtolower($admCode)]);
+tg_handle_update($msg(501, 9001, 'ZZZZ2222'));
+check(!q_val('SELECT tg_user_id FROM staff WHERE id = ?', [$adm['id']]) && str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), 'не подошёл'), 'неверный код не привязывает и бот об этом говорит');
+tg_handle_update($msg(501, 9001, '/start ' . strtolower($admCode)));
 $admRow = q_one('SELECT * FROM staff WHERE id = ?', [$adm['id']]);
-check((int) $admRow['max_user_id'] === 501 && (int) $admRow['max_chat_id'] === 9001 && $admRow['max_link_code'] === null, 'ссылка с кодом привязывает MAX, код одноразовый');
-$hkCode = max_link_code_create($hk['id']);
+check((int) $admRow['tg_user_id'] === 501 && (int) $admRow['tg_chat_id'] === 9001 && $admRow['tg_link_code'] === null, 'ссылка t.me/бот?start=код привязывает Telegram, код одноразовый');
+$hkCode = tg_link_code_create($hk['id']);
 for ($i = 0; $i < 5; $i++) {
-    max_handle_update($msg(666, 9666, 'AAAA' . $i . 'BBB'));
+    tg_handle_update($msg(666, 9666, 'AAAA' . $i . 'BBB'));
 }
-max_handle_update($msg(666, 9666, $hkCode));
-check(!q_val('SELECT max_user_id FROM staff WHERE id = ?', [$hk['id']]), 'после 5 неверных кодов чужой аккаунт MAX не привяжется даже верным кодом');
-max_handle_update($msg(502, 9002, $hkCode));
-check((int) q_val('SELECT max_chat_id FROM staff WHERE id = ?', [$hk['id']]) === 9002, 'горничная подключила MAX своим кодом');
-@unlink(HOTEL_ROOT . '/storage/max.log');
-$mb = booking_create(guest(['check_in' => d(120), 'check_out' => d(122), 'room_type_id' => $std['id'], 'name' => 'Анна Максова']));
-max_notify_new_booking($mb);
-max_flush();
+tg_handle_update($msg(666, 9666, $hkCode));
+check(!q_val('SELECT tg_user_id FROM staff WHERE id = ?', [$hk['id']]), 'после 5 неверных кодов чужой аккаунт не привяжется даже верным кодом');
+tg_handle_update($msg(502, 9002, $hkCode));
+check((int) q_val('SELECT tg_chat_id FROM staff WHERE id = ?', [$hk['id']]) === 9002, 'горничная подключила Telegram своим кодом');
+tg_handle_update(['update_id' => ++$upd, 'message' => ['message_id' => 1, 'from' => ['id' => 501], 'chat' => ['id' => -100, 'type' => 'group'], 'text' => 'сегодня']]);
+check($toChat(-100) === [], 'в группах бот молчит — только личная переписка');
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
+$mb = booking_create(guest(['check_in' => d(120), 'check_out' => d(122), 'room_type_id' => $std['id'], 'name' => 'Анна Телегина', 'phone' => '+7 978 123-45-99', 'comment' => 'мой второй телефон 8-978-000']));
+tg_notify_new_booking($mb);
+tg_flush();
 $adminMsg = $toChat(9001);
-check(count($adminMsg) === 1 && str_contains($adminMsg[0]['body']['text'], 'Анна Максова') && $adminMsg[0]['body']['attachments'][0]['payload']['buttons'][0][0]['payload'] === 'b:ok:' . $mb['id'], 'администратору — новая заявка с кнопкой «Подтвердить»');
-check($toChat(9002) === [], 'горничной заявки с данными гостей не приходят');
-check(!str_contains(json_encode($adminMsg), '"type":"link"'), 'ссылка-кнопка на админку — только если сайт на https');
-max_handle_update($press(502, 'b:ok:' . $mb['id']));
+check(count($adminMsg) === 1 && $adminMsg[0]['params']['reply_markup']['inline_keyboard'][0][0]['callback_data'] === 'b:ok:' . $mb['id'], 'администратору — новая заявка с кнопкой «Подтвердить»');
+check(!str_contains($adminMsg[0]['params']['text'], 'Телегина') && !str_contains($adminMsg[0]['params']['text'], '123-45') && !str_contains($adminMsg[0]['params']['text'], 'второй телефон'), 'в Telegram не уходят имя, телефон и комментарий гостя');
+check($toChat(9002) === [], 'горничной заявки не приходят');
+check(!str_contains(json_encode($adminMsg), '"url"'), 'ссылка-кнопка на админку — только если сайт на https');
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
+tg_notify_waitlist('+7 978 555-44-33');
+tg_flush();
+check(!str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), '555-44'), 'лист ожидания бани — без телефона');
+tg_handle_update($press(502, 'b:ok:' . $mb['id']));
 check(booking_get($mb['id'])['status'] === 'new', 'горничная не может подтвердить бронь кнопкой');
-max_handle_update($press(999, 'b:ok:' . $mb['id']));
-check(booking_get($mb['id'])['status'] === 'new', 'чужой аккаунт MAX ничего не подтвердит');
-max_handle_update($press(501, 'b:ok:' . $mb['id']));
-check(booking_get($mb['id'])['status'] === 'confirmed', 'администратор подтвердил бронь кнопкой в MAX');
+tg_handle_update($press(999, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'new', 'чужой аккаунт Telegram ничего не подтвердит');
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
+tg_handle_update($press(501, 'b:ok:' . $mb['id']));
+check(booking_get($mb['id'])['status'] === 'confirmed', 'администратор подтвердил бронь кнопкой в Telegram');
 check((int) q_val("SELECT staff_id FROM audit_log WHERE entity = 'booking' AND entity_id = ? AND action = 'status' ORDER BY id DESC LIMIT 1", [$mb['id']]) === $adm['id'], 'в журнале видно, кто нажал кнопку');
 check(current_staff()['id'] === $owner['id'], 'после кнопки — снова прежний сотрудник (без подмены сессии)');
-$answers = array_values(array_filter($maxLog(), fn ($r) => $r['path'] === 'answers' && $r['query']['callback_id'] === 'cb-b:ok:' . $mb['id']));
-check(str_contains(end($answers)['body']['notification'] ?? '', 'подтверждена') && end($answers)['body']['message']['attachments'] === [], 'ответ на кнопку: «подтверждена», кнопки убраны');
-max_handle_update($press(501, 'b:ok:' . $mb['id']));
+$calls = $tgLog();
+$answer = array_values(array_filter($calls, fn ($r) => $r['method'] === 'answerCallbackQuery'))[0] ?? null;
+$edit = array_values(array_filter($calls, fn ($r) => $r['method'] === 'editMessageText'))[0] ?? null;
+check($answer && str_contains($answer['params']['text'], 'подтверждена') && $edit && !isset($edit['params']['reply_markup']) && str_contains($edit['params']['text'], 'Подтверждена'), 'ответ на кнопку: «подтверждена», в сообщении кнопки убраны');
+tg_handle_update($press(501, 'b:ok:' . $mb['id']));
 check(booking_get($mb['id'])['status'] === 'confirmed', 'повторное нажатие ничего не ломает');
-@unlink(HOTEL_ROOT . '/storage/max.log');
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
 $cid = cleaning_add((int) q_val('SELECT id FROM rooms WHERE is_active = 1 ORDER BY id LIMIT 1'), d(0), '00:00', 'поменять полотенца');
-max_flush();
+tg_flush();
 $hkMsg = $toChat(9002);
-check(count($hkMsg) === 1 && str_contains($hkMsg[0]['body']['text'], 'полотенца') && $hkMsg[0]['body']['attachments'][0]['payload']['buttons'][0][0]['payload'] === 'c:done:' . $cid, 'горничной — «пора убрать» с кнопкой «Убрано»');
-max_handle_update($press(502, 'c:done:' . $cid));
+check(count($hkMsg) === 1 && str_contains($hkMsg[0]['params']['text'], 'полотенца') && $hkMsg[0]['params']['reply_markup']['inline_keyboard'][0][0]['callback_data'] === 'c:done:' . $cid, 'горничной — «пора убрать» с кнопкой «Убрано»');
+tg_handle_update($press(502, 'c:done:' . $cid));
 check(cleaning_get($cid)['status'] === 'done' && (int) cleaning_get($cid)['done_by'] === $hk['id'], 'кнопка «Убрано» отмечает уборку от имени горничной');
-@unlink(HOTEL_ROOT . '/storage/max.log');
-max_handle_update($msg(501, 9001, 'сегодня'));
-check(str_contains($toChat(9001)[0]['body']['text'] ?? '', 'Заезды'), 'команда «сегодня» — сводка дня');
-max_handle_update($msg(502, 9002, 'сегодня'));
-check(!str_contains(json_encode($toChat(9002), JSON_UNESCAPED_UNICODE), 'Заезды'), 'горничной сводка с гостями не приходит');
+@unlink(HOTEL_ROOT . '/storage/telegram.log');
+tg_handle_update($msg(501, 9001, '/today'));
+check(str_contains($toChat(9001)[0]['params']['text'] ?? '', 'Заезды'), 'команда /today — сводка дня');
+tg_handle_update($msg(502, 9002, '/today'));
+check(!str_contains(json_encode($toChat(9002), JSON_UNESCAPED_UNICODE), 'Заезды'), 'горничной сводка не приходит');
 q('UPDATE staff SET is_active = 0 WHERE id = ?', [$hk['id']]);
-check(max_staff(['housekeeper']) === [], 'отключённому сотруднику уведомления не приходят');
+check(tg_staff(['housekeeper']) === [], 'отключённому сотруднику уведомления не приходят');
 q('UPDATE staff SET is_active = 1 WHERE id = ?', [$hk['id']]);
-check(!max_webhook_authorized('что-угодно'), 'без секрета в настройках вебхук закрыт');
-max_unlink($adm['id']);
-check(q_val('SELECT max_user_id FROM staff WHERE id = ?', [$adm['id']]) === null && max_staff(['admin']) === [], 'после «Отключить» уведомления не приходят');
+check(!tg_webhook_authorized('что-угодно'), 'без секрета в настройках вебхук закрыт');
+tg_unlink($adm['id']);
+check(q_val('SELECT tg_user_id FROM staff WHERE id = ?', [$adm['id']]) === null && tg_staff(['admin']) === [], 'после «Отключить» уведомления не приходят');
 
 echo "\nПисьма\n";
 @unlink(HOTEL_ROOT . '/storage/mail.log');

@@ -66,9 +66,9 @@ jobs:
           echo "/404.php → $code"
           [ "$code" = 404 ] || exit 1
           curl -s -D - -o /dev/null http://127.0.0.1:8090/ | grep -qi '^content-security-policy:' || { echo 'нет Content-Security-Policy'; exit 1; }
-          # Вебхук бота MAX без секрета — отказ.
-          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' http://127.0.0.1:8090/api/max.php)
-          echo "/api/max.php без секрета → $code"
+          # Вебхук Telegram-бота без секрета — отказ.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -d '{}' http://127.0.0.1:8090/api/telegram.php)
+          echo "/api/telegram.php без секрета → $code"
           [ "$code" = 403 ] || exit 1
           # Админка без входа — только переход на страницу входа.
           code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8090/admin/bookings.php)

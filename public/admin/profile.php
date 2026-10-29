@@ -1,7 +1,7 @@
 <?php
 /**
  * Профиль сотрудника: имя, письма о заявках (горничной — об уборке),
- * уведомления в MAX, смена пароля.
+ * уведомления в Telegram, смена пароля.
  * Сюда же попадают после входа с временным паролем (?first=1).
  */
 
@@ -37,21 +37,21 @@ if (is_post()) {
             }
             q_update('staff', $me['id'], ['name' => mb_substr($name, 0, 100), 'notify' => post('notify') === '1' ? 1 : 0]);
             flash('ok', 'Сохранено.');
-        } elseif ($action === 'max_code' && max_enabled()) {
-            max_link_code_create($me['id']);
-            redirect('/admin/profile.php#max');
-        } elseif ($action === 'max_notify' && $me['max_user_id']) {
-            q_update('staff', $me['id'], ['max_notify' => post('max_notify') === '1' ? 1 : 0]);
-            flash('ok', post('max_notify') === '1' ? 'Уведомления в MAX включены.' : 'Уведомления в MAX выключены.');
-            redirect('/admin/profile.php#max');
-        } elseif ($action === 'max_test' && $me['max_chat_id']) {
-            $ok = max_send((int) $me['max_chat_id'], 'Проверка связи: всё работает, ' . e($me['name']) . '!');
-            flash($ok ? 'ok' : 'error', $ok ? 'Отправили пробное сообщение — проверьте MAX.' : 'Не отправилось: ' . setting('max_last_error'));
-            redirect('/admin/profile.php#max');
-        } elseif ($action === 'max_unlink') {
-            max_unlink($me['id']);
-            flash('ok', 'MAX отключён — уведомления туда больше не придут.');
-            redirect('/admin/profile.php#max');
+        } elseif ($action === 'tg_code' && tg_enabled()) {
+            tg_link_code_create($me['id']);
+            redirect('/admin/profile.php#telegram');
+        } elseif ($action === 'tg_notify' && $me['tg_user_id']) {
+            q_update('staff', $me['id'], ['tg_notify' => post('tg_notify') === '1' ? 1 : 0]);
+            flash('ok', post('tg_notify') === '1' ? 'Уведомления в Telegram включены.' : 'Уведомления в Telegram выключены.');
+            redirect('/admin/profile.php#telegram');
+        } elseif ($action === 'tg_test' && $me['tg_chat_id']) {
+            $ok = tg_send((int) $me['tg_chat_id'], 'Проверка связи: всё работает, ' . e($me['name']) . '!');
+            flash($ok ? 'ok' : 'error', $ok ? 'Отправили пробное сообщение — проверьте Telegram.' : 'Не отправилось: ' . setting('tg_last_error'));
+            redirect('/admin/profile.php#telegram');
+        } elseif ($action === 'tg_unlink') {
+            tg_unlink($me['id']);
+            flash('ok', 'Telegram отключён — уведомления туда больше не придут.');
+            redirect('/admin/profile.php#telegram');
         }
     } catch (BookingError $e) {
         flash('error', $e->getMessage());
@@ -81,45 +81,45 @@ admin_header('Профиль', '');
 </section>
 <?php endif; ?>
 <?php if (!$first): ?>
-<section class="panel" id="max">
-    <h2 class="panel__title"><?= icon('message-circle') ?>Уведомления в MAX</h2>
-<?php if (!max_enabled()): ?>
-    <p class="hint">Бот ещё не настроен. <?= is_owner() ? 'Как подключить — в README, раздел «Бот в MAX»: нужен токен бота в config/secrets.php.' : 'Попросите владельца подключить бота.' ?></p>
-<?php elseif ($me['max_user_id']): ?>
-    <p><span class="state state--open">Подключено</span> <?= $me['max_name'] !== '' ? e($me['max_name']) . ', ' : '' ?>с <?= e(ru_datetime((string) $me['max_linked_at'])) ?></p>
-    <p class="hint"><?= is_housekeeper($me) ? 'Приходит: «пора убрать» с кнопкой «Убрано». Команда боту «уборка» — что ждёт уборки сейчас.' : 'Приходят: новые заявки с кнопкой «Подтвердить», заявки в баню, сообщения гостей, утренняя сводка дня. Команда боту «сегодня» — сводка в любой момент.' ?></p>
+<section class="panel" id="telegram">
+    <h2 class="panel__title"><?= icon('send') ?>Уведомления в Telegram</h2>
+<?php if (!tg_enabled()): ?>
+    <p class="hint">Бот ещё не настроен. <?= is_owner() ? 'Как подключить — в README, раздел «Бот в Telegram»: нужен токен бота в config/secrets.php.' : 'Попросите владельца подключить бота.' ?></p>
+<?php elseif ($me['tg_user_id']): ?>
+    <p><span class="state state--open">Подключено</span> <?= $me['tg_name'] !== '' ? e($me['tg_name']) . ', ' : '' ?>с <?= e(ru_datetime((string) $me['tg_linked_at'])) ?></p>
+    <p class="hint"><?= is_housekeeper($me) ? 'Приходит: «пора убрать» с кнопкой «Убрано». Команда боту /clean — что ждёт уборки сейчас.' : 'Приходят: новые заявки с кнопкой «Подтвердить», заявки в баню, сообщения гостей, утренняя сводка дня. Команда боту /today — сводка в любой момент.' ?><?= !is_housekeeper($me) && !tg_personal() ? ' Имена и телефоны гостей в Telegram не отправляются — они в админке.' : '' ?></p>
     <form method="post" class="stack">
         <?= csrf_field() ?>
-        <input type="hidden" name="action" value="max_notify">
-        <label class="inline-check"><input type="checkbox" name="max_notify" value="1"<?= $me['max_notify'] ? ' checked' : '' ?> data-autosubmit> Присылать уведомления в MAX</label>
+        <input type="hidden" name="action" value="tg_notify">
+        <label class="inline-check"><input type="checkbox" name="tg_notify" value="1"<?= $me['tg_notify'] ? ' checked' : '' ?> data-autosubmit> Присылать уведомления в Telegram</label>
     </form>
     <div class="form-actions">
-        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="max_test"><button class="btn btn--outline btn--sm" type="submit">Отправить пробное</button></form>
-        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="max_unlink"><button class="btn btn--danger btn--sm" type="submit" data-confirm="Отключить MAX? Уведомления туда перестанут приходить.">Отключить</button></form>
+        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="tg_test"><button class="btn btn--outline btn--sm" type="submit">Отправить пробное</button></form>
+        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="tg_unlink"><button class="btn btn--danger btn--sm" type="submit" data-confirm="Отключить Telegram? Уведомления туда перестанут приходить.">Отключить</button></form>
     </div>
 <?php else:
-    $code = $me['max_link_code'] && $me['max_link_expires'] > now() ? $me['max_link_code'] : null;
-    $botUrl = max_bot_url($code);
+    $code = $me['tg_link_code'] && $me['tg_link_expires'] > now() ? $me['tg_link_code'] : null;
+    $botUrl = tg_bot_url($code);
 ?>
-    <p class="hint">Заявки, сообщения гостей и уборка — сразу в мессенджер, с кнопками «Подтвердить» и «Убрано».</p>
+    <p class="hint">Заявки, сообщения гостей и уборка — сразу в Telegram, с кнопками «Подтвердить» и «Убрано».</p>
 <?php if ($code): ?>
     <ol class="steps-list">
 <?php if ($botUrl): ?>
-        <li>Откройте на телефоне: <a class="btn btn--primary btn--sm" href="<?= e($botUrl) ?>" target="_blank" rel="noopener"><?= icon('message-circle') ?>Бот в MAX</a> и нажмите «Начать» — код отправится сам.</li>
+        <li>Откройте на телефоне: <a class="btn btn--primary btn--sm" href="<?= e($botUrl) ?>" target="_blank" rel="noopener"><?= icon('send') ?>Бот в Telegram</a> и нажмите «Запустить» — код отправится сам.</li>
         <li>Если не сработало — отправьте боту код вручную:</li>
 <?php else: ?>
-        <li>Найдите бота гостиницы в MAX и нажмите «Начать».</li>
+        <li>Найдите бота гостиницы в Telegram и нажмите «Запустить».</li>
         <li>Отправьте ему этот код:</li>
 <?php endif; ?>
     </ol>
     <p class="max-code" aria-label="Код для привязки"><?= e(implode(' ', str_split($code, 4))) ?></p>
-    <p class="hint">Код действует 15 минут, до <?= e(substr((string) $me['max_link_expires'], 11, 5)) ?>. Когда бот ответит «Готово» — обновите эту страницу.</p>
+    <p class="hint">Код действует 15 минут, до <?= e(substr((string) $me['tg_link_expires'], 11, 5)) ?>. Когда бот ответит «Готово» — обновите эту страницу.</p>
 <?php else: ?>
-    <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="max_code"><button class="btn btn--primary btn--sm" type="submit"><?= icon('link') ?>Подключить MAX</button></form>
+    <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="tg_code"><button class="btn btn--primary btn--sm" type="submit"><?= icon('link') ?>Подключить Telegram</button></form>
 <?php endif; ?>
 <?php endif; ?>
-<?php if (is_owner() && max_enabled() && setting('max_last_error')): ?>
-    <p class="hint">Последняя ошибка связи с MAX: <?= e(setting('max_last_error')) ?></p>
+<?php if (is_owner() && tg_enabled() && setting('tg_last_error')): ?>
+    <p class="hint">Последняя ошибка связи с Telegram: <?= e(setting('tg_last_error')) ?></p>
 <?php endif; ?>
 </section>
 <?php endif; ?>

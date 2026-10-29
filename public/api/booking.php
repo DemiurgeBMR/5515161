@@ -61,7 +61,7 @@ if ($type === 'bath') {
     rate_hit('waitlist_ip', client_ip());
     q_insert('waitlist', ['topic' => 'bath', 'phone' => $phone, 'created_at' => now()]);
     notify_admins(mail_admin_waitlist($phone));
-    max_notify_waitlist($phone);
+    tg_notify_waitlist($phone);
     $wantsJson ? json_response(['ok' => true]) : redirect(post('back') === 'bath' ? '/bath.php?notify=ok#notify' : '/?notify=ok#bath');
 }
 
@@ -93,7 +93,7 @@ rate_hit('booking_ip', client_ip());
 
 // Письма — после сохранения брони: если почта не ушла, заявка всё равно в админке.
 notify_admins(mail_admin_new_booking($booking), (string) $booking['guest_email']);
-max_notify_new_booking($booking);
+tg_notify_new_booking($booking);
 $emailSent = false;
 if ($booking['guest_email']) {
     [$subject, $text] = mail_booking_received($booking);
