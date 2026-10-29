@@ -304,7 +304,7 @@
             html += '<dl class="summary__total"><dt>Итого</dt><dd>' + esc(money(q.total)) + '</dd></dl>';
             if (q.next_tier) {
                 var more = q.next_tier.nights - nights;
-                html += '<p class="summary__nudge">Ещё ' + more + ' ' + plural(more, 'ночь', 'ночи', 'ночей') + ' — и цена станет на ' + q.next_tier.percent + '% ниже. Если лечение затянется, продлить можно в любой день.</p>';
+                html += '<p class="summary__nudge">Ещё ' + more + ' ' + plural(more, 'ночь', 'ночи', 'ночей') + ' — и цена станет на ' + q.next_tier.percent + '% ниже. Продлить проживание можно в любой день.</p>';
             }
             if (q.available && q.prepayment > 0) {
                 html += '<p class="summary__note">Предоплата после подтверждения: ' + esc(money(q.prepayment)) + '.</p>';

@@ -19,7 +19,7 @@ $texts = [
     503 => ['Сайт обновляется', 'Онлайн-бронирование вернётся через несколько минут. Забронировать номер можно по телефону — администратор ответит и подскажет свободные даты.'],
 ];
 [$title, $text] = $texts[$errorCode] ?? $texts[500];
-$page = ['title' => $title . ' — ' . $h['name'], 'description' => 'Гостиница рядом с онкодиспансером в Симферополе.', 'path' => '/', 'noindex' => true, 'analytics' => false, 'og_image' => null];
+$page = ['title' => $title . ' — ' . $h['name'], 'description' => 'Гостиница в Симферополе, ' . $h['address']['district'] . '.', 'path' => '/', 'noindex' => true, 'analytics' => false, 'og_image' => null];
 require __DIR__ . '/head.php';
 require __DIR__ . '/header.php';
 ?>

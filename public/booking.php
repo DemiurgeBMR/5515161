@@ -114,7 +114,7 @@ require __DIR__ . '/../src/partials/header.php';
 <?php if ($canWrite): ?>
         <section class="bp__section" id="write">
             <h2>Написать администратору</h2>
-            <p class="muted">Сроки лечения сдвинулись или нужно продлить проживание — напишите здесь, администратор свяжется с вами.</p>
+            <p class="muted">Планы изменились или нужно продлить проживание — напишите здесь, администратор свяжется с вами.</p>
 <?php if (isset($errors['form'])): ?>
             <div class="form-error" role="alert"><?= e($errors['form']) ?></div>
 <?php endif; ?>
@@ -135,7 +135,7 @@ require __DIR__ . '/../src/partials/header.php';
                 </div>
                 <div class="field<?= isset($errors['message']) ? ' has-error' : '' ?>">
                     <label for="m-text">Сообщение</label>
-                    <textarea id="m-text" name="message" rows="3" maxlength="1000" placeholder="Например: госпитализацию перенесли на неделю"><?= e(post('message')) ?></textarea>
+                    <textarea id="m-text" name="message" rows="3" maxlength="1000" placeholder="Например: хочу продлить ещё на две ночи"><?= e(post('message')) ?></textarea>
 <?php if (isset($errors['message'])): ?>
                     <p class="field__error"><?= e($errors['message']) ?></p>
 <?php endif; ?>
