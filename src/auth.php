@@ -167,6 +167,7 @@ function staff_login(string $email, string $password)
         return 'Неверная почта или пароль.';
     }
     rate_clear('staff_email', $email);
+    rate_clear('staff_ip', $ip); // вошёл — значит свой: прежние опечатки с этого адреса не в счёт
     if (password_needs_rehash($s['password_hash'], PASSWORD_DEFAULT)) {
         $s['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
         q('UPDATE staff SET password_hash = ? WHERE id = ?', [$s['password_hash'], $s['id']]);
@@ -231,6 +232,22 @@ function staff_set_password(int $id, string $password, bool $temporary = false):
         $_SESSION['staff_pw'] = substr(hash('sha256', $hash), 0, 16);
     }
     app_cache_clear();
+}
+
+/**
+ * Поле пароля для форм входа и смены пароля: кнопка «показать», под полем —
+ * предупреждение о Caps Lock и русской раскладке (это частая причина
+ * «пароль не подходит»).
+ */
+function password_field(string $id, string $name, string $label, string $autocomplete, bool $required = true, int $minlength = 0, bool $autofocus = false): string
+{
+    return '<div class="field span-all"><label for="' . e($id) . '">' . e($label) . '</label>'
+        . '<div class="pw-field" data-pw><input id="' . e($id) . '" type="password" name="' . e($name) . '"' . ($required ? ' required' : '')
+        . ($minlength ? ' minlength="' . $minlength . '"' : '') . ' autocomplete="' . e($autocomplete) . '"' . ($autofocus ? ' autofocus' : '')
+        . ' autocapitalize="off" spellcheck="false">'
+        . '<button class="pw-field__toggle" type="button" data-pw-toggle aria-label="Показать пароль" aria-pressed="false" aria-controls="' . e($id) . '">'
+        . icon('eye', 'pw-field__show') . icon('eye-off', 'pw-field__hide') . '</button></div>'
+        . '<p class="pw-warn" data-pw-warn aria-live="polite" hidden></p></div>';
 }
 
 /** Временный пароль без похожих символов (0/O, 1/l) — его диктуют по телефону. */

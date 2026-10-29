@@ -68,6 +68,7 @@ if (is_post()) {
     <link rel="stylesheet" href="<?= e(asset('css/admin.css')) ?>">
 </head>
 <body class="adm">
+<?php readfile(HOTEL_ROOT . '/src/partials/icons.svg'); ?>
 <main class="adm-login">
     <div class="adm-login__card">
 <?php if ($noStaff && $setupAllowed): ?>
@@ -80,8 +81,8 @@ if (is_post()) {
             <input type="hidden" name="setup" value="<?= e(get('setup', post('setup'))) ?>">
             <div class="field span-all"><label for="s-name">Ваше имя</label><input id="s-name" name="name" required value="<?= e(post('name')) ?>" autocomplete="name"></div>
             <div class="field span-all"><label for="s-email">Почта — она же логин</label><input id="s-email" type="email" name="email" required value="<?= e($email) ?>" autocomplete="username"></div>
-            <div class="field span-all"><label for="s-pass">Пароль (не короче 8 символов)</label><input id="s-pass" type="password" name="password" required minlength="8" autocomplete="new-password"></div>
-            <div class="field span-all"><label for="s-pass2">Пароль ещё раз</label><input id="s-pass2" type="password" name="password2" required minlength="8" autocomplete="new-password"></div>
+            <?= password_field('s-pass', 'password', 'Пароль (не короче 8 символов)', 'new-password', true, 8) ?>
+            <?= password_field('s-pass2', 'password2', 'Пароль ещё раз', 'new-password', true, 8) ?>
             <button class="btn btn--primary btn--block span-all" type="submit">Создать и войти</button>
         </form>
 <?php elseif ($noStaff): ?>
@@ -99,7 +100,7 @@ if (is_post()) {
             <input type="hidden" name="action" value="login">
             <input type="hidden" name="next" value="<?= e($next) ?>">
             <div class="field span-all"><label for="l-email">Почта</label><input id="l-email" type="email" name="email" required value="<?= e($email) ?>" autocomplete="username" autofocus></div>
-            <div class="field span-all"><label for="l-pass">Пароль</label><input id="l-pass" type="password" name="password" required autocomplete="current-password"></div>
+            <?= password_field('l-pass', 'password', 'Пароль', 'current-password') ?>
             <button class="btn btn--primary btn--block span-all" type="submit">Войти</button>
         </form>
         <p class="hint">Забыли пароль? Попросите владельца сбросить его в разделе «Сотрудники» или выполните в консоли сервера <code>php tools/admin.php password ваша@почта</code>.</p>
@@ -107,5 +108,6 @@ if (is_post()) {
         <p class="hint"><a href="/">← На сайт</a></p>
     </div>
 </main>
+<script src="<?= e(asset('js/admin.js')) ?>" defer></script>
 </body>
 </html>

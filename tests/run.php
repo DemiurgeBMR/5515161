@@ -202,6 +202,18 @@ for ($i = 0; $i < 8; $i++) {
     staff_login('owner@example.com', 'wrong');
 }
 check(staff_login('owner@example.com', 'secret-pass-1') === 'Слишком много попыток. Подождите 15 минут.', 'после 8 ошибок вход временно закрыт');
+exec("$env $php " . escapeshellarg(__DIR__ . '/../tools/admin.php') . ' password owner@example.com 2>&1', $pwOut, $pwCode);
+preg_match('/: (\S+)$/u', implode("\n", $pwOut), $pm);
+check($pwCode === 0 && isset($pm[1]) && is_array(staff_login('owner@example.com', $pm[1])), 'сброс пароля из консоли снимает блокировку — временный пароль сразу пускает');
+check((bool) current_staff()['must_change_password'], 'после сброса админка попросит придумать свой пароль');
+staff_set_password($owner['id'], 'secret-pass-1');
+check(is_array(staff_login('owner@example.com', 'secret-pass-1')) && !current_staff()['must_change_password'], 'новый постоянный пароль пускает, временный больше не нужен');
+check(is_string(staff_login('owner@example.com', $pm[1] ?? 'x')), 'старый временный пароль больше не пускает');
+for ($i = 0; $i < 3; $i++) {
+    staff_login('nobody@example.com', 'wrong');
+}
+staff_login('owner@example.com', 'secret-pass-1');
+check(!rate_limited('staff_ip', client_ip(), 1, 900), 'удачный вход снимает счётчик ошибок с этого адреса');
 check(in_array('owner@example.com', admin_recipients(), true), 'владелец получает уведомления');
 
 echo "\nОплаты нельзя удалить\n";

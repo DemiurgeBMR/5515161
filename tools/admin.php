@@ -4,7 +4,7 @@
  * нужно создать первого владельца без браузера.
  *
  *     php tools/admin.php list
- *     php tools/admin.php add почта@пример.ру "Имя" [owner|admin]
+ *     php tools/admin.php add почта@пример.ру "Имя" [owner|admin|housekeeper]
  *     php tools/admin.php password почта@пример.ру
  *
  * Новый пароль печатается на экране один раз — после входа смените его.
@@ -40,6 +40,8 @@ try {
         $password = temp_password();
         staff_set_password((int) $id, $password, true);
         q('UPDATE staff SET is_active = 1 WHERE id = ?', [$id]);
+        // Снимаем блокировку после неудачных попыток — иначе и верный пароль 15 минут не пускает.
+        q("DELETE FROM rate_limits WHERE scope IN ('staff_ip', 'staff_email')");
         audit('staff', (int) $id, 'password_reset', 'из командной строки', 'system');
         echo "Новый временный пароль: $password\n";
         exit(0);
@@ -49,5 +51,5 @@ try {
     exit(1);
 }
 
-echo "Команды:\n  php tools/admin.php list\n  php tools/admin.php add почта \"Имя\" [owner|admin]\n  php tools/admin.php password почта\n";
+echo "Команды:\n  php tools/admin.php list\n  php tools/admin.php add почта \"Имя\" [owner|admin|housekeeper]\n  php tools/admin.php password почта\n";
 exit(1);

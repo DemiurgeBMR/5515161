@@ -88,6 +88,36 @@
         });
     }
 
+    // Пароль: «показать», предупреждение о Caps Lock и русской раскладке,
+    // а у «Ещё раз» — что пароли не совпадают. Частые причины «не подходит».
+    $$('[data-pw]').forEach(function (wrap) {
+        var input = $('input', wrap);
+        var btn = $('[data-pw-toggle]', wrap);
+        var warn = wrap.parentNode.querySelector('[data-pw-warn]');
+        var caps = false;
+        btn.addEventListener('click', function () {
+            var show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.setAttribute('aria-pressed', String(show));
+            btn.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+            input.focus();
+        });
+        var twin = input.name === 'password2' && input.form ? input.form.elements.password : null;
+        var check = function () {
+            var msgs = [];
+            if (caps) msgs.push('Включён Caps Lock');
+            if (/[а-яё]/i.test(input.value)) msgs.push('В пароле русские буквы — при входе нужна та же раскладка');
+            if (twin && input.value && twin.value && input.value !== twin.value) msgs.push('Пароли пока не совпадают');
+            warn.textContent = msgs.join('. ');
+            warn.hidden = !msgs.length;
+        };
+        var key = function (e) { if (e.getModifierState) caps = e.getModifierState('CapsLock'); check(); };
+        input.addEventListener('keydown', key);
+        input.addEventListener('keyup', key);
+        input.addEventListener('input', check);
+        input.addEventListener('blur', function () { caps = false; check(); });
+    });
+
     // Копировать ссылку: <button data-copy="#id-поля">
     $$('[data-copy]').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -227,6 +257,9 @@
             })
             .catch(function () {});
     }
-    setInterval(poll, 30000);
-    document.addEventListener('visibilitychange', poll);
+    // На странице входа обновлять нечего.
+    if (body.hasAttribute('data-version')) {
+        setInterval(poll, 30000);
+        document.addEventListener('visibilitychange', poll);
+    }
 })();

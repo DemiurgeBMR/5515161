@@ -72,9 +72,12 @@ admin_header('Профиль', '');
     <form method="post" class="stack">
         <?= csrf_field() ?>
         <input type="hidden" name="action" value="password">
-        <div class="field"><label for="p-cur"><?= $first ? 'Временный пароль' : 'Текущий пароль' ?></label><input id="p-cur" type="password" name="current" required autocomplete="current-password"></div>
-        <div class="field"><label for="p-new">Новый пароль</label><input id="p-new" type="password" name="password" required minlength="8" autocomplete="new-password"></div>
-        <div class="field"><label for="p-new2">Ещё раз</label><input id="p-new2" type="password" name="password2" required minlength="8" autocomplete="new-password"></div>
+        <?php // Почта — для менеджера паролей браузера: без неё он не поймёт, у какого входа сменился пароль, и будет подставлять старый. ?>
+        <input type="email" name="username" value="<?= e($me['email']) ?>" autocomplete="username" readonly hidden>
+        <?= password_field('p-cur', 'current', $first ? 'Временный пароль' : 'Текущий пароль', 'current-password') ?>
+        <?= password_field('p-new', 'password', 'Новый пароль', 'new-password', true, 8) ?>
+        <?= password_field('p-new2', 'password2', 'Ещё раз', 'new-password', true, 8) ?>
+        <p class="hint">Если браузер предложит сохранить или обновить пароль — согласитесь: иначе при следующем входе он может подставить старый, временный.</p>
         <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit">Сменить пароль</button></div>
     </form>
 </section>
