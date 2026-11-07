@@ -84,7 +84,6 @@ $jsonld = [[
     'checkinTime'  => $h['check_in'],
     'checkoutTime' => $h['check_out'],
     'priceRange'   => $minPrice . '–' . $maxPrice . ' RUB',
-    'petsAllowed'  => $h['pets'],
 ] + (has_coords() ? ['geo' => [
     '@type' => 'GeoCoordinates', 'latitude' => $h['address']['lat'], 'longitude' => $h['address']['lon'],
 ]] : []), [
