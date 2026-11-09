@@ -63,7 +63,7 @@ function admin_nav(): array
         'calendar' => ['/admin/calendar.php', 'Шахматка', 'calendar-days'],
         'cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can'],
         'bookings' => ['/admin/bookings.php', 'Брони', 'bed-double'],
-        'bath'     => ['/admin/bath.php', 'Баня', 'flame'],
+        'bath'     => ['/admin/bath.php', 'Сауна', 'flame'],
         'guests'   => ['/admin/guests.php', 'Гости', 'users'],
         'rooms'    => ['/admin/rooms.php', 'Номера и фото', 'key-round'],
         'prices'   => ['/admin/prices.php', 'Цены', 'sparkles'],
@@ -165,7 +165,7 @@ function admin_footer(): void
 
 const AUDIT_ENTITIES = [
     'booking' => 'Бронь', 'guest' => 'Гость', 'room' => 'Комната', 'room_type' => 'Тип номера',
-    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник', 'cleaning' => 'Уборка', 'bath' => 'Баня',
+    'price' => 'Цены', 'settings' => 'Настройки', 'staff' => 'Сотрудник', 'cleaning' => 'Уборка', 'bath' => 'Сауна',
 ];
 
 /** Понятное название действия из журнала: «Оплата», «Комната закрыта»… */
@@ -188,7 +188,7 @@ function audit_action_label(string $entity, string $action): string
         'bath' => [
             'created' => 'Запись', 'updated' => 'Изменена', 'status' => 'Статус', 'payment' => 'Оплата', 'refund' => 'Возврат',
             'payment_voided' => 'Аннулирована оплата', 'mail' => 'Почта', 'reminder_sent' => 'Напоминание', 'deleted' => 'Удалена',
-            'blocked' => 'Время закрыто', 'unblocked' => 'Время открыто', 'state' => 'Статус бани', 'settings' => 'Настройки',
+            'blocked' => 'Время закрыто', 'unblocked' => 'Время открыто', 'state' => 'Статус сауны', 'settings' => 'Настройки',
             'photos_added' => 'Добавлены фото', 'photo_deleted' => 'Удалено фото', 'waitlist' => 'Лист ожидания',
         ],
         'cleaning' => ['done' => 'Убрано', 'skipped' => 'Не нужна', 'reopened' => 'Снята отметка', 'added' => 'Добавлена', 'settings' => 'Настройки'],
@@ -256,7 +256,7 @@ function booking_row_html(array $b, string $extra = ''): string
 }
 
 /**
- * Оплаты в карточке брони или записи в баню: список (с аннулированными),
+ * Оплаты в карточке брони или записи в сауну: список (с аннулированными),
  * подсказка и форма «Записать оплату» со сдачей. Удалить оплату нельзя.
  * Форма шлёт action=payment_add / payment_void и id=$targetId.
  */
