@@ -428,8 +428,13 @@ foreach ($transitions as [$to, $label, $btn]):
                 <div class="field"><label>Внутренняя заметка</label><input name="business_admin_note" maxlength="500" value="<?= e($businessDetails['admin_note'] ?? '') ?>"></div>
                 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить сведения</button></div>
             </form>
+<?php if (in_array('contract', $selectedDocs, true) && filled(hotel()['legal']['registry_number'] ?? '') && filled(hotel()['legal']['registry_url'] ?? '')): ?>
+            <p><a class="btn btn--outline btn--sm" href="/admin/booking_document.php?id=<?= (int) $b['id'] ?>&type=confirmation" target="_blank" rel="noopener">Печать подтверждения бронирования / договора</a></p>
+<?php elseif (in_array('contract', $selectedDocs, true)): ?>
+            <p class="hint">Для печати подтверждения заполните номер и ссылку на запись в реестре в config/hotel.php.</p>
+<?php endif; ?>
 <?php if ($b['status'] === 'checked_out' && in_array('residence_certificate', $selectedDocs, true)): ?>
-            <p><a class="btn btn--outline btn--sm" href="/admin/booking_document.php?id=<?= (int) $b['id'] ?>" target="_blank" rel="noopener">Сформировать справку о проживании</a></p>
+            <p><a class="btn btn--outline btn--sm" href="/admin/booking_document.php?id=<?= (int) $b['id'] ?>&type=residence_certificate" target="_blank" rel="noopener">Сформировать справку о проживании</a></p>
 <?php endif; ?>
             <p class="hint">Договор, счёт и акт отмечаются в этом блоке как запрошенные/подготовленные, но перед выдачей их реквизиты и содержание нужно проверить. Кассовый чек формируется кассой при расчёте — сайт его не заменяет.</p>
         </section>
