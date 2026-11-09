@@ -1,6 +1,6 @@
 <?php
 /**
- * Баня: расписание на день, новые заявки, запись по телефону, закрытие
+ * Сауна: расписание на день, новые заявки, запись по телефону, закрытие
  * времени; настройки (статус — только владелец), описание, фото, цены и
  * часы работы; лист ожидания открытия.
  *
@@ -15,8 +15,8 @@ $me = require_staff();
 
 if (!bath_enabled()) {
     http_response_code(404);
-    admin_header('Баня', 'bath');
-    echo '<div class="panel"><p>Баня выключена в config/hotel.php (bath → enabled).</p></div>';
+    admin_header('Сауна', 'bath');
+    echo '<div class="panel"><p>Сауна выключена в config/hotel.php (bath → enabled).</p></div>';
     admin_footer();
     exit;
 }
@@ -90,7 +90,7 @@ if (is_post()) {
                 break;
             case 'state':
                 bath_set_state(post('state'));
-                flash('ok', 'Баня: ' . mb_strtolower(BATH_STATES[post('state')]) . '. На сайте уже обновилось.'
+                flash('ok', 'Сауна: ' . mb_strtolower(BATH_STATES[post('state')]) . '. На сайте уже обновилось.'
                     . (post('state') === 'open' && ($n = (int) q_val("SELECT COUNT(*) FROM waitlist WHERE topic = 'bath'")) ? ' Открытия ждут ' . $n . ' ' . plural($n, 'человек', 'человека', 'человек') . ' — их телефоны во вкладке «Ждут открытия».' : ''));
                 break;
             case 'texts':
@@ -113,7 +113,7 @@ if (is_post()) {
                 $old = bath_settings();
                 foreach ($old['week'] as $d => $hrs) {
                     if ($hrs && $hrs['to'] - $hrs['from'] < $min) {
-                        throw new BookingError('В ' . RU_WEEKDAYS[$d % 7] . ' баня работает ' . bath_range($hrs) . ' — это меньше сеанса в ' . $min . ' ч. Сначала поправьте время работы');
+                        throw new BookingError('В ' . RU_WEEKDAYS[$d % 7] . ' сауна работает ' . bath_range($hrs) . ' — это меньше сеанса в ' . $min . ' ч. Сначала поправьте время работы');
                     }
                 }
                 foreach ([
@@ -148,7 +148,7 @@ if (is_post()) {
                     $week[$d] = ['from' => $f, 'to' => $t];
                 }
                 if (!array_filter($week) && bath_state() === 'open') {
-                    throw new BookingError('Отметьте хотя бы один рабочий день — баня сейчас открыта');
+                    throw new BookingError('Отметьте хотя бы один рабочий день — сауна сейчас открыта');
                 }
                 set_setting('bath_week', bath_week_encode($week));
                 set_setting('bath_buffer', (string) max(0, min(240, (int) post('buffer'))));
@@ -182,7 +182,7 @@ if (is_post()) {
                 audit('bath', null, 'settings', 'особый день ' . ru_date($date) . ': ' . ($closed ? 'выходной' : bath_hour($f) . '–' . bath_hour($t)));
                 touch_data_version();
                 $outside = array_filter(bath_sessions_outside_hours(), fn ($b) => $b['date'] === $date);
-                flash('ok', ru_date($date) . ': ' . ($closed ? 'баня не работает' : 'работает ' . bath_hour($f) . '–' . bath_hour($t)) . '.');
+                flash('ok', ru_date($date) . ': ' . ($closed ? 'сауна не работает' : 'работает ' . bath_hour($f) . '–' . bath_hour($t)) . '.');
                 if ($outside) {
                     flash('error', 'На ' . ru_date($date) . ' уже есть ' . count($outside) . ' ' . plural(count($outside), 'запись', 'записи', 'записей') . ' вне этого времени — перенесите их или предупредите гостей.');
                 }
@@ -269,14 +269,14 @@ function bath_row_html(array $b, bool $withDate = false): string
         . ($money !== '' ? ' · ' . e($money) : '') . ($b['hotel_guest'] ? ' · <span class="brow__flag">живёт в гостинице</span>' : '') . '</span></a>';
 }
 
-admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
+admin_header('Сауна', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
 ?>
 <div class="adm-head">
     <div>
         <h1><?= e($s['title']) ?> <span class="state state--<?= e($s['state']) ?>"><?= e(BATH_STATES[$s['state']]) ?></span></h1>
         <p class="adm-head__sub"><?= $s['state'] === 'open' ? 'Запись с сайта открыта · ' . e(bath_hours_text()) . ' · ' . e(bath_price_from()) : 'Запись с сайта не принимается. Записать гостя по телефону можно и сейчас.' ?> · <a href="/bath.php" target="_blank" rel="noopener">Как выглядит на сайте</a></p>
     </div>
-    <nav class="tabs" aria-label="Разделы бани">
+    <nav class="tabs" aria-label="Разделы сауны">
         <a class="tab<?= $tab === 'schedule' ? ' is-active' : '' ?>" href="/admin/bath.php">Расписание</a>
         <a class="tab<?= $tab === 'settings' ? ' is-active' : '' ?>" href="/admin/bath.php?tab=settings">Настройки и сайт</a>
         <a class="tab<?= $tab === 'waitlist' ? ' is-active' : '' ?>" href="/admin/bath.php?tab=waitlist">Ждут открытия<?= $waitCount ? ' <b>' . $waitCount . '</b>' : '' ?></a>
@@ -334,7 +334,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
         </div>
 <?php $dayHours = bath_hours_on($date); $daySpecial = bath_special_on($date); ?>
 <?php if (!$dayHours): ?>
-        <p class="hint">В этот день баня не работает<?= $daySpecial ? ' (особый день' . ($daySpecial['note'] !== '' ? ': ' . e($daySpecial['note']) : '') . ')' : ' по расписанию' ?> — на сайте записаться нельзя, по телефону можно.</p>
+        <p class="hint">В этот день сауна не работает<?= $daySpecial ? ' (особый день' . ($daySpecial['note'] !== '' ? ': ' . e($daySpecial['note']) : '') . ')' : ' по расписанию' ?> — на сайте записаться нельзя, по телефону можно.</p>
 <?php else: ?>
         <p class="hint">Работает <?= e(bath_range($dayHours)) ?><?= $dayHours['special'] ? ' — особый день' . ($dayHours['note'] !== '' ? ': ' . e($dayHours['note']) : '') : '' ?>. <a href="?tab=settings#hours">Изменить время работы</a></p>
 <?php endif; ?>
@@ -424,7 +424,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
 <div class="main-side">
     <div class="blist">
         <section class="panel" id="state">
-            <h2 class="panel__title">Статус бани</h2>
+            <h2 class="panel__title">Статус сауны</h2>
 <?php if (is_owner()): ?>
             <form method="post" class="stack">
                 <?= csrf_field() ?>
@@ -439,7 +439,7 @@ admin_header('Баня', 'bath', $tab === 'schedule' ? 'adm-autoreload' : '');
             </form>
 <?php else: ?>
             <p><span class="state state--<?= e($s['state']) ?>"><?= e(BATH_STATES[$s['state']]) ?></span></p>
-            <p class="hint">Открыть или закрыть баню может только владелец. Остальное — описание, фото, цены — можно менять и вам.</p>
+            <p class="hint">Открыть или закрыть сауну может только владелец. Остальное — описание, фото, цены — можно менять и вам.</p>
 <?php endif; ?>
             <h3 class="panel__subtitle">Перед открытием</h3>
             <ul class="ready-list">
@@ -546,14 +546,14 @@ function bath_hour_options(int $from, int $to, int $selected): string
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="upload">
             <div class="field span-all"><label for="b-photos">Добавить фото (можно несколько)</label><input id="b-photos" type="file" name="photos[]" accept="image/jpeg,image/png,image/webp" multiple required></div>
-            <p class="hint span-all">Первые два фото видны на главной, все — в галерее на странице бани. Снимайте парную, хамам, купель и комнату отдыха при тёплом свете.</p>
+            <p class="hint span-all">Первые два фото видны на главной, все — в галерее на странице сауны. Снимайте парную, хамам, купель и комнату отдыха при тёплом свете.</p>
             <div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit"><?= icon('upload') ?>Загрузить</button></div>
         </form>
     </section>
 
     <section class="panel" id="special">
         <h2 class="panel__title">Особые дни</h2>
-        <p class="hint">Праздники, санитарный день, короткий день — на эту дату время работы будет другим, чем по расписанию недели. Гости увидят это на странице бани.</p>
+        <p class="hint">Праздники, санитарный день, короткий день — на эту дату время работы будет другим, чем по расписанию недели. Гости увидят это на странице сауны.</p>
 <?php $special = array_filter($s['special'], fn ($d) => $d >= today()->format('Y-m-d'), ARRAY_FILTER_USE_KEY); ?>
 <?php if ($special): ?>
         <div class="blist">
@@ -561,7 +561,7 @@ function bath_hour_options(int $from, int $to, int $selected): string
             <div class="special-row">
                 <span><strong><?= e(ru_date($sd)) ?></strong>, <?= e(RU_WEEKDAYS_SHORT[(int) date('w', strtotime($sd))]) ?> — <?= $x['from'] === null ? 'выходной' : e(bath_hour($x['from']) . '–' . bath_hour($x['to'])) ?><?= $x['note'] !== '' ? ' <span class="muted">· ' . e($x['note']) . '</span>' : '' ?></span>
                 <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="special_delete"><input type="hidden" name="date" value="<?= e($sd) ?>">
-                    <button class="icon-button" type="submit" aria-label="Убрать особый день <?= e(ru_date($sd)) ?>" data-confirm="Убрать особый день? В этот день баня будет работать по обычному расписанию."><?= icon('trash-2') ?></button></form>
+                    <button class="icon-button" type="submit" aria-label="Убрать особый день <?= e(ru_date($sd)) ?>" data-confirm="Убрать особый день? В этот день сауна будет работать по обычному расписанию."><?= icon('trash-2') ?></button></form>
             </div>
 <?php endforeach; ?>
         </div>
@@ -573,7 +573,7 @@ function bath_hour_options(int $from, int $to, int $selected): string
             <div class="field"><label for="sp-from">С</label><select id="sp-from" name="from"><?= bath_hour_options(0, 23, $s['open_from']) ?></select></div>
             <div class="field"><label for="sp-to">До</label><select id="sp-to" name="to"><?= bath_hour_options(1, BATH_LATEST_CLOSE, min(18, $s['open_to'])) ?></select></div>
             <div class="field span-all"><label for="sp-note">Подпись для гостей</label><input id="sp-note" name="note" maxlength="100" placeholder="Например: короткий предпраздничный день"></div>
-            <div class="field span-all"><label class="inline-check"><input type="checkbox" name="closed" value="1"> Баня в этот день не работает</label></div>
+            <div class="field span-all"><label class="inline-check"><input type="checkbox" name="closed" value="1"> Сауна в этот день не работает</label></div>
             <div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit"><?= icon('calendar-plus') ?>Добавить</button></div>
         </form>
     </section>
@@ -586,7 +586,7 @@ function bath_hour_options(int $from, int $to, int $selected): string
 <section class="panel">
     <h2 class="panel__title">Просили сообщить об открытии <small><?= count($rows) ?></small></h2>
 <?php if ($s['state'] === 'open' && $rows): ?>
-    <div class="notice notice--ok"><?= icon('bell') ?><div>Баня открыта — позвоните или напишите этим людям, а потом отметьте «Сообщили».</div></div>
+    <div class="notice notice--ok"><?= icon('bell') ?><div>Сауна открыта — позвоните или напишите этим людям, а потом отметьте «Сообщили».</div></div>
 <?php endif; ?>
 <?php if (!$rows): ?>
     <p class="empty">Список пуст.</p>
