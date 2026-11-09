@@ -823,6 +823,9 @@ function booking_time_request_offer(int $requestId, string $time, int $fee, stri
         if ($time >= $standard) {
             throw new BookingError('Предложенное время должно быть раньше стандартного времени');
         }
+        if ($r['kind'] === 'early_checkout' && $fee !== 0) {
+            throw new BookingError('Досрочный выезд до расчётного часа в дату брони не тарифицируется отдельно. Если меняется дата выезда, скорректируйте саму бронь.');
+        }
         if ($r['kind'] === 'early_checkin') {
             $minutesEarly = (int) ((strtotime($standard) - strtotime($time)) / 60);
             if ($minutesEarly <= 720) {
