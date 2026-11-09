@@ -781,6 +781,9 @@ function booking_time_request_add(array $b, string $kind, string $time, string $
     if (!in_array($b['status'], ['confirmed', 'checked_in'], true)) {
         throw new BookingError('Запросить изменение времени можно после подтверждения брони');
     }
+    if ($kind === 'early_checkin' && $b['status'] === 'checked_in') {
+        throw new BookingError('После заселения можно запросить только досрочный выезд');
+    }
     if (!preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $time)) {
         throw new BookingError('Укажите корректное время', 'requested_time');
     }
@@ -818,6 +821,25 @@ function booking_time_request_offer(int $requestId, string $time, int $fee, stri
     $standard = $r['kind'] === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
     if ($time >= $standard) {
         throw new BookingError('Предложенное время должно быть раньше стандартного времени');
+    }
+    if ($r['kind'] === 'early_checkin') {
+        $minutesEarly = (int) ((strtotime($standard) - strtotime($time)) / 60);
+        if ($minutesEarly <= 720) {
+            $b = booking_get((int) $r['booking_id']);
+            if (!$b) {
+                throw new BookingError('Бронь не найдена');
+            }
+            if ($b['price_manual'] && $b['total_price'] !== null && $b['nights'] > 0) {
+                $dailyRate = (int) floor($b['total_price'] / $b['nights']);
+            } else {
+                $oneNight = quote(room_type((int) $b['room_type_id']), $b['check_in'], parse_date($b['check_in'])->modify('+1 day')->format('Y-m-d'));
+                $dailyRate = (int) ($oneNight['total'] ?? 0);
+            }
+            $maxFee = (int) floor($dailyRate / 2);
+            if ($fee > $maxFee) {
+                throw new BookingError('Для раннего заезда менее чем за 12 часов до стандартного времени доплата не может превышать ' . money($maxFee) . ' (половина стоимости суток)');
+            }
+        }
     }
     $note = clean_line($note, 500);
     q('UPDATE booking_time_requests SET offered_time = ?, fee_amount = ?, admin_note = ?, status = \'offered\', offered_at = ?, handled_by = ?, updated_at = ? WHERE id = ?',
