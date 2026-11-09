@@ -30,7 +30,8 @@ if ($b && is_post() && post('action') === 'time_request') {
         $errors['time_form'] = 'Не удалось отправить запрос. Попробуйте позже или позвоните администратору.';
     } else {
         try {
-            booking_time_request_add($b, post('time_kind'), post('requested_time'), post('time_message'));
+             $requestId = booking_time_request_add($b, post('time_kind'), post('requested_time'), post('time_message'));
+            notify_admins(['Новый запрос по времени (' . booking_number($b) . ')', 'Гость запросил: ' . (BOOKING_TIME_REQUEST_KINDS[post('time_kind')] ?? post('time_kind')) . ' к ' . post('requested_time') . "\\n\\nБронь: " . admin_booking_url($b['id'])], (string) $b['guest_email']);
             rate_hit('time_request', $b['token']);
             redirect('/booking.php?t=' . $b['token'] . '&time_sent=1#time-request');
         } catch (BookingError $e) {
@@ -60,6 +61,7 @@ if ($b && is_post() && post('action') === 'business_request') {
                 'requested_documents' => (isset($_POST['requested_documents']) && is_array($_POST['requested_documents'])) ? $_POST['requested_documents'] : [],
                 'document_status' => 'requested',
             ]);
+            notify_admins(['Запрос документов для командировки (' . booking_number($b) . ')', 'Гость запросил документы по брони: ' . admin_booking_url($b['id'])], (string) $b['guest_email']);
             redirect('/booking.php?t=' . $b['token'] . '&business_sent=1#business-trip');
         } catch (BookingError $e) {
             $errors['business_form'] = $e->getMessage();
