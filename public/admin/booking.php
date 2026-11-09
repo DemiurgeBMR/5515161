@@ -74,7 +74,7 @@ if (is_post()) {
                 redirect($back);
                 break;
             case 'occupants_save':
-                booking_occupants_save($id, post('occupant_names', []));
+                booking_occupants_save($id, preg_split('/\\R/u', post('occupants_text'), -1, PREG_SPLIT_NO_EMPTY));
                 flash('ok', 'Список проживающих сохранён.');
                 redirect($back . '#occupants');
                 break;
@@ -253,7 +253,7 @@ admin_header($b ? 'Бронь ' . booking_number($b) : 'Новая бронь', 
         <input type="hidden" name="action" value="occupants_save">
         <div class="field span-all">
             <label for="b-occupants">ФИО остальных гостей</label>
-            <textarea id="b-occupants" name="occupant_names[]" rows="4" maxlength="2000" placeholder="Иванов Иван Иванович&#10;Петров Пётр Петрович"><?= e(implode("\n", array_column($occupants, 'name'))) ?></textarea>
+            <textarea id="b-occupants" name="occupants_text" rows="4" maxlength="2000" placeholder="Иванов Иван Иванович&#10;Петров Пётр Петрович"><?= e(implode("\n", array_column($occupants, 'name'))) ?></textarea>
             <small class="muted">Каждая строка — один человек. Количество строк должно соответствовать числу гостей без основного гостя.</small>
         </div>
         <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить список проживающих</button></div>
