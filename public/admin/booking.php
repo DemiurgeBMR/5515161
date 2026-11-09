@@ -387,8 +387,10 @@ foreach ($transitions as [$to, $label, $btn]):
                 </form>
 <?php elseif ($tr['status'] === 'offered'): ?>
                 <p>Предложено: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'бесплатно' ?>. Ожидается согласие гостя.</p>
-<?php else: ?>
-                <p>Согласованное время: <?= e(substr($tr['offered_time'] ?: $tr['requested_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
+<?php elseif ($tr['status'] === 'accepted'): ?>
+                <p>Согласованное время: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
+<?php elseif ($tr['status'] === 'rejected'): ?>
+                <p class="hint">Гость отклонил предложенные условия.</p>
 <?php if ($tr['actual_time']): ?><p class="hint">Фактически: <?= e(substr($tr['actual_time'], 0, 5)) ?> · <?= e(ru_datetime($tr['actual_recorded_at'])) ?></p>
 <?php elseif (($tr['kind'] === 'early_checkin' && $b['status'] === 'checked_in') || ($tr['kind'] === 'early_checkout' && $b['status'] === 'checked_out')): ?>
                 <form method="post" class="form-actions">
