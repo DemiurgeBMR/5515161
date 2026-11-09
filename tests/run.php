@@ -152,6 +152,34 @@ check($kept['total_price'] === 3000 && $kept['admin_note'] === 'тихий но�
 q('UPDATE room_types SET base_price = 3000 WHERE id = ?', [$large['id']]);
 app_cache_clear();
 
+echo "\nРанний заезд, досрочный выезд и командировочные документы\n";
+$timeBooking = booking_create(guest(['check_in' => d(130), 'check_out' => d(132), 'room_type_id' => $std['id'], 'status' => 'confirmed']), true);
+$earlyIn = booking_time_request_add($timeBooking, 'early_checkin', '10:00', 'Приедем поездом утром');
+check((int) q_val('SELECT COUNT(*) FROM booking_time_requests WHERE id = ? AND status = ?', [$earlyIn, 'pending']) === 1, 'запрос раннего заезда создаётся и ждёт администратора');
+expect_error(fn () => booking_time_request_offer($earlyIn, '10:00', 1251), 'ранний заезд менее чем за 12 часов ограничен половиной суток', 'половины стоимости');
+booking_time_request_offer($earlyIn, '10:00', 1250, 'Номер будет готов');
+booking_time_request_respond($earlyIn, $timeBooking['token'], true);
+$timeBooking = booking_get($timeBooking['id']);
+check($timeBooking['accepted_time_fees'] === 1250 && $timeBooking['balance'] === $timeBooking['total_price'] + 1250, 'доплата раннего заезда попадает в баланс только после согласия гостя');
+$earlyOutBooking = booking_create(guest(['check_in' => d(-1), 'check_out' => d(2), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
+$earlyOut = booking_time_request_add($earlyOutBooking, 'early_checkout', '10:00');
+expect_error(fn () => booking_time_request_offer($earlyOut, '10:00', 1), 'досрочный выезд до расчётного часа не тарифицируется отдельно', 'не тарифицируется');
+booking_time_request_offer($earlyOut, '10:00', 0);
+booking_time_request_respond($earlyOut, $earlyOutBooking['token'], true);
+booking_set_status($earlyOutBooking['id'], 'checked_out');
+booking_time_request_record_actual($earlyOut, '09:45');
+check(q_val('SELECT actual_time FROM booking_time_requests WHERE id = ?', [$earlyOut]) === '09:45:00', 'фактическое время досрочного выезда сохраняется');
+booking_business_details_save($timeBooking['id'], [
+    'is_business_trip' => 1, 'employee_name' => 'Тестовый сотрудник', 'organization_name' => 'ООО Тест',
+    'organization_inn' => '1234567890', 'payer' => 'organization',
+    'requested_documents' => ['contract', 'invoice', 'act', 'residence_certificate'], 'document_status' => 'requested',
+]);
+$business = booking_business_details($timeBooking['id']);
+check($business['is_business_trip'] && $business['organization_name'] === 'ООО Тест'
+    && $business['organization_inn'] === '1234567890'
+    && in_array('residence_certificate', explode(',', $business['requested_documents']), true),
+    'сведения о командировке и список документов сохраняются');
+
 echo "\nОплаты и сообщения\n";
 payment_add($b1['id'], 2500, 'sbp', d(0), 'предоплата');
 payment_add($b1['id'], 5000, 'cash', d(0), '');
