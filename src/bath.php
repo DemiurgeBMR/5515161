@@ -70,6 +70,13 @@ function bath_settings(): array
 {
     $int = fn (string $k, int $default, int $min, int $max) => max($min, min($max, (int) setting('bath_' . $k, (string) $default)));
     $state = (string) setting('bath_state', 'soon');
+    $extrasText = (string) setting('bath_extras', "Веники для бани — 300\nЧай на травах — 200");
+    // Однократно заменяем старые стандартные позиции веников, не затрагивая пользовательские цены.
+    if ($extrasText === "Веник берёзовый — 300\nВеник дубовый — 350\nЧай на травах — 200"
+        || $extrasText === "Веник берёзовый — 300\nВеник дубовый — 350") {
+        $extrasText = "Веники для бани — 300" . (str_contains($extrasText, 'Чай на травах') ? "\nЧай на травах — 200" : '');
+        set_setting('bath_extras', $extrasText);
+    }
     $s = [
         'state'           => isset(BATH_STATES[$state]) ? $state : 'soon',
         'title'           => (string) setting('bath_title', 'Баня и хамам'),
@@ -88,7 +95,7 @@ function bath_settings(): array
         'buffer'          => $int('buffer', 60, 0, 240),
         'lead_hours'      => $int('lead_hours', 2, 0, 72),
         'hotel_discount'  => $int('hotel_discount', 10, 0, 100),
-        'extras_text'     => (string) setting('bath_extras', "Веник берёзовый — 300\nВеник дубовый — 350\nЧай на травах — 200"),
+        'extras_text'     => $extrasText,
     ];
     $s['features'] = bath_lines($s['features_text']);
     $s['rules'] = bath_lines($s['rules_text']);
