@@ -814,52 +814,56 @@ function booking_time_request_offer(int $requestId, string $time, int $fee, stri
     if ($fee < 0 || $fee > 10000000) {
         throw new BookingError('Проверьте стоимость');
     }
-    $r = q_one('SELECT * FROM booking_time_requests WHERE id = ? FOR UPDATE', [$requestId]);
-    if (!$r || $r['status'] !== 'pending') {
-        throw new BookingError('Запрос уже обработан или не найден');
-    }
-    $standard = $r['kind'] === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
-    if ($time >= $standard) {
-        throw new BookingError('Предложенное время должно быть раньше стандартного времени');
-    }
-    if ($r['kind'] === 'early_checkin') {
-        $minutesEarly = (int) ((strtotime($standard) - strtotime($time)) / 60);
-        if ($minutesEarly <= 720) {
-            $b = booking_get((int) $r['booking_id']);
-            if (!$b) {
-                throw new BookingError('Бронь не найдена');
-            }
-            if ($b['price_manual'] && $b['total_price'] !== null && $b['nights'] > 0) {
-                $dailyRate = (int) floor($b['total_price'] / $b['nights']);
-            } else {
-                $oneNight = quote(room_type((int) $b['room_type_id']), $b['check_in'], parse_date($b['check_in'])->modify('+1 day')->format('Y-m-d'));
-                $dailyRate = (int) ($oneNight['total'] ?? 0);
-            }
-            $maxFee = (int) floor($dailyRate / 2);
-            if ($fee > $maxFee) {
-                throw new BookingError('Для раннего заезда менее чем за 12 часов до стандартного времени доплата не может превышать ' . money($maxFee) . ' (половина стоимости суток)');
+    tx(function () use ($requestId, $time, $fee, $note) {
+        $r = q_one('SELECT * FROM booking_time_requests WHERE id = ? FOR UPDATE', [$requestId]);
+        if (!$r || $r['status'] !== 'pending') {
+            throw new BookingError('Запрос уже обработан или не найден');
+        }
+        $standard = $r['kind'] === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
+        if ($time >= $standard) {
+            throw new BookingError('Предложенное время должно быть раньше стандартного времени');
+        }
+        if ($r['kind'] === 'early_checkin') {
+            $minutesEarly = (int) ((strtotime($standard) - strtotime($time)) / 60);
+            if ($minutesEarly <= 720) {
+                $b = booking_get((int) $r['booking_id']);
+                if (!$b) {
+                    throw new BookingError('Бронь не найдена');
+                }
+                if ($b['price_manual'] && $b['total_price'] !== null && $b['nights'] > 0) {
+                    $dailyRate = (int) floor($b['total_price'] / $b['nights']);
+                } else {
+                    $oneNight = quote(room_type((int) $b['room_type_id']), $b['check_in'], parse_date($b['check_in'])->modify('+1 day')->format('Y-m-d'));
+                    $dailyRate = (int) ($oneNight['total'] ?? 0);
+                }
+                $maxFee = (int) floor($dailyRate / 2);
+                if ($fee > $maxFee) {
+                    throw new BookingError('Для раннего заезда менее чем за 12 часов до стандартного времени доплата не может превышать ' . money($maxFee) . ' (половина стоимости суток)');
+                }
             }
         }
-    }
-    $note = clean_line($note, 500);
-    q('UPDATE booking_time_requests SET offered_time = ?, fee_amount = ?, admin_note = ?, status = \'offered\', offered_at = ?, handled_by = ?, updated_at = ? WHERE id = ?',
-        [$time . ':00', $fee, $note !== '' ? $note : null, now(), current_staff()['id'] ?? null, now(), $requestId]);
-    audit('booking', (int) $r['booking_id'], 'time_offer', BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . $time . ', ' . money($fee) . ($note !== '' ? ', ' . $note : ''));
-    touch_data_version();
+        $note = clean_line($note, 500);
+        q('UPDATE booking_time_requests SET offered_time = ?, fee_amount = ?, admin_note = ?, status = \'offered\', offered_at = ?, handled_by = ?, updated_at = ? WHERE id = ?',
+            [$time . ':00', $fee, $note !== '' ? $note : null, now(), current_staff()['id'] ?? null, now(), $requestId]);
+        audit('booking', (int) $r['booking_id'], 'time_offer', BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . $time . ', ' . money($fee) . ($note !== '' ? ', ' . $note : ''));
+        touch_data_version();
+    });
 }
 
 function booking_time_request_respond(int $requestId, string $token, bool $accept): void
 {
-    $r = q_one('SELECT r.*, b.token FROM booking_time_requests r JOIN bookings b ON b.id = r.booking_id WHERE r.id = ?', [$requestId]);
-    if (!$r || !hash_equals((string) $r['token'], $token) || $r['status'] !== 'offered') {
-        throw new BookingError('Предложение не найдено или срок ответа истёк');
-    }
-    $status = $accept ? 'accepted' : 'rejected';
-    q('UPDATE booking_time_requests SET status = ?, guest_responded_at = ?, updated_at = ? WHERE id = ? AND status = \'offered\'',
-        [$status, now(), now(), $requestId]);
-    audit('booking', (int) $r['booking_id'], 'time_' . $status,
-        BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . substr((string) $r['offered_time'], 0, 5) . ', ' . money((int) $r['fee_amount']), 'guest');
-    touch_data_version();
+    tx(function () use ($requestId, $token, $accept) {
+        $r = q_one('SELECT r.*, b.token FROM booking_time_requests r JOIN bookings b ON b.id = r.booking_id WHERE r.id = ? FOR UPDATE', [$requestId]);
+        if (!$r || !hash_equals((string) $r['token'], $token) || $r['status'] !== 'offered') {
+            throw new BookingError('Предложение не найдено или срок ответа истёк');
+        }
+        $status = $accept ? 'accepted' : 'rejected';
+        q('UPDATE booking_time_requests SET status = ?, guest_responded_at = ?, updated_at = ? WHERE id = ? AND status = \'offered\'',
+            [$status, now(), now(), $requestId]);
+        audit('booking', (int) $r['booking_id'], 'time_' . $status,
+            BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . substr((string) $r['offered_time'], 0, 5) . ', ' . money((int) $r['fee_amount']), 'guest');
+        touch_data_version();
+    });
 }
 
 function booking_business_details(int $bookingId): ?array
