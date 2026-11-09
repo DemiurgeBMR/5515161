@@ -185,7 +185,8 @@ function booking_select_sql(): string
     return 'SELECT b.*, g.name AS guest_name, g.phone AS guest_phone, g.email AS guest_email,
                    t.name AS type_name, t.slug AS type_slug, r.name AS room_name,
                    (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.voided_at IS NULL) AS paid,
-                   (SELECT COUNT(*) FROM booking_messages m WHERE m.booking_id = b.id AND m.handled_at IS NULL) AS open_messages
+                   (SELECT COUNT(*) FROM booking_messages m WHERE m.booking_id = b.id AND m.handled_at IS NULL) AS open_messages,
+                   (SELECT COALESCE(SUM(tr.fee_amount), 0) FROM booking_time_requests tr WHERE tr.booking_id = b.id AND tr.status = 'accepted') AS accepted_time_fees
             FROM bookings b
             LEFT JOIN guests g ON g.id = b.guest_id
             JOIN room_types t ON t.id = b.room_type_id
@@ -197,7 +198,7 @@ function booking_hydrate(?array $b): ?array
     if (!$b) {
         return null;
     }
-    foreach (['id', 'guest_id', 'room_type_id', 'room_id', 'guests_count', 'prepayment', 'paid', 'open_messages', 'price_manual'] as $k) {
+    foreach (['id', 'guest_id', 'room_type_id', 'room_id', 'guests_count', 'prepayment', 'paid', 'open_messages', 'accepted_time_fees', 'price_manual'] as $k) {
         if ($b[$k] !== null) {
             $b[$k] = (int) $b[$k];
         }
@@ -205,7 +206,7 @@ function booking_hydrate(?array $b): ?array
     $b['total_price'] = $b['total_price'] === null ? null : (int) $b['total_price'];
     $b['nights'] = nights_between($b['check_in'], $b['check_out']);
     $b['status_label'] = BOOKING_STATUSES[$b['status']] ?? $b['status'];
-    $b['balance'] = $b['total_price'] !== null ? $b['total_price'] - $b['paid'] : null;
+    $b['balance'] = $b['total_price'] !== null ? $b['total_price'] + $b['accepted_time_fees'] - $b['paid'] : null;
     return $b;
 }
 
@@ -813,6 +814,10 @@ function booking_time_request_offer(int $requestId, string $time, int $fee, stri
     $r = q_one('SELECT * FROM booking_time_requests WHERE id = ? FOR UPDATE', [$requestId]);
     if (!$r || $r['status'] !== 'pending') {
         throw new BookingError('Запрос уже обработан или не найден');
+    }
+    $standard = $r['kind'] === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
+    if ($time >= $standard) {
+        throw new BookingError('Предложенное время должно быть раньше стандартного времени');
     }
     $note = clean_line($note, 500);
     q('UPDATE booking_time_requests SET offered_time = ?, fee_amount = ?, admin_note = ?, status = \'offered\', offered_at = ?, handled_by = ?, updated_at = ? WHERE id = ?',
