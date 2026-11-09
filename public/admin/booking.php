@@ -101,7 +101,7 @@ if (is_post()) {
                 $offerBooking = booking_get($id);
                 if ($offerBooking && $offerBooking['guest_email']) {
                     send_mail($offerBooking['guest_email'], 'Предложение по времени проживания — ' . booking_number($offerBooking),
-                        'По вашей брони есть предложение администратора. Время: ' . post('offered_time') . '. Доплата: ' . money((int) post('fee_amount')) . '.\\n\\nПожалуйста, откройте страницу брони и подтвердите или отклоните предложение: ' . booking_url($offerBooking));
+                        'По вашей брони есть предложение администратора. Время: ' . post('offered_time') . '. Доплата: ' . money((int) post('fee_amount')) . ".\n\nПожалуйста, откройте страницу брони и подтвердите или отклоните предложение: " . booking_url($offerBooking));
                 }
                 flash('ok', 'Предложение по времени и стоимости отправлено гостю. Оно вступит в силу только после согласия гостя.');
                 redirect($back . '#time-requests');
