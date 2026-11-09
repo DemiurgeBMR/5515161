@@ -1,16 +1,16 @@
 <?php
 /**
- * Баня и хамам: статус, описание, цены, часы работы и запись на время.
+ * Сауна и хамам: статус, описание, цены, часы работы и запись на время.
  *
- * Статус меняет только владелец (админка → Баня → Настройки):
+ * Статус меняет только владелец (админка → Сауна → Настройки):
  *  • «Скоро открытие» — на сайте фото, описание и «Сообщить об открытии»;
  *  • «Работает» — на сайте цены и запись на свободное время;
  *  • «Временно закрыта» — запись не принимается, на сайте пояснение.
  *
- * Баня одна: в каждый момент в ней может быть только одна запись, а между
+ * Сауна одна: в каждый момент в ней может быть только одна запись, а между
  * сеансами нужен перерыв на уборку и протопку. Запись идёт в транзакции с
  * блокировкой (как бронь номера), поэтому двое не займут одно время.
- * После каждого сеанса горничной приходит задача «Уборка бани».
+ * После каждого сеанса горничной приходит задача «Уборка сауны».
  */
 
 const BATH_STATES = [
@@ -39,7 +39,7 @@ const BATH_AHEAD_DAYS = 90;
 // Настройки
 // -------------------------------------------------------------------
 
-/** Есть ли баня вообще (config/hotel.php → bath.enabled). */
+/** Есть ли сауна вообще (config/hotel.php → bath.enabled). */
 function bath_enabled(): bool
 {
     return !empty(hotel()['bath']['enabled']);
@@ -65,21 +65,21 @@ function bath_parse_extras(?string $text): array
     return array_slice($out, 0, 20);
 }
 
-/** Все настройки бани со значениями по умолчанию. */
+/** Все настройки сауны со значениями по умолчанию. */
 function bath_settings(): array
 {
     $int = fn (string $k, int $default, int $min, int $max) => max($min, min($max, (int) setting('bath_' . $k, (string) $default)));
     $state = (string) setting('bath_state', 'soon');
-    $extrasText = (string) setting('bath_extras', "Веники для бани — 300\nЧай на травах — 200");
+    $extrasText = (string) setting('bath_extras', "Веники для сауны — 300\nЧай на травах — 200");
     // Однократно заменяем старые стандартные позиции веников, не затрагивая пользовательские цены.
     if ($extrasText === "Веник берёзовый — 300\nВеник дубовый — 350\nЧай на травах — 200"
         || $extrasText === "Веник берёзовый — 300\nВеник дубовый — 350") {
-        $extrasText = "Веники для бани — 300" . (str_contains($extrasText, 'Чай на травах') ? "\nЧай на травах — 200" : '');
+        $extrasText = "Веники для сауны — 300" . (str_contains($extrasText, 'Чай на травах') ? "\nЧай на травах — 200" : '');
         set_setting('bath_extras', $extrasText);
     }
     $s = [
         'state'           => isset(BATH_STATES[$state]) ? $state : 'soon',
-        'title'           => (string) setting('bath_title', 'Баня и хамам'),
+        'title'           => (string) setting('bath_title', 'Сауна и хамам'),
         'lead'            => (string) setting('bath_lead', 'Место, где можно выдохнуть после долгого дня. Для гостей гостиницы и жителей города — с отдельным входом, так что в гостинице остаётся тихо.'),
         'features_text'   => (string) setting('bath_features', "Русская парная\nХамам\nКомната отдыха с чаем\nДуш, полотенца и простыни"),
         'rules_text'      => (string) setting('bath_rules', "Приходите за 5–10 минут до начала — время сеанса начинается по записи\nДети — только вместе со взрослыми\nВ парную и хамам — без алкоголя\nСвою еду и напитки можно, кроме стеклянной посуды у купели"),
@@ -185,7 +185,7 @@ function bath_special_encode(array $special): string
 
 /**
  * Часы работы в эту дату: ['from' => 10, 'to' => 23, 'special' => bool, 'note' => …]
- * или null — баня не работает (выходной по расписанию или особый день).
+ * или null — сауна не работает (выходной по расписанию или особый день).
  */
 function bath_hours_on(string $date): ?array
 {
@@ -227,7 +227,7 @@ function bath_state(): string
     return bath_settings()['state'];
 }
 
-/** Принимает ли баня записи с сайта. */
+/** Принимает ли сауна записи с сайта. */
 function bath_is_open(): bool
 {
     return bath_enabled() && bath_state() === 'open';
@@ -292,11 +292,11 @@ function bath_week_rows(): array
     return $rows;
 }
 
-/** Сменить статус бани — только владелец. Открыть запись без цены нельзя. */
+/** Сменить статус сауны — только владелец. Открыть запись без цены нельзя. */
 function bath_set_state(string $state): void
 {
     if (!is_owner()) {
-        throw new BookingError('Открыть или закрыть баню может только владелец');
+        throw new BookingError('Открыть или закрыть сауну может только владелец');
     }
     if (!isset(BATH_STATES[$state])) {
         throw new BookingError('Неизвестный статус');
@@ -307,7 +307,7 @@ function bath_set_state(string $state): void
             throw new BookingError('Сначала укажите цену за час — без неё гости не увидят стоимость');
         }
         if ($s['days'] === '') {
-            throw new BookingError('Отметьте дни, когда баня работает');
+            throw new BookingError('Отметьте дни, когда сауна работает');
         }
     }
     if ($state === $s['state']) {
@@ -328,7 +328,7 @@ function bath_checklist(): array
         [$s['days'] !== '', 'Время работы: ' . bath_hours_text()],
         [$photos > 0, $photos > 0 ? 'Фото: ' . $photos : 'Нет ни одного фото — на сайте будет заглушка'],
         [trim($s['lead']) !== '' && $s['features'], 'Описание и что входит'],
-        [(bool) cleaning_recipients(), cleaning_recipients() ? 'Горничной будут приходить задачи «Уборка бани»' : 'Нет горничной с включёнными письмами — уборку бани придётся отмечать администратору'],
+        [(bool) cleaning_recipients(), cleaning_recipients() ? 'Горничной будут приходить задачи «Уборка сауны»' : 'Нет горничной с включёнными письмами — уборку сауны придётся отмечать администратору'],
     ];
 }
 
@@ -342,7 +342,7 @@ function bath_photos(): array
     return $cache['bath_photos'] ??= q_all('SELECT * FROM bath_photos ORDER BY sort, id');
 }
 
-/** Фото бани тегом img (с лёгкой копией для телефонов). */
+/** Фото сауны тегом img (с лёгкой копией для телефонов). */
 function bath_photo_img(array $p, string $alt, string $class = '', string $sizes = '(max-width: 760px) 100vw, 50vw', bool $first = false): string
 {
     return '<img class="' . e($class) . ' is-photo" src="/' . e($p['path']) . '"' . img_srcset($p['path'], $sizes)
@@ -350,7 +350,7 @@ function bath_photo_img(array $p, string $alt, string $class = '', string $sizes
         . ($first ? ' fetchpriority="high"' : ' loading="lazy"') . ' decoding="async">';
 }
 
-/** Заголовок с выделением: «Баня <em>и хамам</em>». */
+/** Заголовок с выделением: «Сауна <em>и хамам</em>». */
 function bath_title_html(?string $title = null): string
 {
     $title = trim($title ?? bath_settings()['title']);
@@ -485,7 +485,7 @@ function bath_conflict(string $start, string $end, ?int $excludeId = null): ?arr
         [$excludeId ?? 0, date('Y-m-d H:i:s', strtotime($end) + $buf), date('Y-m-d H:i:s', strtotime($start) - $buf)]);
 }
 
-/** Заблокировать баню до конца транзакции: пока одна запись проверяет время, вторая ждёт. */
+/** Заблокировать сауну до конца транзакции: пока одна запись проверяет время, вторая ждёт. */
 function bath_lock(): void
 {
     q("SELECT value FROM settings WHERE name = 'bath_lock' FOR UPDATE");
@@ -573,14 +573,14 @@ function bath_validate_time(string $date, string $time, int $hours, bool $byStaf
         $hrs = bath_hours_on($date);
         if (!$hrs) {
             $note = bath_special_on($date)['note'] ?? '';
-            throw new BookingError('В этот день баня не работает' . ($note !== '' ? ' (' . $note . ')' : '') . '. Расписание: ' . bath_hours_text(), 'date');
+            throw new BookingError('В этот день сауна не работает' . ($note !== '' ? ' (' . $note . ')' : '') . '. Расписание: ' . bath_hours_text(), 'date');
         }
         $h = (int) substr($time, 0, 2);
         if ($h < $hrs['from'] || $h + $hours > $hrs['to']) {
-            throw new BookingError('В этот день баня работает ' . bath_range($hrs) . ' — выберите время внутри', 'time');
+            throw new BookingError('В этот день сауна работает ' . bath_range($hrs) . ' — выберите время внутри', 'time');
         }
         if (strtotime($start) < time() + $s['lead_hours'] * 3600) {
-            throw new BookingError($s['lead_hours'] > 0 ? 'Баню нужно протопить — записывайтесь хотя бы за ' . $s['lead_hours'] . ' ' . plural($s['lead_hours'], 'час', 'часа', 'часов') . ', или позвоните нам' : 'Это время уже прошло', 'time');
+            throw new BookingError($s['lead_hours'] > 0 ? 'Сауну нужно протопить — записывайтесь хотя бы за ' . $s['lead_hours'] . ' ' . plural($s['lead_hours'], 'час', 'часа', 'часов') . ', или позвоните нам' : 'Это время уже прошло', 'time');
         }
         if ($date > today()->modify('+' . BATH_AHEAD_DAYS . ' days')->format('Y-m-d')) {
             throw new BookingError('Записаться можно не дальше чем на ' . BATH_AHEAD_DAYS . ' дней вперёд', 'date');
@@ -645,7 +645,7 @@ function bath_list(string $from, string $to, bool $withCancelled = false): array
 
 function bath_number(array $b): string
 {
-    return 'Баня №' . $b['id'];
+    return 'Сауна №' . $b['id'];
 }
 
 function bath_url(array $b): string
@@ -671,7 +671,7 @@ function bath_duration(int $minutes): string
 // -------------------------------------------------------------------
 
 /**
- * Записать в баню. Поля: date, time (ЧЧ:ММ), hours, guests, name, phone,
+ * Записать в сауну. Поля: date, time (ЧЧ:ММ), hours, guests, name, phone,
  * email, contact_pref, hotel_guest, extras (из bath_extras_from_input),
  * comment; для администратора ещё status, source, price_manual, total_price,
  * admin_note.
@@ -680,7 +680,7 @@ function bath_create(array $d, bool $byStaff = false): array
 {
     $s = bath_settings();
     if (!$byStaff && !bath_is_open()) {
-        throw new BookingError('Запись в баню пока не открыта — позвоните нам');
+        throw new BookingError('Запись в сауну пока не открыта — позвоните нам');
     }
     $hours = (int) ($d['hours'] ?? 0);
     [$start, $end] = bath_validate_time((string) ($d['date'] ?? ''), (string) ($d['time'] ?? ''), $hours, $byStaff);
@@ -909,7 +909,7 @@ function bath_sessions_outside_hours(): array
     return $out;
 }
 
-/** Сколько новых заявок в баню ждут ответа — для меню. */
+/** Сколько новых заявок в сауну ждут ответа — для меню. */
 function bath_new_count(): int
 {
     return bath_enabled() ? (int) q_val("SELECT COUNT(*) FROM bath_bookings WHERE status = 'new'") : 0;
