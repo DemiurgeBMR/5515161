@@ -24,6 +24,7 @@ $h = hotel();
 $errors = [];
 
 $canWrite = $b && in_array($b['status'], ['new', 'confirmed', 'checked_in'], true);
+$canRequestTime = $b && in_array($b['status'], ['confirmed', 'checked_in'], true);
 $canRequestDocuments = $b && in_array($b['status'], ['new', 'confirmed', 'checked_in', 'checked_out'], true);
 
 if ($b && is_post() && post('action') === 'time_request') {
@@ -225,10 +226,10 @@ $businessDetails = booking_business_details((int) $b['id']) ?: [];
 <?php endif; ?>
             </div>
 <?php endforeach; ?>
-<?php if ($canWrite && !array_filter($timeRequests, fn($r) => in_array($r['status'], ['pending','offered'], true))): ?>
+<?php if ($canRequestTime && !array_filter($timeRequests, fn($r) => in_array($r['status'], ['pending','offered'], true))): ?>
             <form method="post" class="bp__form">
                 <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="time_request">
-                <div class="field"><label for="time-kind">Что требуется</label><select id="time-kind" name="time_kind"><option value="early_checkin">Ранний заезд (до <?= e($h['check_in']) ?>)</option><option value="early_checkout">Досрочный выезд (раньше <?= e($h['check_out']) ?>)</option></select></div>
+                <div class="field"><label for="time-kind">Что требуется</label><select id="time-kind" name="time_kind"><?php if ($b['status'] === 'confirmed'): ?><option value="early_checkin">Ранний заезд (до <?= e($h['check_in']) ?>)</option><?php endif; ?><option value="early_checkout">Досрочный выезд (раньше <?= e($h['check_out']) ?>)</option></select></div>
                 <div class="field"><label for="requested-time">Желаемое время</label><input id="requested-time" type="time" name="requested_time" required></div>
                 <div class="field"><label for="time-message">Комментарий (необязательно)</label><textarea id="time-message" name="time_message" rows="2" maxlength="1000"></textarea></div>
                 <button class="btn btn--primary" type="submit">Отправить запрос</button>
