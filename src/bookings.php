@@ -857,6 +857,11 @@ function booking_time_request_respond(int $requestId, string $token, bool $accep
         if (!$r || !hash_equals((string) $r['token'], $token) || $r['status'] !== 'offered') {
             throw new BookingError('Предложение не найдено или срок ответа истёк');
         }
+        $b = booking_get((int) $r['booking_id']);
+        if (!$b || !in_array($b['status'], ['confirmed', 'checked_in'], true)
+            || ($r['kind'] === 'early_checkin' && $b['status'] === 'checked_in')) {
+            throw new BookingError('Бронь изменилась — свяжитесь с администратором для уточнения условий');
+        }
         $status = $accept ? 'accepted' : 'rejected';
         q('UPDATE booking_time_requests SET status = ?, guest_responded_at = ?, updated_at = ? WHERE id = ? AND status = \'offered\'',
             [$status, now(), now(), $requestId]);
