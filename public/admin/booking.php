@@ -389,9 +389,8 @@ foreach ($transitions as [$to, $label, $btn]):
                 <p>Предложено: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'бесплатно' ?>. Ожидается согласие гостя.</p>
 <?php elseif ($tr['status'] === 'accepted'): ?>
                 <p>Согласованное время: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
-<?php elseif ($tr['status'] === 'rejected'): ?>
-                <p class="hint">Гость отклонил предложенные условия.</p>
-<?php if ($tr['actual_time']): ?><p class="hint">Фактически: <?= e(substr($tr['actual_time'], 0, 5)) ?> · <?= e(ru_datetime($tr['actual_recorded_at'])) ?></p>
+<?php if ($tr['actual_time']): ?>
+                <p class="hint">Фактически: <?= e(substr($tr['actual_time'], 0, 5)) ?> · <?= e(ru_datetime($tr['actual_recorded_at'])) ?></p>
 <?php elseif (($tr['kind'] === 'early_checkin' && $b['status'] === 'checked_in') || ($tr['kind'] === 'early_checkout' && $b['status'] === 'checked_out')): ?>
                 <form method="post" class="form-actions">
                     <?= csrf_field() ?><input type="hidden" name="id" value="<?= $b['id'] ?>"><input type="hidden" name="action" value="time_actual"><input type="hidden" name="request_id" value="<?= (int) $tr['id'] ?>">
@@ -399,6 +398,8 @@ foreach ($transitions as [$to, $label, $btn]):
                     <button class="btn btn--outline btn--sm" type="submit">Зафиксировать факт</button>
                 </form>
 <?php endif; ?>
+<?php elseif ($tr['status'] === 'rejected'): ?>
+                <p class="hint">Гость отклонил предложенные условия.</p>
 <?php endif; ?>
             </div>
 <?php endforeach; ?>
