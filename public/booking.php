@@ -43,6 +43,7 @@ if ($b && is_post() && post('action') === 'time_request') {
 if ($b && is_post() && post('action') === 'time_response') {
     try {
         booking_time_request_respond((int) post('request_id'), $b['token'], post('answer') === 'accept');
+        notify_admins(['Ответ гостя по времени (' . booking_number($b) . ')', 'Гость ' . (post('answer') === 'accept' ? 'принял' : 'отклонил') . ' предложенные условия раннего заезда/досрочного выезда.\\n\\nБронь: ' . admin_booking_url($b['id'])], (string) $b['guest_email']);
         redirect('/booking.php?t=' . $b['token'] . '&time_answered=1#time-request');
     } catch (BookingError $e) {
         $errors['time_form'] = $e->getMessage();
@@ -209,7 +210,10 @@ $businessDetails = booking_business_details((int) $b['id']) ?: [];
             <div class="msg">
                 <strong><?= e(BOOKING_TIME_REQUEST_KINDS[$tr['kind']] ?? $tr['kind']) ?> · <?= e(substr($tr['requested_time'], 0, 5)) ?></strong>
                 <p class="muted"><?= e(BOOKING_TIME_REQUEST_STATUSES[$tr['status']] ?? $tr['status']) ?></p>
-<?php if ($tr['status'] === 'offered'): ?>
+<?php if ($tr['status'] === 'accepted'): ?>
+                <p>Вы согласились на <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
+<?php if ($tr['actual_time']): ?><p class="muted">Фактически зафиксировано: <?= e(substr($tr['actual_time'], 0, 5)) ?>.</p><?php endif; ?>
+<?php elseif ($tr['status'] === 'offered'): ?>
                 <p>Администратор предлагает <?= e(substr($tr['offered_time'], 0, 5)) ?><?php if ((int) $tr['fee_amount'] > 0): ?> за <?= e(money((int) $tr['fee_amount'])) ?><?php else: ?> без дополнительной оплаты<?php endif; ?>.</p>
 <?php if ($tr['admin_note']): ?><p><?= e($tr['admin_note']) ?></p><?php endif; ?>
                 <form method="post" class="form-actions">
