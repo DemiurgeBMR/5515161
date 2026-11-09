@@ -32,5 +32,5 @@ CREATE TABLE IF NOT EXISTS booking_business_details (
     document_status ENUM('not_requested','requested','preparing','ready','issued') NOT NULL DEFAULT 'not_requested',
     admin_note VARCHAR(500) NULL,
     updated_at DATETIME NOT NULL,
-    PRIMARY KEY (booking_id),
+    PRIMARY KEY (booking_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
