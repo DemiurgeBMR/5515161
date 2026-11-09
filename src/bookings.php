@@ -177,6 +177,49 @@ function guest_anonymize(int $id, string $why): void
 }
 
 // -------------------------------------------------------------------
+// Список проживающих по брони. Основной гость хранится в guests,
+// здесь — остальные люди, оформленные на ту же бронь.
+// -------------------------------------------------------------------
+
+function booking_occupants(int $bookingId): array
+{
+    return q_all('SELECT id, name FROM booking_occupants WHERE booking_id = ? ORDER BY id', [$bookingId]);
+}
+
+function booking_occupants_save(int $bookingId, array $names): void
+{
+    $booking = booking_get($bookingId);
+    if (!$booking) {
+        throw new BookingError('Бронь не найдена');
+    }
+    $clean = [];
+    foreach ($names as $raw) {
+        $name = clean_line((string) $raw, 100);
+        if ($name === '') {
+            continue;
+        }
+        if (preg_match('/[\\r\\n]/u', $name)) {
+            throw new BookingError('Укажите каждого гостя отдельной строкой');
+        }
+        $clean[] = $name;
+    }
+    if (count($clean) !== count(array_unique(array_map('mb_strtolower', $clean)))) {
+        throw new BookingError('В списке есть повторяющиеся ФИО');
+    }
+    $expected = max(0, (int) $booking['guests_count'] - 1);
+    if (count($clean) !== $expected) {
+        throw new BookingError('Для этой брони нужно указать ещё ' . $expected . ' ' . plural($expected, 'гостя', 'гостей', 'гостей') . '. Основной гость уже указан в карточке брони.');
+    }
+    tx(function () use ($bookingId, $clean) {
+        q('DELETE FROM booking_occupants WHERE booking_id = ?', [$bookingId]);
+        foreach ($clean as $name) {
+            q_insert('booking_occupants', ['booking_id' => $bookingId, 'name' => $name, 'created_at' => now()]);
+        }
+        audit('booking', $bookingId, 'occupants_updated', 'Список проживающих: ' . (count($clean) + 1) . ' человек');
+    });
+}
+
+// -------------------------------------------------------------------
 // Брони: чтение
 // -------------------------------------------------------------------
 

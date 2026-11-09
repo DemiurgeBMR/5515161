@@ -118,6 +118,13 @@ $grid = availability_grid(d(0), d(7));
 check($grid['free'][d(1)][$std['id']] === 0 && $grid['free'][d(6)][$std['id']] === 1, 'календарь: Стандарт занят на ночь d+1 и свободен на d+6');
 check($grid['free'][d(2)][$large['id']] === 0 && $grid['free'][d(3)][$large['id']] === 1, 'календарь: Большой занят только на ночь d+2');
 
+$roster = booking_create(guest(['check_in' => d(140), 'check_out' => d(142), 'room_type_id' => $large['id'], 'guests' => 2]), true);
+booking_occupants_save($roster['id'], ['Иванов Иван Иванович']);
+check(count(booking_occupants($roster['id'])) === 1 && booking_occupants($roster['id'])[0]['name'] === 'Иванов Иван Иванович', 'список проживающих сохраняется для дополнительного гостя');
+expect_error(fn () => booking_occupants_save($roster['id'], []), 'список проживающих должен совпадать с числом гостей', 'нужно указать ещё 1');
+booking_occupants_save($roster['id'], []);
+check(booking_occupants($roster['id']) === [], 'список дополнительных гостей можно очистить при числе гостей один');
+
 echo "\nСтатусы\n";
 booking_set_status($b2['id'], 'cancelled', 'передумали');
 $b4 = booking_create(guest(['check_in' => d(4), 'check_out' => d(6), 'room_type_id' => $std['id']]));

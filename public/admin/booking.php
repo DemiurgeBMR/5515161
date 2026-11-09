@@ -73,6 +73,11 @@ if (is_post()) {
                 flash('ok', 'Изменения сохранены.');
                 redirect($back);
                 break;
+            case 'occupants_save':
+                booking_occupants_save($id, post('occupant_names', []));
+                flash('ok', 'Список проживающих сохранён.');
+                redirect($back . '#occupants');
+                break;
             case 'status':
                 $to = post('to');
                 $nb = booking_set_status($id, $to, post('reason'));
@@ -210,6 +215,7 @@ if ($b && $b['guest_id']) {
                              WHERE g.phone_digits = ? AND g.id <> ? AND g.anonymized_at IS NULL GROUP BY g.id ORDER BY g.id DESC LIMIT 3', [$digits, $b['guest_id']]);
     }
 }
+$occupants = $b ? booking_occupants($id) : [];
 $quoteNow = null;
 if ($b && isset($types[$b['room_type_id']])) {
     $quoteNow = quote($types[$b['room_type_id']], $b['check_in'], $b['check_out']);
@@ -235,6 +241,24 @@ admin_header($b ? 'Бронь ' . booking_number($b) : 'Новая бронь', 
 <?php endif; ?>
     </div>
 </div>
+
+<section class="panel" id="occupants">
+    <h2 class="panel__title">Кто будет проживать</h2>
+    <p class="hint">Основной гость: <strong><?= e($b['guest_name'] ?? 'Не указан') ?></strong>. Укажите ФИО остальных проживающих — по одному человеку на строку. Паспортные данные здесь не нужны.</p>
+    <?php $neededOccupants = max(0, (int) $b['guests_count'] - 1); ?>
+    <p class="hint">Всего по брони: <?= (int) $b['guests_count'] ?> <?= plural((int) $b['guests_count'], 'человек', 'человека', 'человек') ?>. Дополнительно нужно указать: <?= $neededOccupants ?>.</p>
+    <form method="post" class="form-grid">
+        <?= csrf_field() ?>
+        <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+        <input type="hidden" name="action" value="occupants_save">
+        <div class="field span-all">
+            <label for="b-occupants">ФИО остальных гостей</label>
+            <textarea id="b-occupants" name="occupant_names[]" rows="4" maxlength="2000" placeholder="Иванов Иван Иванович&#10;Петров Пётр Петрович"><?= e(implode("\n", array_column($occupants, 'name'))) ?></textarea>
+            <small class="muted">Каждая строка — один человек. Количество строк должно соответствовать числу гостей без основного гостя.</small>
+        </div>
+        <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить список проживающих</button></div>
+    </form>
+</section>
 
 <section class="panel">
     <h2 class="panel__title">Статус</h2>
