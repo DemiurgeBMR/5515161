@@ -22,13 +22,22 @@ if ($b['status'] !== 'checked_out') {
 }
 $h = hotel();
 $l = $h['legal'];
+$type = get('type', 'residence_certificate');
+if (!in_array($type, ['residence_certificate', 'confirmation'], true)) {
+    http_response_code(400);
+    exit('Неизвестный тип документа');
+}
+if ($type === 'confirmation' && (!filled($l['registry_number'] ?? '') || !filled($l['registry_url'] ?? ''))) {
+    http_response_code(409);
+    exit('Для подтверждения бронирования сначала укажите номер и ссылку на запись гостиницы в реестре в config/hotel.php.');
+}
 ?>
 <!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Справка о проживании — бронь №<?= (int) $b['id'] ?></title>
+<title><?= $type === 'confirmation' ? 'Подтверждение бронирования' : 'Справка о проживании' ?> — бронь №<?= (int) $b['id'] ?></title>
 <style>
 body{font:16px/1.55 Arial,sans-serif;color:#111;margin:0;background:#eee}
 .sheet{max-width:780px;margin:32px auto;padding:64px 72px;background:#fff;min-height:900px;box-sizing:border-box}
@@ -43,6 +52,22 @@ button{padding:10px 18px;border:0;background:#29231f;color:white;border-radius:4
 <body>
 <div class="actions"><button onclick="window.print()">Печать / Сохранить в PDF</button></div>
 <main class="sheet">
+<?php if ($type === 'confirmation'): ?>
+    <p style="text-align:center"><strong><?= e($l['operator']) ?></strong><br><?= e($l['legal_address']) ?><br>ИНН <?= e($l['inn']) ?> · ОГРНИП <?= e($l['ogrn']) ?></p>
+    <h1>Подтверждение бронирования<br><small>договор о предоставлении гостиничных услуг</small></h1>
+    <p>Номер документа: <?= e(booking_number($b)) ?> · Дата оформления: <?= e(ru_date(substr($b['created_at'], 0, 10))) ?>.</p>
+    <p>Исполнитель: <?= e($l['operator']) ?>, ИНН <?= e($l['inn']) ?>, ОГРНИП <?= e($l['ogrn']) ?>. Средство размещения: гостиница «<?= e($h['name']) ?>», <?= e(full_address()) ?>.</p>
+    <p>Уникальный номер реестровой записи: <strong><?= e($l['registry_number']) ?></strong>. Сведения в реестре: <a href="<?= e($l['registry_url']) ?>"><?= e($l['registry_url']) ?></a>.</p>
+    <p>Заказчик / потребитель: <strong><?= e($b['guest_name'] ?: '________________________________') ?></strong>.</p>
+    <p>Документ, удостоверяющий личность: вид ____________________, серия __________ № __________, кем выдан ________________________________, дата выдачи __________.</p>
+    <p>Предоставляемый номер: <?= e($b['room_name'] ?: 'будет определён администратором') ?> (<?= e($b['type_name']) ?>), гостей: <?= (int) $b['guests_count'] ?>.</p>
+    <p>Период проживания: с <strong><?= e(ru_date($b['check_in'])) ?></strong> по <strong><?= e(ru_date($b['check_out'])) ?></strong>. Время заезда — <?= e($h['check_in']) ?>, время выезда — <?= e($h['check_out']) ?>.</p>
+    <p>Стоимость размещения: <?= $b['total_price'] !== null ? e(money($b['total_price'])) : 'уточняется и согласуется сторонами' ?>. Дополнительные услуги по времени, принятые гостем: <?= (int) $b['accepted_time_fees'] ? e(money((int) $b['accepted_time_fees'])) : 'нет' ?>.</p>
+    <p>Условия бронирования, отмены и возврата: <?= e($h['cancellation']) ?>. Дополнительные платные услуги оказываются только с согласия потребителя.</p>
+    <p>Подпись исполнителя: ____________________ / <?= e($l['operator']) ?> /</p>
+    <p>Подпись заказчика (потребителя): ____________________ / <?= e($b['guest_name'] ?: 'ФИО') ?> /</p>
+    <p class="muted">Перед подписанием администратор обязан заполнить фактические сведения о документе, удостоверяющем личность заказчика, проверить цену и соответствие данных бронирования. Не выдавать незаполненный экземпляр как заключённый договор.</p>
+<?php else: ?>
     <p style="text-align:center"><strong><?= e($l['operator']) ?></strong><br><?= e($l['legal_address']) ?><br>ИНН <?= e($l['inn']) ?> · ОГРНИП <?= e($l['ogrn']) ?></p>
     <h1>Справка о проживании</h1>
     <p>Настоящая справка подтверждает, что <?= e($b['guest_name'] ?: 'гость') ?> действительно проживал(а) в гостинице «<?= e($h['name']) ?>» по адресу: <?= e(full_address()) ?>.</p>
@@ -54,6 +79,7 @@ button{padding:10px 18px;border:0;background:#29231f;color:white;border-radius:4
         <div class="line"><?= e($l['operator']) ?></div>
     </div>
     <p style="margin-top:45px">Дата выдачи: <?= e(ru_date(today()->format('Y-m-d'))) ?></p>
+<?php endif; ?>
 </main>
 </body>
 </html>
