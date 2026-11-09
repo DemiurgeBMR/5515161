@@ -106,6 +106,11 @@ if (is_post()) {
                 flash('ok', 'Предложение по времени и стоимости отправлено гостю. Оно вступит в силу только после согласия гостя.');
                 redirect($back . '#time-requests');
                 break;
+            case 'time_actual':
+                booking_time_request_record_actual((int) post('request_id'), post('actual_time'));
+                flash('ok', 'Фактическое время сохранено в истории брони.');
+                redirect($back . '#time-requests');
+                break;
             case 'business_save':
                 booking_business_details_save($id, [
                     'is_business_trip' => post('is_business_trip'),
@@ -384,6 +389,14 @@ foreach ($transitions as [$to, $label, $btn]):
                 <p>Предложено: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'бесплатно' ?>. Ожидается согласие гостя.</p>
 <?php else: ?>
                 <p>Согласованное время: <?= e(substr($tr['offered_time'] ?: $tr['requested_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
+<?php if ($tr['actual_time']): ?><p class="hint">Фактически: <?= e(substr($tr['actual_time'], 0, 5)) ?> · <?= e(ru_datetime($tr['actual_recorded_at'])) ?></p>
+<?php elseif (($tr['kind'] === 'early_checkin' && $b['status'] === 'checked_in') || ($tr['kind'] === 'early_checkout' && $b['status'] === 'checked_out')): ?>
+                <form method="post" class="form-actions">
+                    <?= csrf_field() ?><input type="hidden" name="id" value="<?= $b['id'] ?>"><input type="hidden" name="action" value="time_actual"><input type="hidden" name="request_id" value="<?= (int) $tr['id'] ?>">
+                    <label class="field"><span>Фактическое время</span><input type="time" name="actual_time" value="<?= e(substr($tr['offered_time'], 0, 5)) ?>" required></label>
+                    <button class="btn btn--outline btn--sm" type="submit">Зафиксировать факт</button>
+                </form>
+<?php endif; ?>
 <?php endif; ?>
             </div>
 <?php endforeach; ?>
