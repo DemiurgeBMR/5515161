@@ -19,6 +19,7 @@ $upcoming = bookings_where("b.status IN ('new', 'confirmed') AND b.check_in > ? 
 $overdueOut = bookings_where("b.status = 'checked_in' AND b.check_out < ?", [$today]);
 $overdueIn = bookings_where("b.status IN ('new', 'confirmed') AND b.check_in < ?", [$today]);
 $messages = q_all('SELECT m.*, b.id AS booking_id, g.name AS guest_name FROM booking_messages m JOIN bookings b ON b.id = m.booking_id LEFT JOIN guests g ON g.id = b.guest_id WHERE m.handled_at IS NULL ORDER BY m.id DESC');
+$timeRequests = q_all("SELECT tr.*, b.id AS booking_id, g.name AS guest_name FROM booking_time_requests tr JOIN bookings b ON b.id = tr.booking_id LEFT JOIN guests g ON g.id = b.guest_id WHERE tr.status IN ('pending','offered') ORDER BY tr.created_at DESC LIMIT 10");
 $conflicts = ical_conflicts();
 
 $rooms = rooms_list(true);
@@ -88,6 +89,23 @@ admin_header('Сегодня', 'today', 'adm-autoreload');
             <div class="blist">
 <?php foreach ($new as $b): ?>
                 <?= booking_row_html($b, 'пришла ' . ru_datetime($b['created_at'])) ?>
+<?php endforeach; ?>
+            </div>
+<?php endif; ?>
+        </section>
+
+        <section class="panel">
+            <h2 class="panel__title">Запросы по времени заезда и выезда</h2>
+<?php if (!$timeRequests): ?>
+            <p class="empty">Открытых запросов нет.</p>
+<?php else: ?>
+            <div class="blist">
+<?php foreach ($timeRequests as $tr): ?>
+                <a class="brow" href="/admin/booking.php?id=<?= (int) $tr['booking_id'] ?>#time-requests">
+                    <span class="brow__name"><?= e($tr['guest_name'] ?? 'Гость') ?> · <?= e(BOOKING_TIME_REQUEST_KINDS[$tr['kind']] ?? $tr['kind']) ?></span>
+                    <span class="status status--<?= $tr['status'] === 'pending' ? 'new' : 'confirmed' ?>"><?= e(BOOKING_TIME_REQUEST_STATUSES[$tr['status']] ?? $tr['status']) ?></span>
+                    <span class="brow__meta">Бронь №<?= (int) $tr['booking_id'] ?> · желаемое время <?= e(substr($tr['requested_time'], 0, 5)) ?> · <?= e(ru_datetime($tr['created_at'])) ?></span>
+                </a>
 <?php endforeach; ?>
             </div>
 <?php endif; ?>
