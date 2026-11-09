@@ -3,7 +3,7 @@
  * Бот в Telegram: уведомления сотрудникам и кнопки прямо в чате.
  *
  *  • Администраторам и владельцу — новая заявка (кнопка «Подтвердить»),
- *    заявка в баню, сообщение гостя, лист ожидания, утренняя сводка дня.
+ *    заявка в сауну, сообщение гостя, лист ожидания, утренняя сводка дня.
  *  • Горничным — «пора убрать» с кнопкой «Убрано».
  *
  * Сотрудник подключает свой Telegram сам: Профиль → «Уведомления в
@@ -262,7 +262,7 @@ function tg_notify_guest_message(array $b, string $kind, string $message, ?strin
 
 function tg_notify_new_bath(array $x): void
 {
-    $html = '<b>Баня: новая заявка</b>' . "\n"
+    $html = '<b>Сауна: новая заявка</b>' . "\n"
         . e(bath_when($x)) . ', ' . (int) $x['guests_count'] . ' ' . plural((int) $x['guests_count'], 'гость', 'гостя', 'гостей') . "\n"
         . tg_guest_line($x['guest_name'], $x['guest_phone'])
         . ($x['total_price'] !== null ? e(money($x['total_price'])) : '') . ($x['hotel_guest'] ? ' · говорит, что живёт в гостинице' : '')
@@ -275,7 +275,7 @@ function tg_notify_new_bath(array $x): void
 
 function tg_notify_waitlist(string $phone): void
 {
-    tg_to_roles(['owner', 'admin'], '<b>Баня: ещё один человек просит сообщить об открытии</b>' . (tg_personal() ? "\n" . e($phone) : "\n<i>Телефон — в админке: Баня → Ждут открытия.</i>"));
+    tg_to_roles(['owner', 'admin'], '<b>Сауна: ещё один человек просит сообщить об открытии</b>' . (tg_personal() ? "\n" . e($phone) : "\n<i>Телефон — в админке: Сауна → Ждут открытия.</i>"));
 }
 
 /** Горничным — каждая уборка отдельным сообщением с кнопкой «Убрано». */
@@ -289,7 +289,7 @@ function tg_notify_cleaning(array $due): void
     }
 }
 
-/** Сводка дня для администратора: заезды, выезды, баня, заявки, уборка. */
+/** Сводка дня для администратора: заезды, выезды, сауна, заявки, уборка. */
 function tg_summary_html(): string
 {
     $today = today()->format('Y-m-d');
@@ -307,7 +307,7 @@ function tg_summary_html(): string
     }
     if (bath_enabled()) {
         $baths = array_filter(bath_list($today, today()->modify('+1 day')->format('Y-m-d')), fn ($x) => !$x['is_block']);
-        $lines[] = 'Баня: ' . ($baths ? e(implode(', ', array_map(fn ($x) => $x['time_from'] . '–' . $x['time_to'] . (tg_personal() ? ' ' . ($x['guest_name'] ?? '') : ''), $baths))) : 'сеансов нет');
+        $lines[] = 'Сауна: ' . ($baths ? e(implode(', ', array_map(fn ($x) => $x['time_from'] . '–' . $x['time_to'] . (tg_personal() ? ' ' . ($x['guest_name'] ?? '') : ''), $baths))) : 'сеансов нет');
     }
     if ($toClean = cleaning_due_count()) {
         $lines[] = 'Ждут уборки: ' . $toClean;
@@ -383,8 +383,8 @@ function tg_try_link(array $user, int $chatId, string $code): ?array
     rate_clear('tg_link', (string) $uid);
     audit('staff', (int) $s['id'], 'tg_linked', $name !== '' ? $name : null, 'system');
     $what = $s['role'] === 'housekeeper'
-        ? 'когда пора убрать номер или баню — с кнопкой «Убрано». Список уборок на сейчас — команда /clean.'
-        : 'новые заявки (с кнопкой «Подтвердить»), заявки в баню, сообщения гостей и утренняя сводка дня. Сводка в любой момент — команда /today.';
+        ? 'когда пора убрать номер или сауну — с кнопкой «Убрано». Список уборок на сейчас — команда /clean.'
+        : 'новые заявки (с кнопкой «Подтвердить»), заявки в сауну, сообщения гостей и утренняя сводка дня. Сводка в любой момент — команда /today.';
     tg_send($chatId, 'Готово, ' . e($s['name']) . '! Telegram подключён к админке «' . e(mail_hotel_name()) . '».' . "\n\nСюда будут приходить " . $what);
     return $s;
 }
@@ -511,7 +511,7 @@ function tg_handle_callback(array $cb): void
             }
             $x = bath_set_status($id, 'confirmed');
             $sent = tg_mail_guest($x['guest_email'] ?? '', 'bath', $x, mail_bath_confirmed($x));
-            tg_answer($cb, 'Запись в баню подтверждена' . ($sent ? ', гостю ушло письмо' : ''),
+            tg_answer($cb, 'Запись в сауну подтверждена' . ($sent ? ', гостю ушло письмо' : ''),
                 $orig . "\n\n<b>✓ Подтверждена</b> — " . e($staff['name']) . ($sent ? ', гостю ушло письмо' : ''));
         } elseif ($kind === 'c' && $action === 'done') {
             cleaning_mark($id, 'done');
