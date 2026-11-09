@@ -1,7 +1,7 @@
 <?php
 /**
- * Баня и хамам: фото, что внутри, цены, правила и запись на свободное время.
- * Пока баня не открыта — «Сообщить об открытии»; временно закрыта — пояснение.
+ * Сауна и хамам: фото, что внутри, цены, правила и запись на свободное время.
+ * Пока сауна не открыта — «Сообщить об открытии»; временно закрыта — пояснение.
  */
 
 require __DIR__ . '/../src/bootstrap.php';
@@ -54,9 +54,9 @@ require __DIR__ . '/../src/partials/header.php';
                 <ul class="bath-facts">
 <?php if ($open): ?>
                     <li><?= icon('clock') ?><span><strong><?= e(bath_hours_text()) ?></strong>запись от <?= $s['min_hours'] ?> до <?= $s['max_hours'] ?> <?= plural($s['max_hours'], 'часа', 'часов', 'часов') ?></span></li>
-                    <li><?= icon('banknote') ?><span><strong><?= e(bath_price_from()) ?></strong>за всю баню, не за человека</span></li>
+                    <li><?= icon('banknote') ?><span><strong><?= e(bath_price_from()) ?></strong>за всю сауну, не за человека</span></li>
 <?php endif; ?>
-                    <li><?= icon('users') ?><span><strong>До <?= $s['max_guests'] ?> <?= plural($s['max_guests'], 'гостя', 'гостей', 'гостей') ?></strong>одна компания — баня только ваша</span></li>
+                    <li><?= icon('users') ?><span><strong>До <?= $s['max_guests'] ?> <?= plural($s['max_guests'], 'гостя', 'гостей', 'гостей') ?></strong>одна компания — сауна только ваша</span></li>
 <?php if ($s['hotel_discount'] > 0): ?>
                     <li><?= icon('key-round') ?><span><strong>−<?= $s['hotel_discount'] ?>%</strong>гостям гостиницы</span></li>
 <?php endif; ?>
@@ -79,7 +79,7 @@ require __DIR__ . '/../src/partials/header.php';
 <?php endif; ?>
 <?php else: ?>
                 <div class="bath-gallery__empty">
-                    <?= site_photo('bath', 'Баня', 'ph--dark bath__ph', '(max-width: 760px) 50vw, 27vw') ?>
+                    <?= site_photo('bath', 'Сауна', 'ph--dark bath__ph', '(max-width: 760px) 50vw, 27vw') ?>
                     <?= site_photo('hammam', 'Хамам', 'ph--dark arch bath__ph', '(max-width: 760px) 50vw, 27vw') ?>
                 </div>
 <?php endif; ?>
@@ -125,7 +125,7 @@ require __DIR__ . '/../src/partials/header.php';
 <?php endforeach; ?>
                     </dl>
 <?php endif; ?>
-                    <p class="muted bath-block__note">Цена — за всю баню на время сеанса. Между сеансами баню убирают и протапливают<?= $s['buffer'] ? ' (' . bath_duration($s['buffer']) . ')' : '' ?>, поэтому она всегда чистая и горячая.</p>
+                    <p class="muted bath-block__note">Цена — за всю сауну на время сеанса. Между сеансами сауну убирают и протапливают<?= $s['buffer'] ? ' (' . bath_duration($s['buffer']) . ')' : '' ?>, поэтому она всегда чистая и горячая.</p>
                 </section>
 <?php endif; ?>
                 <section class="bath-block" id="hours">
@@ -262,7 +262,7 @@ require __DIR__ . '/../src/partials/header.php';
 <?php elseif ($s['state'] === 'closed'): ?>
                 <div class="card bath-book">
                     <h2 class="h3">Временно закрыта</h2>
-                    <p><?= e($s['closed_note'] !== '' ? $s['closed_note'] : 'Баня временно не работает. Когда откроемся — подскажем по телефону.') ?></p>
+                    <p><?= e($s['closed_note'] !== '' ? $s['closed_note'] : 'Сауна временно не работает. Когда откроемся — подскажем по телефону.') ?></p>
                     <a class="btn btn--outline" href="<?= e(tel_href()) ?>"><?= icon('phone') ?><?= e($h['phone']) ?></a>
                 </div>
 <?php else: ?>
