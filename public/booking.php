@@ -50,8 +50,8 @@ if ($b && is_post() && post('action') === 'time_response') {
     }
 }
 if ($b && is_post() && post('action') === 'business_request') {
-    if (!$canRequestDocuments) {
-        $errors['business_form'] = 'Запрос документов по этой брони больше не принимается.';
+    if (!$canRequestDocuments || rate_limited('business_request', $b['token'], 5, 3600)) {
+        $errors['business_form'] = 'Не удалось сохранить запрос. Попробуйте позже или свяжитесь с администратором.';
     } else {
         try {
             booking_business_details_save((int) $b['id'], [
@@ -63,6 +63,7 @@ if ($b && is_post() && post('action') === 'business_request') {
                 'requested_documents' => (isset($_POST['requested_documents']) && is_array($_POST['requested_documents'])) ? $_POST['requested_documents'] : [],
                 'document_status' => 'requested',
             ]);
+            rate_hit('business_request', $b['token']);
             notify_admins(['Запрос документов для командировки (' . booking_number($b) . ')', 'Гость запросил документы по брони: ' . admin_booking_url($b['id'])], (string) $b['guest_email']);
             redirect('/booking.php?t=' . $b['token'] . '&business_sent=1#business-trip');
         } catch (BookingError $e) {
