@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS booking_time_requests (
     kind ENUM('early_checkin','early_checkout') NOT NULL,
     requested_time TIME NOT NULL,
     offered_time TIME NULL,
+    actual_time TIME NULL,
+    actual_recorded_at DATETIME NULL,
     fee_amount INT UNSIGNED NOT NULL DEFAULT 0,
     status ENUM('pending','offered','accepted','rejected') NOT NULL DEFAULT 'pending',
     guest_message VARCHAR(1000) NULL,
