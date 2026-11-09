@@ -31,8 +31,8 @@ if ($b && is_post() && post('action') === 'time_request') {
         $errors['time_form'] = 'Не удалось отправить запрос. Попробуйте позже или позвоните администратору.';
     } else {
         try {
-             $requestId = booking_time_request_add($b, post('time_kind'), post('requested_time'), post('time_message'));
-            notify_admins(['Новый запрос по времени (' . booking_number($b) . ')', 'Гость запросил: ' . (BOOKING_TIME_REQUEST_KINDS[post('time_kind')] ?? post('time_kind')) . ' к ' . post('requested_time') . "\\n\\nБронь: " . admin_booking_url($b['id'])], (string) $b['guest_email']);
+            booking_time_request_add($b, post('time_kind'), post('requested_time'), post('time_message'));
+            notify_admins(['Новый запрос по времени (' . booking_number($b) . ')', 'Гость запросил: ' . (BOOKING_TIME_REQUEST_KINDS[post('time_kind')] ?? post('time_kind')) . ' к ' . post('requested_time') . "\n\nБронь: " . admin_booking_url($b['id'])], (string) $b['guest_email']);
             rate_hit('time_request', $b['token']);
             redirect('/booking.php?t=' . $b['token'] . '&time_sent=1#time-request');
         } catch (BookingError $e) {
@@ -243,7 +243,7 @@ $businessDetails = booking_business_details((int) $b['id']) ?: [];
 <?php if ($canRequestDocuments): ?>
             <form method="post" class="bp__form">
                 <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="business_request">
-                <label class="inline-check"><input type="checkbox" name="is_business_trip" value="1" checked> Проживание связано с командировкой</label>
+                <label class="inline-check"><input type="checkbox" name="is_business_trip" value="1"<?= !isset($businessDetails['is_business_trip']) || !empty($businessDetails['is_business_trip']) ? ' checked' : '' ?>> Проживание связано с командировкой</label>
                 <div class="field"><label for="employee-name">ФИО проживающего сотрудника</label><input id="employee-name" name="employee_name" maxlength="190" value="<?= e($businessDetails['employee_name'] ?? $b['guest_name']) ?>"></div>
                 <div class="field"><label for="organization-name">Организация</label><input id="organization-name" name="organization_name" maxlength="190" value="<?= e($businessDetails['organization_name'] ?? '') ?>"></div>
                 <div class="field"><label for="organization-inn">ИНН организации (если есть)</label><input id="organization-inn" name="organization_inn" inputmode="numeric" maxlength="12" value="<?= e($businessDetails['organization_inn'] ?? '') ?>"></div>
