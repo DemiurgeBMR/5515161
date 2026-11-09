@@ -138,7 +138,7 @@ require __DIR__ . '/../src/partials/header.php';
                 <div><dt>Выезд</dt><dd><?= e(ru_date($b['check_out'], true)) ?>, до <?= e($h['check_out']) ?></dd></div>
                 <div><dt>Номер</dt><dd><?= e($b['type_name']) ?>, <?= e(nights_label($b['nights'])) ?></dd></div>
                 <div><dt>Гостей</dt><dd><?= (int) $b['guests_count'] ?></dd></div>
-                <div><dt>Стоимость</dt><dd><?= $b['total_price'] !== null ? e(money($b['total_price'])) : 'рассчитает администратор' ?></dd></div>
+                <div><dt>Стоимость проживания</dt><dd><?= $b['total_price'] !== null ? e(money($b['total_price'])) : 'рассчитает администратор' ?></dd></div><?php if ((int) $b['accepted_time_fees'] > 0): ?><div><dt>Согласованные услуги по времени</dt><dd><?= e(money((int) $b['accepted_time_fees'])) ?></dd></div><?php endif; ?>
 <?php if ($b['prepayment'] > 0 && !in_array($b['status'], ['cancelled', 'no_show'], true)): ?>
                 <div><dt>Предоплата</dt><dd><?= e(money($b['prepayment'])) ?> — <?= $b['paid'] >= $b['prepayment'] ? '<span class="ok">получена</span>' : 'ждём, администратор подскажет, как оплатить' ?></dd></div>
 <?php endif; ?>
