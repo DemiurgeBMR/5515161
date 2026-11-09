@@ -97,6 +97,10 @@ if (is_post()) {
                 redirect($back . '#money');
                 break;
             case 'time_offer':
+                $timeRequestRow = q_one('SELECT booking_id FROM booking_time_requests WHERE id = ?', [(int) post('request_id')]);
+                if (!$timeRequestRow || (int) $timeRequestRow['booking_id'] !== $id) {
+                    throw new BookingError('Запрос не относится к этой брони');
+                }
                 booking_time_request_offer((int) post('request_id'), post('offered_time'), (int) post('fee_amount'), post('admin_note'));
                 $offerBooking = booking_get($id);
                 if ($offerBooking && $offerBooking['guest_email']) {
@@ -107,6 +111,10 @@ if (is_post()) {
                 redirect($back . '#time-requests');
                 break;
             case 'time_actual':
+                $timeRequestRow = q_one('SELECT booking_id FROM booking_time_requests WHERE id = ?', [(int) post('request_id')]);
+                if (!$timeRequestRow || (int) $timeRequestRow['booking_id'] !== $id) {
+                    throw new BookingError('Запрос не относится к этой брони');
+                }
                 booking_time_request_record_actual((int) post('request_id'), post('actual_time'));
                 flash('ok', 'Фактическое время сохранено в истории брони.');
                 redirect($back . '#time-requests');
