@@ -122,8 +122,8 @@ $roster = booking_create(guest(['check_in' => d(140), 'check_out' => d(142), 'ro
 booking_occupants_save($roster['id'], ['Иванов Иван Иванович']);
 check(count(booking_occupants($roster['id'])) === 1 && booking_occupants($roster['id'])[0]['name'] === 'Иванов Иван Иванович', 'список проживающих сохраняется для дополнительного гостя');
 expect_error(fn () => booking_occupants_save($roster['id'], []), 'список проживающих должен совпадать с числом гостей', 'нужно указать ещё 1');
-booking_occupants_save($roster['id'], []);
-check(booking_occupants($roster['id']) === [], 'список дополнительных гостей можно очистить при числе гостей один');
+booking_occupants_save($roster['id'], ['Иванов Иван Иванович']);
+check(count(booking_occupants($roster['id'])) === 1, 'список дополнительных гостей остаётся согласован с числом проживающих');
 
 echo "\nСтатусы\n";
 booking_set_status($b2['id'], 'cancelled', 'передумали');
