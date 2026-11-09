@@ -1,6 +1,6 @@
 <?php
 /**
- * Карточка записи в баню: время, гости, услуги, сумма, статусы, оплаты
+ * Карточка записи в сауну: время, гости, услуги, сумма, статусы, оплаты
  * (удалить нельзя — как у броней номеров), письма гостю, история.
  * Для закрытого времени — что закрыто и кнопка «Открыть».
  */
@@ -14,7 +14,7 @@ $b = bath_get($id);
 if (!$b) {
     http_response_code(404);
     admin_header('Запись не найдена', 'bath');
-    echo '<div class="panel"><p>Записи в баню №' . $id . ' нет. <a href="/admin/bath.php">К расписанию</a></p></div>';
+    echo '<div class="panel"><p>Записи в сауну №' . $id . ' нет. <a href="/admin/bath.php">К расписанию</a></p></div>';
     admin_footer();
     exit;
 }
@@ -130,7 +130,7 @@ foreach ($b['extras_list'] as $x) {
     $qtyByName[$x['name']] = $x['qty'];
 }
 $guestUrl = bath_url($b);
-$waText = 'Здравствуйте! Ваша запись в баню «' . mail_hotel_name() . '»: ' . bath_when($b) . '. Детали: ' . $guestUrl;
+$waText = 'Здравствуйте! Ваша запись в сауну «' . mail_hotel_name() . '»: ' . bath_when($b) . '. Детали: ' . $guestUrl;
 $wa = whatsapp_href($waText, $b['guest_phone'] ?? '');
 
 admin_header(bath_number($b), 'bath');
