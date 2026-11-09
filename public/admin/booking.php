@@ -417,7 +417,7 @@ foreach ($transitions as [$to, $label, $btn]):
         <section class="panel" id="money">
             <h2 class="panel__title">Оплата</h2>
             <div>
-                <div class="money-line"><span>Сумма</span><b><?= $b['total_price'] !== null ? e(money($b['total_price'])) : 'по договорённости' ?></b></div>
+                <div class="money-line"><span>Проживание</span><b><?= $b['total_price'] !== null ? e(money($b['total_price'])) : 'по договорённости' ?></b></div><?php if ((int) $b['accepted_time_fees'] > 0): ?><div class="money-line"><span>Согласованные услуги по времени</span><b><?= e(money((int) $b['accepted_time_fees'])) ?></b></div><?php endif; ?>
                 <div class="money-line"><span>Предоплата</span><b><?= e(money($b['prepayment'])) ?></b></div>
                 <div class="money-line"><span>Оплачено</span><b><?= e(money($b['paid'])) ?></b></div>
 <?php if ($b['balance'] !== null): ?>
