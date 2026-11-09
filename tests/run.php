@@ -156,7 +156,7 @@ echo "\nРанний заезд, досрочный выезд и команди
 $timeBooking = booking_create(guest(['check_in' => d(130), 'check_out' => d(132), 'room_type_id' => $std['id'], 'status' => 'confirmed']), true);
 $earlyIn = booking_time_request_add($timeBooking, 'early_checkin', '10:00', 'Приедем поездом утром');
 check((int) q_val('SELECT COUNT(*) FROM booking_time_requests WHERE id = ? AND status = ?', [$earlyIn, 'pending']) === 1, 'запрос раннего заезда создаётся и ждёт администратора');
-expect_error(fn () => booking_time_request_offer($earlyIn, '10:00', 1251), 'ранний заезд менее чем за 12 часов ограничен половиной суток', 'половины стоимости');
+expect_error(fn () => booking_time_request_offer($earlyIn, '10:00', 1251), 'ранний заезд менее чем за 12 часов ограничен половиной суток', 'половина стоимости');
 booking_time_request_offer($earlyIn, '10:00', 1250, 'Номер будет готов');
 booking_time_request_respond($earlyIn, $timeBooking['token'], true);
 $timeBooking = booking_get($timeBooking['id']);
