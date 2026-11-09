@@ -16,16 +16,16 @@ if (!$b) {
     http_response_code(404);
     exit('Бронь не найдена');
 }
-if ($b['status'] !== 'checked_out') {
-    http_response_code(409);
-    exit('Справку о фактическом проживании можно сформировать после выезда гостя.');
-}
 $h = hotel();
 $l = $h['legal'];
 $type = get('type', 'residence_certificate');
 if (!in_array($type, ['residence_certificate', 'confirmation'], true)) {
     http_response_code(400);
     exit('Неизвестный тип документа');
+}
+if ($type === 'residence_certificate' && $b['status'] !== 'checked_out') {
+    http_response_code(409);
+    exit('Справку о фактическом проживании можно сформировать после выезда гостя.');
 }
 if ($type === 'confirmation' && (!filled($l['registry_number'] ?? '') || !filled($l['registry_url'] ?? ''))) {
     http_response_code(409);
