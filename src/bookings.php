@@ -915,6 +915,12 @@ function booking_business_details_save(int $bookingId, array $data): void
     $docs = array_intersect((array) ($data['requested_documents'] ?? []), ['contract','invoice','act','residence_certificate','receipt']);
     $status = in_array(($data['document_status'] ?? ''), ['not_requested','requested','preparing','ready','issued'], true)
         ? $data['document_status'] : ($docs ? 'requested' : 'not_requested');
+    if (!$docs && $status === 'requested') {
+        $status = 'not_requested';
+    }
+    if ($payer === 'organization' && $org === '') {
+        throw new BookingError('Укажите организацию, если оплачивает юридическое лицо');
+    }
     $note = clean_line((string) ($data['admin_note'] ?? ''), 500);
     q('INSERT INTO booking_business_details (booking_id, is_business_trip, employee_name, organization_name, organization_inn, payer, requested_documents, document_status, admin_note, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
