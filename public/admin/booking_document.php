@@ -27,6 +27,10 @@ if ($type === 'residence_certificate' && $b['status'] !== 'checked_out') {
     http_response_code(409);
     exit('Справку о фактическом проживании можно сформировать после выезда гостя.');
 }
+if ($type === 'confirmation' && !in_array($b['status'], ['confirmed', 'checked_in', 'checked_out'], true)) {
+    http_response_code(409);
+    exit('Подтверждение можно распечатать только после подтверждения бронирования.');
+}
 if ($type === 'confirmation' && (!filled($l['registry_number'] ?? '') || !filled($l['registry_url'] ?? ''))) {
     http_response_code(409);
     exit('Для подтверждения бронирования сначала укажите номер и ссылку на запись гостиницы в реестре в config/hotel.php.');
