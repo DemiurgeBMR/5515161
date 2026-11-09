@@ -108,7 +108,7 @@ if (is_post()) {
                     'organization_name' => post('organization_name'),
                     'organization_inn' => post('organization_inn'),
                     'payer' => post('payer'),
-                    'requested_documents' => post('requested_documents', []),
+                    'requested_documents' => (isset($_POST['requested_documents']) && is_array($_POST['requested_documents'])) ? $_POST['requested_documents'] : [],
                     'document_status' => post('document_status'),
                     'admin_note' => post('business_admin_note'),
                 ]);
