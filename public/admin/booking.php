@@ -96,6 +96,25 @@ if (is_post()) {
                 flash('ok', 'Запись аннулирована — она осталась в истории зачёркнутой и не входит в суммы.');
                 redirect($back . '#money');
                 break;
+            case 'time_offer':
+                booking_time_request_offer((int) post('request_id'), post('offered_time'), (int) post('fee_amount'), post('admin_note'));
+                flash('ok', 'Предложение по времени и стоимости отправлено гостю. Оно вступит в силу только после согласия гостя.');
+                redirect($back . '#time-requests');
+                break;
+            case 'business_save':
+                booking_business_details_save($id, [
+                    'is_business_trip' => post('is_business_trip'),
+                    'employee_name' => post('employee_name'),
+                    'organization_name' => post('organization_name'),
+                    'organization_inn' => post('organization_inn'),
+                    'payer' => post('payer'),
+                    'requested_documents' => post('requested_documents', []),
+                    'document_status' => post('document_status'),
+                    'admin_note' => post('business_admin_note'),
+                ]);
+                flash('ok', 'Сведения о командировке и статус документов сохранены.');
+                redirect($back . '#business-documents');
+                break;
             case 'message_done':
                 message_mark_handled((int) post('message_id'));
                 flash('ok', 'Сообщение отмечено как обработанное.');
@@ -335,6 +354,62 @@ foreach ($transitions as [$to, $label, $btn]):
     $wa = whatsapp_href($waText, $b['guest_phone'] ?? '');
 ?>
     <div class="blist">
+        <?php
+        $timeRequests = booking_time_requests((int) $b['id']);
+        $businessDetails = booking_business_details((int) $b['id']) ?: [];
+        ?>
+        <section class="panel" id="time-requests">
+            <h2 class="panel__title">Ранний заезд и досрочный выезд</h2>
+            <p class="hint">Запрос не меняет стандартные часы и даты брони. Укажите доступное время и согласованную стоимость. Гость должен отдельно принять предложение по своей ссылке.</p>
+<?php if (!$timeRequests): ?><p class="empty">Запросов пока нет.</p><?php endif; ?>
+<?php foreach ($timeRequests as $tr): ?>
+            <div class="msg">
+                <strong><?= e(BOOKING_TIME_REQUEST_KINDS[$tr['kind']] ?? $tr['kind']) ?> · просит <?= e(substr($tr['requested_time'], 0, 5)) ?></strong>
+                <p class="hint"><?= e(BOOKING_TIME_REQUEST_STATUSES[$tr['status']] ?? $tr['status']) ?> · <?= e(ru_datetime($tr['created_at'])) ?></p>
+<?php if ($tr['guest_message']): ?><p><?= nl2br(e($tr['guest_message'])) ?></p><?php endif; ?>
+<?php if ($tr['status'] === 'pending'): ?>
+                <form method="post" class="form-grid">
+                    <?= csrf_field() ?><input type="hidden" name="id" value="<?= $b['id'] ?>"><input type="hidden" name="action" value="time_offer"><input type="hidden" name="request_id" value="<?= (int) $tr['id'] ?>">
+                    <div class="field"><label>Предлагаемое время</label><input type="time" name="offered_time" value="<?= e(substr($tr['requested_time'], 0, 5)) ?>" required></div>
+                    <div class="field"><label>Доплата, ₽ (0 — бесплатно)</label><input type="number" name="fee_amount" min="0" max="10000000" step="1" value="0" required></div>
+                    <div class="field span-all"><label>Комментарий гостю</label><input name="admin_note" maxlength="500" placeholder="Например: возможно при условии готовности номера"></div>
+                    <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Предложить гостю</button></div>
+                </form>
+<?php elseif ($tr['status'] === 'offered'): ?>
+                <p>Предложено: <?= e(substr($tr['offered_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'бесплатно' ?>. Ожидается согласие гостя.</p>
+<?php else: ?>
+                <p>Согласованное время: <?= e(substr($tr['offered_time'] ?: $tr['requested_time'], 0, 5)) ?> · <?= (int) $tr['fee_amount'] ? e(money((int) $tr['fee_amount'])) : 'без доплаты' ?>.</p>
+<?php endif; ?>
+            </div>
+<?php endforeach; ?>
+        </section>
+
+        <section class="panel" id="business-documents">
+            <h2 class="panel__title">Командировка и документы</h2>
+            <p class="hint">Необходимые реквизиты и состав документов уточняются по запросу. Счёт и акт не заменяют кассовый чек при расчёте.</p>
+            <form method="post" class="form-grid">
+                <?= csrf_field() ?><input type="hidden" name="id" value="<?= $b['id'] ?>"><input type="hidden" name="action" value="business_save">
+                <label class="inline-check span-all"><input type="checkbox" name="is_business_trip" value="1"<?= !empty($businessDetails['is_business_trip']) ? ' checked' : '' ?>> Проживание по командировке</label>
+                <div class="field"><label>ФИО сотрудника</label><input name="employee_name" maxlength="190" value="<?= e($businessDetails['employee_name'] ?? $b['guest_name']) ?>"></div>
+                <div class="field"><label>Организация</label><input name="organization_name" maxlength="190" value="<?= e($businessDetails['organization_name'] ?? '') ?>"></div>
+                <div class="field"><label>ИНН организации</label><input name="organization_inn" inputmode="numeric" maxlength="12" value="<?= e($businessDetails['organization_inn'] ?? '') ?>"></div>
+                <div class="field"><label>Плательщик</label><select name="payer"><option value="guest"<?= ($businessDetails['payer'] ?? 'guest') === 'guest' ? ' selected' : '' ?>>Гость</option><option value="organization"<?= ($businessDetails['payer'] ?? '') === 'organization' ? ' selected' : '' ?>>Организация</option></select></div>
+                <fieldset class="field span-all"><legend>Запрошенные документы</legend>
+<?php $docLabels = ['contract'=>'Договор / подтверждение бронирования','invoice'=>'Счёт для организации','act'=>'Акт оказанных услуг','residence_certificate'=>'Справка о проживании','receipt'=>'Кассовый чек при оплате']; $selectedDocs = explode(',', (string) ($businessDetails['requested_documents'] ?? '')); ?>
+<?php foreach ($docLabels as $docKey=>$docLabel): ?>
+                    <label class="inline-check"><input type="checkbox" name="requested_documents[]" value="<?= e($docKey) ?>"<?= in_array($docKey, $selectedDocs, true) ? ' checked' : '' ?>> <?= e($docLabel) ?></label>
+<?php endforeach; ?>
+                </fieldset>
+                <div class="field"><label>Статус подготовки</label><select name="document_status">
+<?php foreach (['not_requested'=>'Не запрошены','requested'=>'Запрошены','preparing'=>'Готовятся','ready'=>'Готовы к выдаче','issued'=>'Выданы'] as $statusKey=>$statusLabel): ?>
+                    <option value="<?= e($statusKey) ?>"<?= ($businessDetails['document_status'] ?? 'not_requested') === $statusKey ? ' selected' : '' ?>><?= e($statusLabel) ?></option>
+<?php endforeach; ?>
+                </select></div>
+                <div class="field"><label>Внутренняя заметка</label><input name="business_admin_note" maxlength="500" value="<?= e($businessDetails['admin_note'] ?? '') ?>"></div>
+                <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить сведения</button></div>
+            </form>
+        </section>
+
         <section class="panel" id="money">
             <h2 class="panel__title">Оплата</h2>
             <div>
