@@ -57,7 +57,7 @@ if ($b && is_post() && post('action') === 'business_request') {
                 'organization_name' => post('organization_name'),
                 'organization_inn' => post('organization_inn'),
                 'payer' => post('payer'),
-                'requested_documents' => post('requested_documents', []),
+                'requested_documents' => (isset($_POST['requested_documents']) && is_array($_POST['requested_documents'])) ? $_POST['requested_documents'] : [],
                 'document_status' => 'requested',
             ]);
             redirect('/booking.php?t=' . $b['token'] . '&business_sent=1#business-trip');
