@@ -186,7 +186,7 @@ function booking_select_sql(): string
                    t.name AS type_name, t.slug AS type_slug, r.name AS room_name,
                    (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.booking_id = b.id AND p.voided_at IS NULL) AS paid,
                    (SELECT COUNT(*) FROM booking_messages m WHERE m.booking_id = b.id AND m.handled_at IS NULL) AS open_messages,
-                   (SELECT COALESCE(SUM(tr.fee_amount), 0) FROM booking_time_requests tr WHERE tr.booking_id = b.id AND tr.status = 'accepted') AS accepted_time_fees
+                   (SELECT COALESCE(SUM(tr.fee_amount), 0) FROM booking_time_requests tr WHERE tr.booking_id = b.id AND tr.status = \'accepted\') AS accepted_time_fees
             FROM bookings b
             LEFT JOIN guests g ON g.id = b.guest_id
             JOIN room_types t ON t.id = b.room_type_id
