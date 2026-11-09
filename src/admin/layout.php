@@ -40,6 +40,7 @@ function admin_counters(): array
     return [
         'new'       => (int) q_val("SELECT COUNT(*) FROM bookings WHERE status = 'new'"),
         'messages'  => (int) q_val('SELECT COUNT(*) FROM booking_messages WHERE handled_at IS NULL'),
+        'time_requests' => (int) q_val("SELECT COUNT(*) FROM booking_time_requests WHERE status IN ('pending','offered')"),
         'conflicts' => count(ical_conflicts()),
         'bath'      => bath_new_count(),
         'cleaning'  => cleaning_due_count(),
@@ -49,7 +50,7 @@ function admin_counters(): array
 /** Числа на пунктах меню. */
 function admin_badges(array $c): array
 {
-    return ['today' => $c['messages'] + $c['conflicts'], 'bookings' => $c['new'], 'bath' => $c['bath'], 'cleaning' => $c['cleaning']];
+    return ['today' => $c['messages'] + $c['conflicts'] + ($c['time_requests'] ?? 0), 'bookings' => $c['new'], 'bath' => $c['bath'], 'cleaning' => $c['cleaning']];
 }
 
 function admin_nav(): array
