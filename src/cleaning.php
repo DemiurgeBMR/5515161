@@ -8,7 +8,7 @@
  *  • текущая уборка у проживающих — раз в N дней (настраивается на
  *    странице «Уборка», 0 — только по просьбе);
  *  • разовая — администратор добавляет вручную (гость попросил);
- *  • баня — после каждого сеанса, к его окончанию.
+ *  • сауна — после каждого сеанса, к его окончанию.
  *
  * Когда подходит время уборки, горничным приходит письмо. Отметку
  * «Убрано» ставит горничная в своём кабинете или администратор.
@@ -78,7 +78,7 @@ function cleaning_sync(string $date): void
             [$roomId, $bookingId, $kind, $date, $dueAt, now()]);
         $keep[$roomId . '|' . $bookingId . '|' . $kind] = true;
     }
-    // Баня: уборка после каждого сеанса, к его окончанию.
+    // Сауна: уборка после каждого сеанса, к его окончанию.
     $bathKeep = [];
     if (bath_enabled()) {
         foreach (q_all("SELECT id, ends_at FROM bath_bookings WHERE source <> 'block' AND status IN ('new', 'confirmed', 'done')
@@ -144,7 +144,7 @@ function cleaning_list(string $date): array
         $c['is_bath'] = !$c['room_id'];
         $c['place'] = cleaning_place($c);
         if ($c['is_bath']) {
-            // Для бани важен следующий сеанс сегодня: убрать нужно до него.
+            // Для сауны важен следующий сеанс сегодня: убрать нужно до него.
             $a = null;
             foreach ($bathNext as $x) {
                 if ($x['starts_at'] >= $c['due_at']) {
@@ -163,10 +163,10 @@ function cleaning_list(string $date): array
     return $rows;
 }
 
-/** «Номер Стандарт 1» или «Баня». */
+/** «Номер Стандарт 1» или «Сауна». */
 function cleaning_place(array $c): string
 {
-    return $c['room_id'] ? 'Номер ' . $c['room_name'] : 'Баня';
+    return $c['room_id'] ? 'Номер ' . $c['room_name'] : 'Сауна';
 }
 
 /** «После выезда · 12:00» и т. п. */
@@ -217,7 +217,7 @@ function cleaning_reopen(int $id): void
     touch_data_version();
 }
 
-/** Разовая уборка (гость попросил, генеральная…) — только администратор. $roomId = 0 — баня. */
+/** Разовая уборка (гость попросил, генеральная…) — только администратор. $roomId = 0 — сауна. */
 function cleaning_add(int $roomId, string $date, string $time, string $note): int
 {
     if (is_housekeeper()) {
@@ -238,7 +238,7 @@ function cleaning_add(int $roomId, string $date, string $time, string $note): in
         'room_id' => $roomId ?: null, 'booking_id' => null, 'kind' => 'extra', 'due_date' => $date, 'due_at' => $date . ' ' . $time . ':00',
         'note' => $note, 'created_by' => current_staff()['id'] ?? null, 'created_at' => now(),
     ]);
-    audit('cleaning', $id, 'added', ($roomId ? 'Номер ' . $room['name'] : 'Баня') . ', ' . ru_date($date) . ' с ' . $time . ($note !== '' ? ', ' . $note : ''));
+    audit('cleaning', $id, 'added', ($roomId ? 'Номер ' . $room['name'] : 'Сауна') . ', ' . ru_date($date) . ' с ' . $time . ($note !== '' ? ', ' . $note : ''));
     touch_data_version();
     cleaning_notify_due();
     return $id;
