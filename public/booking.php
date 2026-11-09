@@ -43,7 +43,7 @@ if ($b && is_post() && post('action') === 'time_request') {
 if ($b && is_post() && post('action') === 'time_response') {
     try {
         booking_time_request_respond((int) post('request_id'), $b['token'], post('answer') === 'accept');
-        notify_admins(['Ответ гостя по времени (' . booking_number($b) . ')', 'Гость ' . (post('answer') === 'accept' ? 'принял' : 'отклонил') . ' предложенные условия раннего заезда/досрочного выезда.\\n\\nБронь: ' . admin_booking_url($b['id'])], (string) $b['guest_email']);
+        notify_admins(['Ответ гостя по времени (' . booking_number($b) . ')', 'Гость ' . (post('answer') === 'accept' ? 'принял' : 'отклонил') . ' предложенные условия раннего заезда/досрочного выезда.\n\nБронь: ' . admin_booking_url($b['id'])], (string) $b['guest_email']);
         redirect('/booking.php?t=' . $b['token'] . '&time_answered=1#time-request');
     } catch (BookingError $e) {
         $errors['time_form'] = $e->getMessage();
