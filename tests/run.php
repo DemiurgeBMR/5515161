@@ -126,7 +126,7 @@ expect_error(fn () => booking_set_status($b2['id'], 'confirmed'), 'вернут�
 check(booking_get($b2['id'])['cancel_reason'] === 'передумали', 'причина отмены сохранена');
 
 // Выезд раньше срока: бронь, начавшаяся в прошлом, выезжает сегодня.
-$past = booking_create(guest(['check_in' => d(-3), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
+$past = booking_create(guest(['check_in' => d(-5), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
 $after = booking_set_status($past['id'], 'checked_out');
 check($after['check_out'] === d(0) && $after['total_price'] === 15000, 'выезд раньше: дата выезда = сегодня, сумма за 3 ночи');
 
@@ -276,7 +276,7 @@ echo "\nУборка\n";
 $hk = staff_create('maid@example.com', 'Мария', 'housekeeper', 'maid-pass-12');
 check(!in_array('maid@example.com', admin_recipients(), true), 'горничной не приходят письма о заявках с данными гостей');
 check(cleaning_recipients() === ['maid@example.com'], 'горничной приходят письма об уборке');
-set_setting('cleaning_every_days', '3');
+set_setting('cleaning_every_days', '5');
 $out = booking_create(guest(['check_in' => d(-2), 'check_out' => d(0), 'room_type_id' => $large['id'], 'status' => 'checked_in']), true);
 $next = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $large['id'], 'room_id' => $out['room_id'], 'status' => 'confirmed', 'guests' => 2]), true);
 $stay = booking_create(guest(['check_in' => d(-3), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
@@ -285,7 +285,7 @@ $list = cleaning_list(d(0));
 $co = array_values(array_filter($list, fn ($c) => $c['kind'] === 'checkout' && (int) $c['booking_id'] === $out['id']))[0] ?? null;
 check($co !== null && substr($co['due_at'], 11, 5) === hotel()['check_out'], 'в день выезда появилась уборка к расчётному часу');
 check($co && $co['urgent'] && $co['arrival']['guests'] === 2, 'в номер сегодня заезд — уборка срочная, видно число гостей');
-check((bool) array_filter($list, fn ($c) => $c['kind'] === 'stay' && (int) $c['booking_id'] === $stay['id']), 'у проживающего — текущая уборка раз в 3 дня');
+check((bool) array_filter($list, fn ($c) => $c['kind'] === 'stay' && (int) $c['booking_id'] === $stay['id']), 'у проживающего — текущая уборка раз в 5 дней');
 cleaning_sync(d(0));
 check(count(cleaning_list(d(0))) === count($list), 'повторный расчёт не создаёт дублей');
 booking_set_status($out['id'], 'checked_out');
@@ -406,7 +406,7 @@ check($bc && $bc['due_at'] === $todayBath['ends_at'] && $bc['room_id'] === null,
 @unlink(HOTEL_ROOT . '/storage/mail.log');
 cleaning_notify_due();
 $log = (string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log');
-check($todayBath['date'] !== today()->format('Y-m-d') || (str_contains($log, 'Баня — после сеанса') && !str_contains($log, 'Утренний')), 'горничной письмо «Баня — после сеанса» без имени гостя');
+check($todayBath['date'] !== today()->format('Y-m-d') || (str_contains($log, 'Сауна — после сеанса') && !str_contains($log, 'Утренний')), 'горничной письмо «Сауна — после сеанса» без имени гостя');
 bath_set_status($todayBath['id'], 'cancelled');
 check(!q_val("SELECT id FROM cleanings WHERE bath_booking_id = ? AND status = 'pending'", [$todayBath['id']]), 'сеанс отменили — уборка не нужна');
 foreach (['mail_bath_received', 'mail_bath_confirmed', 'mail_bath_cancelled', 'mail_bath_reminder', 'mail_admin_new_bath'] as $fn) {

@@ -30,7 +30,7 @@ const CLEANING_UNDO_MINUTES = 15;
 
 function cleaning_every_days(): int
 {
-    return max(0, min(30, (int) setting('cleaning_every_days', '3')));
+    return max(0, min(30, (int) setting('cleaning_every_days', '5')));
 }
 
 function cleaning_stay_time(): string

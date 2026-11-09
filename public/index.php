@@ -580,13 +580,13 @@ require __DIR__ . '/../src/partials/header.php';
 
 <?php if (bath_enabled()): $bs = bath_settings(); $bathPhotos = bath_photos(); ?>
     <!-- ============================================================
-         Баня и хамам: вид зависит от статуса, который ставит владелец
+         Сауна и хамам: вид зависит от статуса, который ставит владелец
          (скоро открытие / работает / временно закрыта)
          ============================================================ -->
     <section class="section section--dark bath bath--<?= e($bs['state']) ?>" id="bath" aria-labelledby="bath-title">
         <div class="container bath__grid">
             <a class="bath__media" href="/bath.php" aria-label="<?= e($bs['title']) ?> — фото и подробности">
-                <?= isset($bathPhotos[0]) ? bath_photo_img($bathPhotos[0], $bs['title'], 'ph--dark bath__ph', '(max-width: 760px) 50vw, 25vw') : site_photo('bath', 'Баня', 'ph--dark bath__ph') ?>
+                <?= isset($bathPhotos[0]) ? bath_photo_img($bathPhotos[0], $bs['title'], 'ph--dark bath__ph', '(max-width: 760px) 50vw, 25vw') : site_photo('bath', 'Сауна', 'ph--dark bath__ph') ?>
                 <?= isset($bathPhotos[1]) ? bath_photo_img($bathPhotos[1], $bs['title'], 'ph--dark arch bath__ph', '(max-width: 760px) 50vw, 25vw') : site_photo('hammam', 'Хамам', 'ph--dark arch bath__ph') ?>
 <?php if (count($bathPhotos) > 2): ?>
                 <span class="bath__more"><?= icon('camera') ?>Ещё <?= count($bathPhotos) - 2 ?> фото</span>
@@ -610,7 +610,7 @@ require __DIR__ . '/../src/partials/header.php';
                     <a class="btn btn--light" href="/bath.php">Фото и цены</a>
                 </div>
 <?php elseif ($bs['state'] === 'closed'): ?>
-                <p class="bath__price"><?= e($bs['closed_note'] !== '' ? $bs['closed_note'] : 'Баня временно не работает. Подробности — по телефону.') ?></p>
+                <p class="bath__price"><?= e($bs['closed_note'] !== '' ? $bs['closed_note'] : 'Сауна временно не работает. Подробности — по телефону.') ?></p>
                 <div class="bath__actions">
                     <a class="btn btn--light" href="<?= e(tel_href()) ?>"><?= icon('phone') ?><?= e($h['phone']) ?></a>
                 </div>

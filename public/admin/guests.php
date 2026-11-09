@@ -1,7 +1,7 @@
 <?php
 /**
  * Гости: поиск по имени, телефону и почте; список тех, кто просил
- * сообщить об открытии бани.
+ * сообщить об открытии сауны.
  */
 
 require __DIR__ . '/../../src/bootstrap.php';
@@ -32,7 +32,7 @@ if (is_post()) {
 }
 
 if (get('tab') === 'waitlist' && bath_enabled()) {
-    redirect('/admin/bath.php?tab=waitlist'); // лист ожидания теперь в разделе «Баня»
+    redirect('/admin/bath.php?tab=waitlist'); // лист ожидания теперь в разделе «Сауна»
 }
 $tab = get('tab') === 'waitlist' ? 'waitlist' : 'guests';
 $q = get('q');
@@ -43,14 +43,14 @@ admin_header('Гости', 'guests');
     <div><h1>Гости</h1></div>
     <nav class="tabs">
         <a class="tab<?= $tab === 'guests' ? ' is-active' : '' ?>" href="/admin/guests.php">Все гости</a>
-        <a class="tab<?= $tab === 'waitlist' ? ' is-active' : '' ?>" href="<?= bath_enabled() ? '/admin/bath.php?tab=waitlist' : '/admin/guests.php?tab=waitlist' ?>">Ждут открытия бани <span class="muted"><?= (int) q_val('SELECT COUNT(*) FROM waitlist') ?></span></a>
+        <a class="tab<?= $tab === 'waitlist' ? ' is-active' : '' ?>" href="<?= bath_enabled() ? '/admin/bath.php?tab=waitlist' : '/admin/guests.php?tab=waitlist' ?>">Ждут открытия сауны <span class="muted"><?= (int) q_val('SELECT COUNT(*) FROM waitlist') ?></span></a>
     </nav>
 </div>
 <?php if ($tab === 'waitlist'):
     $rows = q_all("SELECT * FROM waitlist WHERE topic = 'bath' ORDER BY id DESC");
 ?>
 <section class="panel">
-    <h2 class="panel__title">Просили сообщить об открытии бани и хамама</h2>
+    <h2 class="panel__title">Просили сообщить об открытии сауны и хамама</h2>
 <?php if (!$rows): ?>
     <p class="empty">Пока никто не оставил телефон.</p>
 <?php else: ?>
@@ -72,7 +72,7 @@ admin_header('Гости', 'guests');
     <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="waitlist_clear">
         <button class="btn btn--outline btn--sm" type="submit" data-confirm="Удалить все телефоны из списка? Сделайте это, когда всех обзвоните.">Всех обзвонили — очистить список</button></form>
 <?php endif; ?>
-    <p class="hint">Телефоны нужны только для одного звонка. Когда баня откроется и вы всем сообщите — очистите список.</p>
+    <p class="hint">Телефоны нужны только для одного звонка. Когда сауна откроется и вы всем сообщите — очистите список.</p>
 </section>
 <?php else:
     $where = 'g.anonymized_at IS NULL';
