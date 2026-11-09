@@ -24,6 +24,48 @@ $h = hotel();
 $errors = [];
 
 $canWrite = $b && in_array($b['status'], ['new', 'confirmed', 'checked_in'], true);
+
+if ($b && is_post() && post('action') === 'time_request') {
+    if (!$canWrite || rate_limited('time_request', $b['token'], 3, 3600)) {
+        $errors['time_form'] = 'Не удалось отправить запрос. Попробуйте позже или позвоните администратору.';
+    } else {
+        try {
+            booking_time_request_add($b, post('time_kind'), post('requested_time'), post('time_message'));
+            rate_hit('time_request', $b['token']);
+            redirect('/booking.php?t=' . $b['token'] . '&time_sent=1#time-request');
+        } catch (BookingError $e) {
+            $errors['time_form'] = $e->getMessage();
+        }
+    }
+}
+if ($b && is_post() && post('action') === 'time_response') {
+    try {
+        booking_time_request_respond((int) post('request_id'), $b['token'], post('answer') === 'accept');
+        redirect('/booking.php?t=' . $b['token'] . '&time_answered=1#time-request');
+    } catch (BookingError $e) {
+        $errors['time_form'] = $e->getMessage();
+    }
+}
+if ($b && is_post() && post('action') === 'business_request') {
+    if (!$canWrite) {
+        $errors['business_form'] = 'Изменения по этой брони больше не принимаются.';
+    } else {
+        try {
+            booking_business_details_save((int) $b['id'], [
+                'is_business_trip' => post('is_business_trip'),
+                'employee_name' => post('employee_name'),
+                'organization_name' => post('organization_name'),
+                'organization_inn' => post('organization_inn'),
+                'payer' => post('payer'),
+                'requested_documents' => post('requested_documents', []),
+                'document_status' => 'requested',
+            ]);
+            redirect('/booking.php?t=' . $b['token'] . '&business_sent=1#business-trip');
+        } catch (BookingError $e) {
+            $errors['business_form'] = $e->getMessage();
+        }
+    }
+}
 if ($b && is_post() && post('action') === 'message') {
     if (!$canWrite) {
         $errors['form'] = 'По этой брони сообщения больше не принимаются — позвоните нам.';
@@ -76,6 +118,12 @@ require __DIR__ . '/../src/partials/header.php';
 <?php endif; ?>
 <?php if (get('sent') === '1'): ?>
         <div class="notice notice--ok" role="status" id="message"><?= icon('check') ?><div><strong>Сообщение отправлено.</strong> Администратор ответит по телефону или в мессенджере.</div></div>
+<?php endif; ?>
+<?php if (get('time_sent') === '1' || get('time_answered') === '1'): ?>
+        <div class="notice notice--ok" role="status"><div><strong><?= get('time_sent') === '1' ? 'Запрос отправлен.' : 'Ваш ответ сохранён.' ?></strong> Администратор свяжется с вами для подтверждения условий.</div></div>
+<?php endif; ?>
+<?php if (get('business_sent') === '1'): ?>
+        <div class="notice notice--ok" role="status"><div><strong>Пожелания по документам сохранены.</strong> Администратор уточнит необходимые сведения и подготовит доступные документы.</div></div>
 <?php endif; ?>
 
         <article class="bp card">
@@ -145,6 +193,62 @@ require __DIR__ . '/../src/partials/header.php';
             </form>
         </section>
 <?php endif; ?>
+
+<?php
+$timeRequests = booking_time_requests((int) $b['id']);
+$businessDetails = booking_business_details((int) $b['id']) ?: [];
+?>
+        <section class="bp__section" id="time-request">
+            <h2>Ранний заезд или досрочный выезд</h2>
+            <p class="muted">Это запрос администратору, а не автоматическое изменение брони. Возможность, точное время и стоимость подтверждаются отдельно. Платные условия действуют только после вашего согласия.</p>
+<?php if (isset($errors['time_form'])): ?><div class="form-error" role="alert"><?= e($errors['time_form']) ?></div><?php endif; ?>
+<?php foreach ($timeRequests as $tr): ?>
+            <div class="msg">
+                <strong><?= e(BOOKING_TIME_REQUEST_KINDS[$tr['kind']] ?? $tr['kind']) ?> · <?= e(substr($tr['requested_time'], 0, 5)) ?></strong>
+                <p class="muted"><?= e(BOOKING_TIME_REQUEST_STATUSES[$tr['status']] ?? $tr['status']) ?></p>
+<?php if ($tr['status'] === 'offered'): ?>
+                <p>Администратор предлагает <?= e(substr($tr['offered_time'], 0, 5)) ?><?php if ((int) $tr['fee_amount'] > 0): ?> за <?= e(money((int) $tr['fee_amount'])) ?><?php else: ?> без дополнительной оплаты<?php endif; ?>.</p>
+<?php if ($tr['admin_note']): ?><p><?= e($tr['admin_note']) ?></p><?php endif; ?>
+                <form method="post" class="form-actions">
+                    <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="time_response"><input type="hidden" name="request_id" value="<?= (int) $tr['id'] ?>">
+                    <button class="btn btn--primary btn--sm" name="answer" value="accept" type="submit">Согласен</button>
+                    <button class="btn btn--outline btn--sm" name="answer" value="reject" type="submit">Не согласен</button>
+                </form>
+<?php endif; ?>
+            </div>
+<?php endforeach; ?>
+<?php if ($canWrite && !array_filter($timeRequests, fn($r) => in_array($r['status'], ['pending','offered'], true))): ?>
+            <form method="post" class="bp__form">
+                <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="time_request">
+                <div class="field"><label for="time-kind">Что требуется</label><select id="time-kind" name="time_kind"><option value="early_checkin">Ранний заезд (до <?= e($h['check_in']) ?>)</option><option value="early_checkout">Досрочный выезд (раньше <?= e($h['check_out']) ?>)</option></select></div>
+                <div class="field"><label for="requested-time">Желаемое время</label><input id="requested-time" type="time" name="requested_time" required></div>
+                <div class="field"><label for="time-message">Комментарий (необязательно)</label><textarea id="time-message" name="time_message" rows="2" maxlength="1000"></textarea></div>
+                <button class="btn btn--primary" type="submit">Отправить запрос</button>
+            </form>
+<?php endif; ?>
+        </section>
+
+        <section class="bp__section" id="business-trip">
+            <h2>Документы для командировки</h2>
+            <p class="muted">Если проживание оплачивает организация, сообщите это заранее. Администратор уточнит реквизиты и подготовит документы, которые нужны вашей бухгалтерии. Кассовый чек оформляется при расчёте и не заменяется счётом или актом.</p>
+<?php if (isset($errors['business_form'])): ?><div class="form-error" role="alert"><?= e($errors['business_form']) ?></div><?php endif; ?>
+<?php if ($canWrite): ?>
+            <form method="post" class="bp__form">
+                <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="business_request">
+                <label class="inline-check"><input type="checkbox" name="is_business_trip" value="1" checked> Проживание связано с командировкой</label>
+                <div class="field"><label for="employee-name">ФИО проживающего сотрудника</label><input id="employee-name" name="employee_name" maxlength="190" value="<?= e($businessDetails['employee_name'] ?? $b['guest_name']) ?>"></div>
+                <div class="field"><label for="organization-name">Организация</label><input id="organization-name" name="organization_name" maxlength="190" value="<?= e($businessDetails['organization_name'] ?? '') ?>"></div>
+                <div class="field"><label for="organization-inn">ИНН организации (если есть)</label><input id="organization-inn" name="organization_inn" inputmode="numeric" maxlength="12" value="<?= e($businessDetails['organization_inn'] ?? '') ?>"></div>
+                <div class="field"><label for="payer">Кто оплачивает</label><select id="payer" name="payer"><option value="guest"<?= ($businessDetails['payer'] ?? 'guest') === 'guest' ? ' selected' : '' ?>>Гость</option><option value="organization"<?= ($businessDetails['payer'] ?? '') === 'organization' ? ' selected' : '' ?>>Организация</option></select></div>
+                <fieldset class="field"><legend>Какие документы нужны (можно отметить несколько)</legend>
+                    <?php foreach (['contract'=>'Договор / подтверждение бронирования','invoice'=>'Счёт для организации','act'=>'Акт оказанных услуг','residence_certificate'=>'Справка о проживании','receipt'=>'Кассовый чек при оплате'] as $docKey=>$docLabel): ?>
+                    <label class="inline-check"><input type="checkbox" name="requested_documents[]" value="<?= e($docKey) ?>"<?= in_array($docKey, explode(',', (string) ($businessDetails['requested_documents'] ?? '')), true) ? ' checked' : '' ?>> <?= e($docLabel) ?></label>
+                    <?php endforeach; ?>
+                </fieldset>
+                <button class="btn btn--primary" type="submit">Сохранить запрос документов</button>
+            </form>
+<?php endif; ?>
+        </section>
 
 <?php if ($messages): ?>
         <section class="bp__section">
