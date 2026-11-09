@@ -327,7 +327,7 @@ require __DIR__ . '/../src/partials/header.php';
                 <li class="care__item">
                     <span class="care__icon"><?= icon('sparkles') ?></span>
                     <h3>Чисто и спокойно</h3>
-                    <p>Регулярная уборка и свежее бельё, в номерах не курят, после <?= e(explode('–', $h['quiet_hours'])[0]) ?> — тишина. Нужно убрать чаще — просто скажите.</p>
+                    <p>Регулярная уборка и свежее бельё, в номерах не курят, после <?= e(explode('–', $h['quiet_hours'])[0]) ?> — тишина. Дополнительная уборка доступна по запросу за отдельную плату — обратитесь к администратору.</p>
                 </li>
                 <li class="care__item">
                     <span class="care__icon"><?= icon('file-text') ?></span>
