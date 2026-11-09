@@ -408,6 +408,10 @@ foreach ($transitions as [$to, $label, $btn]):
                 <div class="field"><label>Внутренняя заметка</label><input name="business_admin_note" maxlength="500" value="<?= e($businessDetails['admin_note'] ?? '') ?>"></div>
                 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить сведения</button></div>
             </form>
+<?php if ($b['status'] === 'checked_out' && in_array('residence_certificate', $selectedDocs, true)): ?>
+            <p><a class="btn btn--outline btn--sm" href="/admin/booking_document.php?id=<?= (int) $b['id'] ?>" target="_blank" rel="noopener">Сформировать справку о проживании</a></p>
+<?php endif; ?>
+            <p class="hint">Договор, счёт и акт отмечаются в этом блоке как запрошенные/подготовленные, но перед выдачей их реквизиты и содержание нужно проверить. Кассовый чек формируется кассой при расчёте — сайт его не заменяет.</p>
         </section>
 
         <section class="panel" id="money">
