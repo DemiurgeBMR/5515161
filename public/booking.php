@@ -24,6 +24,7 @@ $h = hotel();
 $errors = [];
 
 $canWrite = $b && in_array($b['status'], ['new', 'confirmed', 'checked_in'], true);
+$canRequestDocuments = $b && in_array($b['status'], ['new', 'confirmed', 'checked_in', 'checked_out'], true);
 
 if ($b && is_post() && post('action') === 'time_request') {
     if (!$canWrite || rate_limited('time_request', $b['token'], 3, 3600)) {
@@ -48,8 +49,8 @@ if ($b && is_post() && post('action') === 'time_response') {
     }
 }
 if ($b && is_post() && post('action') === 'business_request') {
-    if (!$canWrite) {
-        $errors['business_form'] = 'Изменения по этой брони больше не принимаются.';
+    if (!$canRequestDocuments) {
+        $errors['business_form'] = 'Запрос документов по этой брони больше не принимается.';
     } else {
         try {
             booking_business_details_save((int) $b['id'], [
@@ -234,7 +235,8 @@ $businessDetails = booking_business_details((int) $b['id']) ?: [];
             <h2>Документы для командировки</h2>
             <p class="muted">Если проживание оплачивает организация, сообщите это заранее. Администратор уточнит реквизиты и подготовит документы, которые нужны вашей бухгалтерии. Кассовый чек оформляется при расчёте и не заменяется счётом или актом.</p>
 <?php if (isset($errors['business_form'])): ?><div class="form-error" role="alert"><?= e($errors['business_form']) ?></div><?php endif; ?>
-<?php if ($canWrite): ?>
+<?php if (!empty($businessDetails['document_status'])): ?><p class="muted">Статус подготовки документов: <?= e(['not_requested'=>'не запрошены','requested'=>'запрошены','preparing'=>'готовятся','ready'=>'готовы к выдаче','issued'=>'выданы'][$businessDetails['document_status']] ?? $businessDetails['document_status']) ?>.</p><?php endif; ?>
+<?php if ($canRequestDocuments): ?>
             <form method="post" class="bp__form">
                 <input type="hidden" name="t" value="<?= e($b['token']) ?>"><input type="hidden" name="action" value="business_request">
                 <label class="inline-check"><input type="checkbox" name="is_business_trip" value="1" checked> Проживание связано с командировкой</label>
