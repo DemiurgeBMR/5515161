@@ -1,7 +1,5 @@
--- Стандартная периодичность уборки занятого номера — каждые пять дней.
--- Не перезаписываем настройку, если администратор уже задавал свой интервал.
+-- Установить согласованный интервал уборки занятого номера — пять дней.
+-- Это бизнес-правило гостиницы, поэтому обновляем и прежнее значение настройки.
 INSERT INTO settings (name, value)
-SELECT 'cleaning_every_days', '5'
-WHERE NOT EXISTS (
-    SELECT 1 FROM settings WHERE name = 'cleaning_every_days'
-);
+VALUES ('cleaning_every_days', '5')
+ON DUPLICATE KEY UPDATE value = '5';

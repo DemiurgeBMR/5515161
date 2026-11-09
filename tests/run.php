@@ -279,7 +279,7 @@ check(cleaning_recipients() === ['maid@example.com'], 'горничной при
 set_setting('cleaning_every_days', '5');
 $out = booking_create(guest(['check_in' => d(-2), 'check_out' => d(0), 'room_type_id' => $large['id'], 'status' => 'checked_in']), true);
 $next = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $large['id'], 'room_id' => $out['room_id'], 'status' => 'confirmed', 'guests' => 2]), true);
-$stay = booking_create(guest(['check_in' => d(-3), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
+$stay = booking_create(guest(['check_in' => d(-5), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
 cleaning_sync(d(0));
 $list = cleaning_list(d(0));
 $co = array_values(array_filter($list, fn ($c) => $c['kind'] === 'checkout' && (int) $c['booking_id'] === $out['id']))[0] ?? null;
