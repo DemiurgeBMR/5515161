@@ -302,7 +302,9 @@ $log = (string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log');
 check(str_contains($log, 'maid@example.com') && str_contains($log, 'Уборка: ') && !str_contains($log, (string) $out['guest_name']), 'письмо горничной без имени гостя');
 cleaning_notify_due();
 check(substr_count((string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log'), 'после выезда') === 1, 'повторно о той же уборке письмо не приходит');
-$sameDay = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $std['id'], 'status' => 'checked_in']), true);
+// Освобождаем комнату, занятую тестовой бронью следующего заезда.
+booking_set_status($next['id'], 'cancelled', 'освобождение тестовой комнаты');
+$sameDay = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $large['id'], 'status' => 'checked_in']), true);
 booking_set_status($sameDay['id'], 'checked_out');
 $sameDayCleaning = q_one("SELECT * FROM cleanings WHERE booking_id = ? AND kind = 'checkout' AND due_date = ?", [$sameDay['id'], d(0)]);
 check($sameDayCleaning !== null && $sameDayCleaning['due_at'] <= now(), 'выезд в день заезда создаёт задачу на уборку сразу');
