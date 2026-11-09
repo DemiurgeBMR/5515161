@@ -126,7 +126,7 @@ expect_error(fn () => booking_set_status($b2['id'], 'confirmed'), 'вернут�
 check(booking_get($b2['id'])['cancel_reason'] === 'передумали', 'причина отмены сохранена');
 
 // Выезд раньше срока: бронь, начавшаяся в прошлом, выезжает сегодня.
-$past = booking_create(guest(['check_in' => d(-5), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
+$past = booking_create(guest(['check_in' => d(-3), 'check_out' => d(3), 'room_type_id' => $lux['id'], 'status' => 'checked_in']), true);
 $after = booking_set_status($past['id'], 'checked_out');
 check($after['check_out'] === d(0) && $after['total_price'] === 15000, 'выезд раньше: дата выезда = сегодня, сумма за 3 ночи');
 
