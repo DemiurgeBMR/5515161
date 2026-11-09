@@ -346,7 +346,7 @@ require __DIR__ . '/../src/partials/header.php';
             <div class="prices__text">
                 <p class="eyebrow">Долгое проживание</p>
                 <h2 class="h2" id="prices-title">Приехали <em>надолго?</em></h2>
-                <p>Чем дольше вы живёте, тем ниже цена. Продлить можно в любой день — просто скажите администратору.</p>
+                <p>Чем дольше вы живёте, тем ниже цена. Продлить можно в любой день.</p>
 <?php if ($weekTier && $types && $weekTier['min_nights'] <= 21):
     $exType = reset($types);
     $ex = simple_estimate($exType, 21);
