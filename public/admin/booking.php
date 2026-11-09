@@ -381,7 +381,11 @@ foreach ($transitions as [$to, $label, $btn]):
                 <form method="post" class="form-grid">
                     <?= csrf_field() ?><input type="hidden" name="id" value="<?= $b['id'] ?>"><input type="hidden" name="action" value="time_offer"><input type="hidden" name="request_id" value="<?= (int) $tr['id'] ?>">
                     <div class="field"><label>Предлагаемое время</label><input type="time" name="offered_time" value="<?= e(substr($tr['requested_time'], 0, 5)) ?>" required></div>
-                    <div class="field"><label>Доплата, ₽ (0 — бесплатно)</label><input type="number" name="fee_amount" min="0" max="10000000" step="1" value="0" required></div>
+<?php if ($tr['kind'] === 'early_checkin'): ?>
+                    <div class="field"><label>Доплата за ранний заезд, ₽</label><input type="number" name="fee_amount" min="0" max="10000000" step="1" value="0" required></div>
+<?php else: ?>
+                    <input type="hidden" name="fee_amount" value="0"><p class="hint span-all">Досрочный выезд до 12:00 в дату брони — без отдельной доплаты. Если гость меняет дату выезда, измените период самой брони.</p>
+<?php endif; ?>
                     <div class="field span-all"><label>Комментарий гостю</label><input name="admin_note" maxlength="500" placeholder="Например: возможно при условии готовности номера"></div>
                     <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Предложить гостю</button></div>
                 </form>
