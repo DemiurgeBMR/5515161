@@ -562,6 +562,11 @@ function booking_set_status(int $id, string $status, string $reason = ''): array
         }
         lock_rooms($b['room_type_id']);
         $row = ['status' => $status, 'updated_at' => now()];
+        if ($status === 'checked_out') {
+            $row['checked_out_at'] = now();
+        } elseif ($b['status'] === 'checked_out') {
+            $row['checked_out_at'] = null;
+        }
         $wasOccupying = in_array($b['status'], OCCUPYING_STATUSES, true);
         $willOccupy = in_array($status, OCCUPYING_STATUSES, true);
         if (!$wasOccupying && $willOccupy) {

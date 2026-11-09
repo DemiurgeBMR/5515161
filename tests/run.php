@@ -302,6 +302,13 @@ $log = (string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log');
 check(str_contains($log, 'maid@example.com') && str_contains($log, 'Уборка: ') && !str_contains($log, (string) $out['guest_name']), 'письмо горничной без имени гостя');
 cleaning_notify_due();
 check(substr_count((string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log'), 'после выезда') === 1, 'повторно о той же уборке письмо не приходит');
+$sameDay = booking_create(guest(['check_in' => d(0), 'check_out' => d(2), 'room_type_id' => $std['id'], 'status' => 'checked_in']), true);
+booking_set_status($sameDay['id'], 'checked_out');
+$sameDayCleaning = q_one("SELECT * FROM cleanings WHERE booking_id = ? AND kind = 'checkout' AND due_date = ?", [$sameDay['id'], d(0)]);
+check($sameDayCleaning !== null && $sameDayCleaning['due_at'] <= now(), 'выезд в день заезда создаёт задачу на уборку сразу');
+cleaning_sync(d(0));
+check((int) q_val("SELECT COUNT(*) FROM cleanings WHERE booking_id = ? AND kind = 'checkout' AND due_date = ? AND status = 'pending'", [$sameDay['id'], d(0)]) === 1, 'повторная синхронизация сохраняет уборку после выезда в день заезда');
+
 booking_set_status($stay['id'], 'cancelled');
 check(!array_filter(cleaning_list(d(0)), fn ($c) => $c['kind'] === 'stay' && (int) $c['booking_id'] === $stay['id']), 'бронь отменили — текущая уборка исчезла');
 staff_login('maid@example.com', 'maid-pass-12');

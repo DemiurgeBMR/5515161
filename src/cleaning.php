@@ -57,8 +57,11 @@ function cleaning_sync(string $date): void
     }
     $want = [];
     $checkout = $date . ' ' . hotel()['check_out'] . ':00';
-    foreach (q_all("SELECT id, room_id FROM bookings WHERE room_id IS NOT NULL AND check_out = ?
-                    AND status IN ('confirmed', 'checked_in', 'checked_out')", [$date]) as $b) {
+    foreach (q_all("SELECT id, room_id FROM bookings
+                    WHERE room_id IS NOT NULL AND (
+                        (check_out = ? AND status IN ('confirmed', 'checked_in', 'checked_out'))
+                        OR (status = 'checked_out' AND checked_out_at >= ? AND checked_out_at < ?)
+                    )", [$date, $date . ' 00:00:00', parse_date($date)->modify('+1 day')->format('Y-m-d') . ' 00:00:00']) as $b) {
         $want[] = [(int) $b['room_id'], (int) $b['id'], 'checkout', $checkout];
     }
     $every = cleaning_every_days();
