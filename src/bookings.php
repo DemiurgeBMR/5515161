@@ -866,6 +866,32 @@ function booking_time_request_respond(int $requestId, string $token, bool $accep
     });
 }
 
+function booking_time_request_record_actual(int $requestId, string $time): void
+{
+    if (!preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $time)) {
+        throw new BookingError('Укажите фактическое время');
+    }
+    tx(function () use ($requestId, $time) {
+        $r = q_one('SELECT * FROM booking_time_requests WHERE id = ? FOR UPDATE', [$requestId]);
+        if (!$r || $r['status'] !== 'accepted') {
+            throw new BookingError('Фиксировать фактическое время можно только по согласованному запросу');
+        }
+        $standard = $r['kind'] === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
+        if ($time >= $standard) {
+            throw new BookingError('Фактическое время должно быть раньше стандартного');
+        }
+        $b = booking_get((int) $r['booking_id']);
+        $requiredStatus = $r['kind'] === 'early_checkin' ? 'checked_in' : 'checked_out';
+        if (!$b || $b['status'] !== $requiredStatus) {
+            throw new BookingError($r['kind'] === 'early_checkin' ? 'Сначала отметьте гостя как заселившегося' : 'Сначала отметьте гостя как выехавшего');
+        }
+        q('UPDATE booking_time_requests SET actual_time = ?, actual_recorded_at = ?, updated_at = ? WHERE id = ?',
+            [$time . ':00', now(), now(), $requestId]);
+        audit('booking', (int) $r['booking_id'], 'time_actual', BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': фактически ' . $time);
+        touch_data_version();
+    });
+}
+
 function booking_business_details(int $bookingId): ?array
 {
     return q_one('SELECT * FROM booking_business_details WHERE booking_id = ?', [$bookingId]);
