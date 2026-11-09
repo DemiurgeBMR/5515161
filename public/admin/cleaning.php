@@ -176,7 +176,7 @@ admin_header('Уборка', 'cleaning', 'adm-autoreload');
                 <option value="<?= (int) $r['id'] ?>"><?= e($r['name']) ?> · <?= e($r['type_name'] ?? '') ?></option>
 <?php endforeach; ?>
 <?php if (bath_enabled()): ?>
-                <option value="0">Баня</option>
+                <option value="0">Сауна</option>
 <?php endif; ?>
             </select></div>
             <div class="field"><label for="c-date">Дата</label><input id="c-date" type="date" name="date" required min="<?= e(today()->format('Y-m-d')) ?>" value="<?= e($day) ?>"></div>
