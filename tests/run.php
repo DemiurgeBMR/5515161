@@ -317,22 +317,22 @@ check(cleaning_get($extra)['notified_at'] !== null, 'разовая уборка
 expect_error(fn () => cleaning_add($stay['room_id'], d(-1), '10:00', ''), 'уборку на прошедший день не добавить', 'сегодня');
 staff_login('owner@example.com', 'secret-pass-1');
 
-echo "\nБаня\n";
+echo "\nСауна\n";
 @unlink(HOTEL_ROOT . '/storage/mail.log');
-check(bath_state() === 'soon' && !bath_is_open(), 'по умолчанию баня «скоро открытие»');
-$bathReq = fn (array $x = []) => $x + ['date' => d(5), 'time' => '12:00', 'hours' => 2, 'guests' => 2, 'name' => 'Банный Гость', 'phone' => '+7 978 700-00-01', 'email' => 'bath@example.com'];
-expect_error(fn () => bath_create($bathReq()), 'пока баня не открыта, с сайта не записаться', 'не открыта');
+check(bath_state() === 'soon' && !bath_is_open(), 'по умолчанию сауна «скоро открытие»');
+$bathReq = fn (array $x = []) => $x + ['date' => d(5), 'time' => '12:00', 'hours' => 2, 'guests' => 2, 'name' => 'Гость сауны', 'phone' => '+7 978 700-00-01', 'email' => 'bath@example.com'];
+expect_error(fn () => bath_create($bathReq()), 'пока сауна не открыта, с сайта не записаться', 'не открыта');
 staff_login('admin@example.com', 'admin-pass-1');
-expect_error(fn () => bath_set_state('open'), 'администратор не может открыть баню', 'владелец');
+expect_error(fn () => bath_set_state('open'), 'администратор не может открыть сауну', 'владелец');
 staff_login('owner@example.com', 'secret-pass-1');
-expect_error(fn () => bath_set_state('open'), 'без цены баню не открыть', 'цену');
+expect_error(fn () => bath_set_state('open'), 'без цены сауну не открыть', 'цену');
 set_setting('bath_price', '2000');
 set_setting('bath_price_weekend', '2500');
 set_setting('bath_extra_guest', '300');
 set_setting('bath_guests_included', '4');
 set_setting('bath_hotel_discount', '10');
 bath_set_state('open');
-check(bath_is_open(), 'владелец открыл баню');
+check(bath_is_open(), 'владелец открыл сауну');
 $sat = today()->modify('next saturday')->format('Y-m-d');
 $q = bath_quote($sat, 3, 6, true, [['name' => 'Веник', 'qty' => 2, 'price' => 300]]);
 check($q['hour_price'] === 2500 && $q['extra_guests_sum'] === 1800 && $q['discount'] === 930 && $q['total'] === 8970, 'цена: выходной час, доплата за гостей, скидка гостю гостиницы только на сеанс, услуги');
@@ -384,25 +384,25 @@ $x1 = bath_set_status($x1['id'], 'cancelled', 'передумали');
 check((bool) array_filter(bath_slots(d(5))['slots'], fn ($sl) => $sl['time'] === '10:00'), 'отменённая запись освобождает время');
 $taker = bath_create($bathReq(['time' => '11:00', 'phone' => '+7 978 700-00-04']), true);
 expect_error(fn () => bath_set_status($x1['id'], 'confirmed'), 'вернуть отменённую запись на занятое время нельзя', 'занято');
-$upd = bath_update($taker['id'], ['date' => d(5), 'time' => '10:30', 'hours' => 3, 'guests' => 5, 'name' => 'Банный Гость', 'phone' => '+7 978 700-00-04', 'email' => '', 'hotel_guest' => true, 'extras' => []]);
+$upd = bath_update($taker['id'], ['date' => d(5), 'time' => '10:30', 'hours' => 3, 'guests' => 5, 'name' => 'Гость сауны', 'phone' => '+7 978 700-00-04', 'email' => '', 'hotel_guest' => true, 'extras' => []]);
 check($upd['time_from'] === '10:30' && $upd['total_price'] === bath_quote(d(5), 3, 5, true, [])['total'], 'администратор переносит запись (шаг 30 минут) — сумма пересчитана');
-expect_error(fn () => bath_update($taker['id'], ['date' => d(5), 'time' => '13:00', 'hours' => 2, 'guests' => 2, 'name' => 'Банный Гость']), 'перенос на занятое время — нельзя', 'занято');
+expect_error(fn () => bath_update($taker['id'], ['date' => d(5), 'time' => '13:00', 'hours' => 2, 'guests' => 2, 'name' => 'Гость сауны']), 'перенос на занятое время — нельзя', 'занято');
 $bp = payment_record('bath', $upd['id'], 3000, 'cash', d(0), '', 5000);
-check(bath_get($upd['id'])['paid'] === 3000 && (int) q_val('SELECT change_given FROM payments WHERE id = ?', [$bp]) === 2000, 'оплата бани со сдачей');
+check(bath_get($upd['id'])['paid'] === 3000 && (int) q_val('SELECT change_given FROM payments WHERE id = ?', [$bp]) === 2000, 'оплата сауны со сдачей');
 payment_void($bp, 'ошиблись суммой');
-check(bath_get($upd['id'])['paid'] === 0 && (int) q_val("SELECT COUNT(*) FROM audit_log WHERE entity = 'bath' AND entity_id = ? AND action = 'payment_voided'", [$upd['id']]) === 1, 'оплату бани аннулирует только владелец, в журнале видно');
+check(bath_get($upd['id'])['paid'] === 0 && (int) q_val("SELECT COUNT(*) FROM audit_log WHERE entity = 'bath' AND entity_id = ? AND action = 'payment_voided'", [$upd['id']]) === 1, 'оплату сауны аннулирует только владелец, в журнале видно');
 try {
     q('DELETE FROM bath_bookings WHERE id = ?', [$upd['id']]);
-    check(false, 'база не даёт удалить запись в баню с оплатами');
+    check(false, 'база не даёт удалить запись в сауну с оплатами');
 } catch (PDOException $e) {
-    check(true, 'база не даёт удалить запись в баню с оплатами');
+    check(true, 'база не даёт удалить запись в сауну с оплатами');
 }
 $now = new DateTimeImmutable('now', new DateTimeZone(HOTEL_TZ));
 $past = $now->modify('-3 hours');
 $todayBath = bath_create(['date' => $past->format('Y-m-d'), 'time' => $past->format('H') . ':00', 'hours' => 1, 'guests' => 3, 'name' => 'Утренний Гость', 'phone' => '+79787000005'], true);
 cleaning_sync($todayBath['date']);
 $bc = q_one("SELECT * FROM cleanings WHERE bath_booking_id = ? AND kind = 'bath'", [$todayBath['id']]);
-check($bc && $bc['due_at'] === $todayBath['ends_at'] && $bc['room_id'] === null, 'после сеанса — уборка бани к его окончанию');
+check($bc && $bc['due_at'] === $todayBath['ends_at'] && $bc['room_id'] === null, 'после сеанса — уборка сауны к его окончанию');
 @unlink(HOTEL_ROOT . '/storage/mail.log');
 cleaning_notify_due();
 $log = (string) @file_get_contents(HOTEL_ROOT . '/storage/mail.log');
@@ -415,7 +415,7 @@ foreach (['mail_bath_received', 'mail_bath_confirmed', 'mail_bath_cancelled', 'm
 }
 q("UPDATE bath_bookings SET guest_comment = 'мой телефон 8-978-...' WHERE id = ?", [$ok15['id']]);
 guest_anonymize($ok15['guest_id'], 'по просьбе');
-check(bath_get($ok15['id'])['guest_comment'] === null && bath_get($ok15['id'])['guest_name'] === 'Данные удалены', 'удаление данных гостя стирает и комментарии к бане');
+check(bath_get($ok15['id'])['guest_comment'] === null && bath_get($ok15['id'])['guest_name'] === 'Данные удалены', 'удаление данных гостя стирает и комментарии к сауне');
 check(bath_by_token($ok15['token'])['id'] === $ok15['id'] && bath_by_token('x') === null, 'страница записи по секретной ссылке');
 bath_set_state('soon');
 
@@ -469,7 +469,7 @@ check(!str_contains(json_encode($adminMsg), '"url"'), 'ссылка-кнопка
 @unlink(HOTEL_ROOT . '/storage/telegram.log');
 tg_notify_waitlist('+7 978 555-44-33');
 tg_flush();
-check(!str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), '555-44'), 'лист ожидания бани — без телефона');
+check(!str_contains(json_encode($toChat(9001), JSON_UNESCAPED_UNICODE), '555-44'), 'лист ожидания сауны — без телефона');
 tg_handle_update($press(502, 'b:ok:' . $mb['id']));
 check(booking_get($mb['id'])['status'] === 'new', 'горничная не может подтвердить бронь кнопкой');
 tg_handle_update($press(999, 'b:ok:' . $mb['id']));
