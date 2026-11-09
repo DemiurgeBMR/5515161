@@ -317,7 +317,7 @@ require __DIR__ . '/../src/partials/header.php';
                 <li class="care__item">
                     <span class="care__icon"><?= icon('refrigerator') ?></span>
                     <h3>Холодильник в каждом номере</h3>
-                    <p>И чайник с посудой: продукты из магазина рядом, завтрак в номере — как дома.</p>
+                    <p>И чайник с посудой: продукты из магазина рядом.</p>
                 </li>
                 <li class="care__item">
                     <span class="care__icon"><?= icon('users') ?></span>
