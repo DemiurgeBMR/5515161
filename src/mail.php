@@ -260,7 +260,7 @@ function mail_admin_guest_message(array $b, string $kind, string $message, ?stri
 }
 
 // -------------------------------------------------------------------
-// Баня
+// Сауна
 // -------------------------------------------------------------------
 
 function mail_bath_details(array $b): string
@@ -287,19 +287,19 @@ function mail_bath_received(array $b): array
 {
     $h = hotel();
     $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
-        . "Мы получили вашу заявку в баню — время уже держим за вами.\n\n"
+        . "Мы получили вашу заявку в сауну — время уже держим за вами.\n\n"
         . mail_bath_details($b) . "\n\n"
         . 'Администратор подтвердит запись в течение ' . $h['response_time'] . ' (' . $h['admin_hours'] . ").\n"
         . "\nВаша запись и её статус:\n" . bath_url($b) . "\n"
         . mail_bath_signature();
-    return ['Заявка в баню принята — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
+    return ['Заявка в сауну принята — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
 }
 
 function mail_bath_confirmed(array $b): array
 {
     $h = hotel();
     $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
-        . "Запись в баню подтверждена. Ждём вас!\n\n"
+        . "Запись в сауну подтверждена. Ждём вас!\n\n"
         . mail_bath_details($b) . "\n\n"
         . 'Адрес: ' . full_address() . "\n"
         . (filled($h['address']['entrance']) ? $h['address']['entrance'] . "\n" : '')
@@ -307,34 +307,34 @@ function mail_bath_confirmed(array $b): array
         . "Приходите за 5–10 минут до начала. Если планы изменятся — позвоните нам.\n"
         . bath_url($b) . "\n"
         . mail_bath_signature();
-    return ['Запись в баню подтверждена — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
+    return ['Запись в сауну подтверждена — ' . ru_date($b['date']) . ', ' . $b['time_from'], $text];
 }
 
 function mail_bath_cancelled(array $b): array
 {
     $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
-        . 'Запись в баню на ' . bath_when($b) . " отменена.\n"
+        . 'Запись в сауну на ' . bath_when($b) . " отменена.\n"
         . ($b['cancel_reason'] !== '' ? 'Причина: ' . $b['cancel_reason'] . "\n" : '')
         . "\nЕсли это ошибка или хотите выбрать другое время — позвоните нам.\n"
         . mail_bath_signature();
-    return ['Запись в баню отменена — ' . ru_date($b['date']), $text];
+    return ['Запись в сауну отменена — ' . ru_date($b['date']), $text];
 }
 
 function mail_bath_reminder(array $b): array
 {
     $text = 'Здравствуйте' . ($b['guest_name'] ? ', ' . $b['guest_name'] : '') . "!\n\n"
-        . 'Напоминаем: ждём вас в бане ' . bath_when($b) . ".\n"
+        . 'Напоминаем: ждём вас в сауне ' . bath_when($b) . ".\n"
         . "Приходите за 5–10 минут до начала.\n\n"
         . 'Адрес: ' . full_address() . "\n"
         . 'Маршрут: ' . route_href() . "\n\n"
         . "Если что-то изменилось — позвоните нам.\n" . bath_url($b) . "\n"
         . mail_bath_signature();
-    return ['Ждём вас в бане ' . ru_date($b['date']) . ' в ' . $b['time_from'], $text];
+    return ['Ждём вас в сауне ' . ru_date($b['date']) . ' в ' . $b['time_from'], $text];
 }
 
 function mail_admin_new_bath(array $b): array
 {
-    $text = "Новая заявка в баню с сайта.\n\n"
+    $text = "Новая заявка в сауну с сайта.\n\n"
         . 'Гость: ' . $b['guest_name'] . "\n"
         . 'Телефон: ' . ($b['guest_phone'] !== '' ? $b['guest_phone'] : '—') . "\n"
         . ($b['guest_email'] ? 'Почта: ' . $b['guest_email'] . "\n" : '')
@@ -343,10 +343,10 @@ function mail_admin_new_bath(array $b): array
         . "\n" . mail_bath_details($b) . "\n"
         . ($b['guest_comment'] ? "\nКомментарий: " . $b['guest_comment'] . "\n" : '')
         . "\nОткрыть в админке: " . base_url() . '/admin/bath_booking.php?id=' . $b['id'] . "\n";
-    return ['Баня: заявка на ' . ru_date($b['date']) . ', ' . $b['time_from'] . '–' . $b['time_to'] . ', ' . $b['guest_name'], $text];
+    return ['Сауна: заявка на ' . ru_date($b['date']) . ', ' . $b['time_from'] . '–' . $b['time_to'] . ', ' . $b['guest_name'], $text];
 }
 
 function mail_admin_waitlist(string $phone): array
 {
-    return ['Баня и хамам: сообщить об открытии', "Гость просит сообщить об открытии бани и хамама.\n\nТелефон: " . $phone . "\n\nВсе такие просьбы — в админке: Баня → Лист ожидания.\n"];
+    return ['Сауна и хамам: сообщить об открытии', "Гость просит сообщить об открытии сауны и хамама.\n\nТелефон: " . $phone . "\n\nВсе такие просьбы — в админке: Сауна → Лист ожидания.\n"];
 }
