@@ -747,3 +747,120 @@ function closure_delete(int $id): void
         touch_data_version();
     }
 }
+
+
+// -------------------------------------------------------------------
+// Ранний заезд / досрочный выезд и документы командировочным
+// -------------------------------------------------------------------
+
+const BOOKING_TIME_REQUEST_KINDS = [
+    'early_checkin' => 'Ранний заезд',
+    'early_checkout' => 'Досрочный выезд (до расчётного часа)',
+];
+
+const BOOKING_TIME_REQUEST_STATUSES = [
+    'pending' => 'Ожидает решения администратора',
+    'offered' => 'Предложены время и стоимость — ждём согласия гостя',
+    'accepted' => 'Согласовано с гостем',
+    'rejected' => 'Отклонено',
+];
+
+function booking_time_requests(int $bookingId): array
+{
+    return q_all('SELECT r.*, s.name AS staff_name FROM booking_time_requests r
+                  LEFT JOIN staff s ON s.id = r.handled_by
+                  WHERE r.booking_id = ? ORDER BY r.id DESC', [$bookingId]);
+}
+
+function booking_time_request_add(array $b, string $kind, string $time, string $message = ''): int
+{
+    if (!isset(BOOKING_TIME_REQUEST_KINDS[$kind])) {
+        throw new BookingError('Выберите тип запроса');
+    }
+    if (!in_array($b['status'], ['confirmed', 'checked_in'], true)) {
+        throw new BookingError('Запросить изменение времени можно после подтверждения брони');
+    }
+    if (!preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $time)) {
+        throw new BookingError('Укажите корректное время', 'requested_time');
+    }
+    $standard = $kind === 'early_checkin' ? hotel()['check_in'] : hotel()['check_out'];
+    if (($kind === 'early_checkin' && $time >= $standard) || ($kind === 'early_checkout' && $time >= $standard)) {
+        throw new BookingError('Указанное время не является более ранним, чем стандартное', 'requested_time');
+    }
+    $open = (int) q_val("SELECT COUNT(*) FROM booking_time_requests WHERE booking_id = ? AND status IN ('pending','offered')", [(int) $b['id']]);
+    if ($open) {
+        throw new BookingError('По этой брони уже есть запрос, ожидающий ответа администратора или гостя');
+    }
+    $message = mb_substr(trim($message), 0, 1000);
+    $id = q_insert('booking_time_requests', [
+        'booking_id' => (int) $b['id'], 'kind' => $kind, 'requested_time' => $time . ':00',
+        'status' => 'pending', 'guest_message' => $message !== '' ? $message : null,
+        'created_at' => now(), 'updated_at' => now(),
+    ]);
+    audit('booking', (int) $b['id'], 'time_request', BOOKING_TIME_REQUEST_KINDS[$kind] . ' к ' . $time . ($message !== '' ? ': ' . $message : ''), 'guest');
+    touch_data_version();
+    return $id;
+}
+
+function booking_time_request_offer(int $requestId, string $time, int $fee, string $note = ''): void
+{
+    if (!preg_match('/^(?:[01]\\d|2[0-3]):[0-5]\\d$/', $time)) {
+        throw new BookingError('Укажите согласованное время');
+    }
+    if ($fee < 0 || $fee > 10000000) {
+        throw new BookingError('Проверьте стоимость');
+    }
+    $r = q_one('SELECT * FROM booking_time_requests WHERE id = ? FOR UPDATE', [$requestId]);
+    if (!$r || $r['status'] !== 'pending') {
+        throw new BookingError('Запрос уже обработан или не найден');
+    }
+    $note = clean_line($note, 500);
+    q('UPDATE booking_time_requests SET offered_time = ?, fee_amount = ?, admin_note = ?, status = \'offered\', offered_at = ?, handled_by = ?, updated_at = ? WHERE id = ?',
+        [$time . ':00', $fee, $note !== '' ? $note : null, now(), current_staff()['id'] ?? null, now(), $requestId]);
+    audit('booking', (int) $r['booking_id'], 'time_offer', BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . $time . ', ' . money($fee) . ($note !== '' ? ', ' . $note : ''));
+    touch_data_version();
+}
+
+function booking_time_request_respond(int $requestId, string $token, bool $accept): void
+{
+    $r = q_one('SELECT r.*, b.token FROM booking_time_requests r JOIN bookings b ON b.id = r.booking_id WHERE r.id = ?', [$requestId]);
+    if (!$r || !hash_equals((string) $r['token'], $token) || $r['status'] !== 'offered') {
+        throw new BookingError('Предложение не найдено или срок ответа истёк');
+    }
+    $status = $accept ? 'accepted' : 'rejected';
+    q('UPDATE booking_time_requests SET status = ?, guest_responded_at = ?, updated_at = ? WHERE id = ? AND status = \'offered\'',
+        [$status, now(), now(), $requestId]);
+    audit('booking', (int) $r['booking_id'], 'time_' . $status,
+        BOOKING_TIME_REQUEST_KINDS[$r['kind']] . ': ' . substr((string) $r['offered_time'], 0, 5) . ', ' . money((int) $r['fee_amount']), 'guest');
+    touch_data_version();
+}
+
+function booking_business_details(int $bookingId): ?array
+{
+    return q_one('SELECT * FROM booking_business_details WHERE booking_id = ?', [$bookingId]);
+}
+
+function booking_business_details_save(int $bookingId, array $data): void
+{
+    $isTrip = !empty($data['is_business_trip']) ? 1 : 0;
+    $employee = mb_substr(trim((string) ($data['employee_name'] ?? '')), 0, 190);
+    $org = mb_substr(trim((string) ($data['organization_name'] ?? '')), 0, 190);
+    $inn = preg_replace('/\\D+/', '', (string) ($data['organization_inn'] ?? ''));
+    if ($inn !== '' && !in_array(strlen($inn), [10, 12], true)) {
+        throw new BookingError('ИНН организации должен содержать 10 или 12 цифр');
+    }
+    $payer = ($data['payer'] ?? 'guest') === 'organization' ? 'organization' : 'guest';
+    $docs = array_intersect((array) ($data['requested_documents'] ?? []), ['contract','invoice','act','residence_certificate','receipt']);
+    $status = in_array(($data['document_status'] ?? ''), ['not_requested','requested','preparing','ready','issued'], true)
+        ? $data['document_status'] : ($docs ? 'requested' : 'not_requested');
+    $note = clean_line((string) ($data['admin_note'] ?? ''), 500);
+    q('INSERT INTO booking_business_details (booking_id, is_business_trip, employee_name, organization_name, organization_inn, payer, requested_documents, document_status, admin_note, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE is_business_trip = VALUES(is_business_trip), employee_name = VALUES(employee_name),
+       organization_name = VALUES(organization_name), organization_inn = VALUES(organization_inn), payer = VALUES(payer),
+       requested_documents = VALUES(requested_documents), document_status = VALUES(document_status),
+       admin_note = VALUES(admin_note), updated_at = VALUES(updated_at)',
+       [$bookingId, $isTrip, $employee ?: null, $org ?: null, $inn ?: null, $payer, implode(',', $docs) ?: null, $status, $note ?: null, now()]);
+    audit('booking', $bookingId, 'business_documents', $isTrip ? 'командировка; ' . implode(', ', $docs) : 'данные командировки обновлены');
+    touch_data_version();
+}
