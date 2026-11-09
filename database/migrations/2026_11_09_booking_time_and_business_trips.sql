@@ -18,8 +18,7 @@ CREATE TABLE IF NOT EXISTS booking_time_requests (
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (id),
     KEY idx_time_requests_booking (booking_id, id),
-    KEY idx_time_requests_status (status, created_at),
-    CONSTRAINT fk_time_requests_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+    KEY idx_time_requests_status (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS booking_business_details (
@@ -34,5 +33,4 @@ CREATE TABLE IF NOT EXISTS booking_business_details (
     admin_note VARCHAR(500) NULL,
     updated_at DATETIME NOT NULL,
     PRIMARY KEY (booking_id),
-    CONSTRAINT fk_business_details_booking FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
