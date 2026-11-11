@@ -2081,3 +2081,8 @@ img.is-photo { display: block; width: 100%; height: auto; object-fit: cover; bac
     .photo-viewer__nav--next { right: 8px; }
     .photo-viewer__image { max-width: 100%; max-height: calc(100% - 30px); }
 }
+
+
+/* Фото в открытой карточке номера можно увеличить нажатием. */
+[data-rm-track] img,
+.room-modal__track img { cursor: zoom-in; }
