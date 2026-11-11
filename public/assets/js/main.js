@@ -1212,9 +1212,9 @@
 
             // Фото внутри карточки номера открывают room-modal по первому нажатию.
             // Увеличение доступно уже для фото внутри открытого окна номера.
-            var roomTrack = img.closest('[data-rm-track], .room-modal__track');
-            // Основная галерея обрабатывается отдельным обработчиком rm.track выше.
-            if (roomTrack) return;
+            // Всё окно номера обрабатывается своими обработчиками:
+            // большая фотография открывает просмотрщик, миниатюры только переключают слайд.
+            if (img.closest('[data-room-modal]')) return;
             if (!img.closest('main')) return;
             if (img.closest('[data-gallery]')) return;
             if (img.closest('[data-no-lightbox]')) return;
