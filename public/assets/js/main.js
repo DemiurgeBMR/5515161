@@ -866,6 +866,20 @@
         $('[data-rm-close]', roomModal).addEventListener('click', closeRoom);
         rm.prev.addEventListener('click', function () { slideTo(rm.track, slideIndex(rm.track) - 1); });
         rm.next.addEventListener('click', function () { slideTo(rm.track, slideIndex(rm.track) + 1); });
+
+        // Увеличение по нажатию на большую фотографию в основной области,
+        // а не только по нажатию на миниатюры снизу.
+        rm.track.addEventListener('click', function (e) {
+            var slide = rm.track.children[slideIndex(rm.track)];
+            var img = e.target.closest && e.target.closest('img');
+            if (!img && slide) img = $('img', slide);
+            if (img) {
+                e.preventDefault();
+                e.stopPropagation();
+                open(img);
+            }
+        });
+
         roomModal.addEventListener('keydown', function (e) {
             if (e.key === 'ArrowLeft') { e.preventDefault(); slideTo(rm.track, slideIndex(rm.track) - 1); }
             if (e.key === 'ArrowRight') { e.preventDefault(); slideTo(rm.track, slideIndex(rm.track) + 1); }
@@ -1193,7 +1207,9 @@
             // Фото внутри карточки номера открывают room-modal по первому нажатию.
             // Увеличение доступно уже для фото внутри открытого окна номера.
             var roomTrack = img.closest('[data-rm-track], .room-modal__track');
-            if (!img.closest('main') && !roomTrack) return;
+            // Основная галерея обрабатывается отдельным обработчиком rm.track выше.
+            if (roomTrack) return;
+            if (!img.closest('main')) return;
             if (img.closest('[data-gallery]')) return;
             if (img.closest('[data-no-lightbox]')) return;
 
