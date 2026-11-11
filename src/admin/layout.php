@@ -56,7 +56,10 @@ function admin_badges(array $c): array
 function admin_nav(): array
 {
     if (is_housekeeper()) {
-        return ['cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can']];
+        return [
+            'cleaning' => ['/admin/cleaning.php', 'Уборка', 'spray-can'],
+            'documents' => ['/admin/documents.php', 'Документы', 'folder-open'],
+        ];
     }
     $nav = [
         'today'    => ['/admin/', 'Сегодня', 'house'],
@@ -73,6 +76,7 @@ function admin_nav(): array
     if (!bath_enabled()) {
         unset($nav['bath']);
     }
+    $nav['documents'] = ['/admin/documents.php', 'Документы', 'folder-open'];
     if (is_owner()) {
         $nav['users'] = ['/admin/users.php', 'Сотрудники', 'shield-check'];
     }
