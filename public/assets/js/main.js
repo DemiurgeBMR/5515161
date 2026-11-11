@@ -1187,11 +1187,16 @@
         }
 
         document.addEventListener('click', function (event) {
-            var img = event.target.closest && event.target.closest('main img');
+            var img = event.target.closest && event.target.closest('img');
             if (!img) return;
-            // Эти фотографии уже обслуживаются существующим просмотрщиком номеров.
+
+            // Фото внутри карточки номера открывают room-modal по первому нажатию.
+            // Увеличение доступно уже для фото внутри открытого окна номера.
+            var roomTrack = img.closest('[data-rm-track], .room-modal__track');
+            if (!img.closest('main') && !roomTrack) return;
             if (img.closest('[data-gallery]')) return;
             if (img.closest('[data-no-lightbox]')) return;
+
             event.preventDefault();
             open(img);
         });
