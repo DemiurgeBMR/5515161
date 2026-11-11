@@ -1187,7 +1187,7 @@
 
         function open(img) {
             var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media, [data-rm-track], .room-modal__track');
-            items = gallery ? $('img', gallery) : [img];
+            items = gallery ? $$('img', gallery) : [img];
             items = items.filter(function (el) {
                 return el.getAttribute('src') || el.currentSrc;
             });
