@@ -1126,4 +1126,99 @@
             if (el) io.observe(el);
         });
     }
+
+    // ---------------------------------------------------------------
+    // Универсальный просмотр фотографий на публичных страницах.
+    // Галерея номеров остаётся на существующем room-modal.
+    // ---------------------------------------------------------------
+
+    (function () {
+        var viewer = document.createElement('dialog');
+        viewer.className = 'photo-viewer';
+        viewer.setAttribute('aria-label', 'Просмотр фотографий');
+        viewer.innerHTML = '<button class="photo-viewer__close" type="button" aria-label="Закрыть">×</button>'
+            + '<button class="photo-viewer__nav photo-viewer__nav--prev" type="button" aria-label="Предыдущее фото">‹</button>'
+            + '<figure class="photo-viewer__figure"><img class="photo-viewer__image" alt=""><figcaption class="photo-viewer__caption"></figcaption></figure>'
+            + '<button class="photo-viewer__nav photo-viewer__nav--next" type="button" aria-label="Следующее фото">›</button>'
+            + '<span class="photo-viewer__count" aria-live="polite"></span>';
+        document.body.appendChild(viewer);
+
+        var image = $('.photo-viewer__image', viewer);
+        var caption = $('.photo-viewer__caption', viewer);
+        var count = $('.photo-viewer__count', viewer);
+        var prev = $('.photo-viewer__nav--prev', viewer);
+        var next = $('.photo-viewer__nav--next', viewer);
+        var items = [];
+        var index = 0;
+        var returnFocus = null;
+        var touchStartX = null;
+
+        function render() {
+            var item = items[index];
+            if (!item) return;
+            image.src = item.currentSrc || item.src;
+            image.alt = item.alt || 'Фотография гостиницы';
+            caption.textContent = item.alt || '';
+            count.textContent = items.length > 1 ? (index + 1) + ' / ' + items.length : '';
+            prev.hidden = items.length < 2;
+            next.hidden = items.length < 2;
+        }
+
+        function show(nextIndex) {
+            index = (nextIndex + items.length) % items.length;
+            render();
+        }
+
+        function open(img) {
+            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group]');
+            items = gallery ? $('img', gallery) : [img];
+            items = items.filter(function (el) {
+                return el.getAttribute('src') || el.currentSrc;
+            });
+            index = Math.max(0, items.indexOf(img));
+            returnFocus = img;
+            render();
+            if (!viewer.open) viewer.showModal();
+            document.documentElement.classList.add('is-locked');
+        }
+
+        function close() {
+            if (viewer.open) viewer.close();
+        }
+
+        document.addEventListener('click', function (event) {
+            var img = event.target.closest && event.target.closest('main img');
+            if (!img) return;
+            // Эти фотографии уже обслуживаются существующим просмотрщиком номеров.
+            if (img.closest('[data-gallery], .room-modal')) return;
+            if (img.closest('[data-no-lightbox]')) return;
+            event.preventDefault();
+            open(img);
+        });
+
+        $('.photo-viewer__close', viewer).addEventListener('click', close);
+        prev.addEventListener('click', function () { show(index - 1); });
+        next.addEventListener('click', function () { show(index + 1); });
+        viewer.addEventListener('click', function (event) {
+            if (event.target === viewer) close();
+        });
+        viewer.addEventListener('close', function () {
+            document.documentElement.classList.remove('is-locked');
+            if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
+        });
+        viewer.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowLeft' && items.length > 1) { event.preventDefault(); show(index - 1); }
+            if (event.key === 'ArrowRight' && items.length > 1) { event.preventDefault(); show(index + 1); }
+        });
+        image.addEventListener('touchstart', function (event) {
+            touchStartX = event.changedTouches.length ? event.changedTouches[0].clientX : null;
+        }, { passive: true });
+        image.addEventListener('touchend', function (event) {
+            if (touchStartX === null || !event.changedTouches.length) return;
+            var delta = event.changedTouches[0].clientX - touchStartX;
+            touchStartX = null;
+            if (Math.abs(delta) > 45 && items.length > 1) show(index + (delta < 0 ? 1 : -1));
+        }, { passive: true });
+    })();
+
 })();
