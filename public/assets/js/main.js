@@ -876,7 +876,9 @@
             if (img) {
                 e.preventDefault();
                 e.stopPropagation();
-                open(img);
+                if (typeof window.openPhotoViewer === 'function') {
+                    window.openPhotoViewer(img);
+                }
             }
         });
 
@@ -1184,7 +1186,7 @@
         }
 
         function open(img) {
-            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media, .room-modal__track');
+            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media, [data-rm-track], .room-modal__track');
             items = gallery ? $('img', gallery) : [img];
             items = items.filter(function (el) {
                 return el.getAttribute('src') || el.currentSrc;
@@ -1195,6 +1197,10 @@
             if (!viewer.open) viewer.showModal();
             document.documentElement.classList.add('is-locked');
         }
+
+        // Открытие того же полноэкранного просмотрщика из других обработчиков,
+        // в том числе из основной фотографии окна номера.
+        window.openPhotoViewer = open;
 
         function close() {
             if (viewer.open) viewer.close();
