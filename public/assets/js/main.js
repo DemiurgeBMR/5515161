@@ -1170,7 +1170,7 @@
         }
 
         function open(img) {
-            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media');
+            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media, .room-modal__track');
             items = gallery ? $('img', gallery) : [img];
             items = items.filter(function (el) {
                 return el.getAttribute('src') || el.currentSrc;
@@ -1190,7 +1190,7 @@
             var img = event.target.closest && event.target.closest('main img');
             if (!img) return;
             // Эти фотографии уже обслуживаются существующим просмотрщиком номеров.
-            if (img.closest('[data-gallery], .room-modal')) return;
+            if (img.closest('[data-gallery]')) return;
             if (img.closest('[data-no-lightbox]')) return;
             event.preventDefault();
             open(img);
