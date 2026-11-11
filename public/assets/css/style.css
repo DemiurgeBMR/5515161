@@ -1995,3 +1995,89 @@ img.is-photo { display: block; width: 100%; height: auto; object-fit: cover; bac
 .site-footer__cookie { justify-self: start; padding: 0; font: inherit; color: inherit; text-decoration: underline; }
 .bath-hero__text .doc__back { display: flex; width: fit-content; margin-bottom: 22px; }
 .bath-extras__row label { font-size: 0.95rem; color: var(--ink); }
+
+
+/* ------------------------------------------------------------------
+   Универсальный просмотр фотографий
+   ------------------------------------------------------------------ */
+.photo-viewer {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: clamp(52px, 5vh, 72px) clamp(12px, 4vw, 56px);
+    border: 0;
+    background: rgba(28, 22, 18, 0.97);
+    color: #fff;
+    overflow: hidden;
+}
+.photo-viewer::backdrop { background: rgba(28, 22, 18, 0.94); }
+.photo-viewer[open] { display: flex; align-items: center; justify-content: center; }
+.photo-viewer__figure {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+}
+.photo-viewer__image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: calc(100% - 34px);
+    object-fit: contain;
+    border-radius: 8px;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+.photo-viewer__caption {
+    max-width: min(680px, 85vw);
+    color: rgba(255,255,255,.82);
+    font-size: .9rem;
+    line-height: 1.4;
+    text-align: center;
+}
+.photo-viewer__close, .photo-viewer__nav {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font: 400 2rem/1 var(--font-sans);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.photo-viewer__close { top: max(16px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); }
+.photo-viewer__nav { top: 50%; transform: translateY(-50%); }
+.photo-viewer__nav--prev { left: max(12px, env(safe-area-inset-left)); }
+.photo-viewer__nav--next { right: max(12px, env(safe-area-inset-right)); }
+.photo-viewer__count {
+    position: absolute;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,.8);
+    font-size: .9rem;
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+    .photo-viewer { padding: 64px 8px 56px; }
+    .photo-viewer__nav { width: 40px; height: 40px; background: rgba(0,0,0,.38); }
+    .photo-viewer__nav--prev { left: 8px; }
+    .photo-viewer__nav--next { right: 8px; }
+    .photo-viewer__image { max-width: 100%; max-height: calc(100% - 30px); }
+}
