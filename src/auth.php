@@ -10,7 +10,7 @@
 const STAFF_ROLES = ['owner' => 'Владелец', 'admin' => 'Администратор', 'housekeeper' => 'Горничная'];
 
 /** Куда может заходить горничная: свой кабинет уборки и профиль (смена пароля). */
-const HOUSEKEEPER_PAGES = ['cleaning.php', 'profile.php'];
+const HOUSEKEEPER_PAGES = ['cleaning.php', 'profile.php', 'documents.php'];
 const SESSION_LIFETIME = 30 * 24 * 3600; // 30 дней — чтобы администратор с телефона не входил заново каждый день
 
 function session_boot(): void
