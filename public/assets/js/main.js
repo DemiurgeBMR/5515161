@@ -1170,7 +1170,7 @@
         }
 
         function open(img) {
-            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group]');
+            var gallery = img.closest('[data-bath-gallery], .bath-gallery, [data-gallery-group], .bath__media');
             items = gallery ? $('img', gallery) : [img];
             items = items.filter(function (el) {
                 return el.getAttribute('src') || el.currentSrc;
