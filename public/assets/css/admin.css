@@ -27,15 +27,22 @@
 }
 .adm-brand {
     display: grid;
-    gap: 4px;
+    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 5px;
     padding: 4px 10px 16px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     color: var(--on-dark);
     text-decoration: none;
 }
 .adm-brand:hover { color: #fff; }
-.adm-brand .logo__name { font-size: 1.45rem; }
-.adm-brand__sub { font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-dark-2); }
+.adm-brand__mark { width: 42px; height: 42px; color: var(--accent); grid-row: 1; }
+.adm-brand__name { display: flex; flex-direction: column; gap: 3px; color: var(--accent); line-height: 1; }
+.adm-brand__name span { font-size: .58rem; font-weight: 700; letter-spacing: .16em; }
+.adm-brand__name strong { font-size: 1.22rem; letter-spacing: .02em; }
+.adm-brand__sub { grid-column: 1 / -1; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-dark-2); }
 .adm-menu { display: grid; gap: 2px; }
 .adm-menu__link {
     display: flex;
