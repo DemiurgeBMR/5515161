@@ -15,9 +15,8 @@ if (bath_enabled()) {
 ?>
 <header class="site-header" data-header>
     <div class="container site-header__inner">
-        <a class="logo" href="/" aria-label="<?= e($h['kind']) ?> <?= e($h['name']) ?> — на главную">
-            <svg class="logo__mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M5 53 30 7l28 46H42L30 33 19 53H5Zm18-9h19L30 13 23 26l8 0 7 13H28l-5 5Z" fill="currentColor" fill-rule="evenodd"/></svg>
-            <span class="logo__text"><span class="logo__sub"><?= e($h['kind']) ?></span><span class="logo__name"><?= e($h['name']) ?></span></span>
+        <a class="logo" href="/" aria-label="Гостиница Неаполь — на главную">
+            <img class="logo__image" src="/assets/images/logo-neapol.svg" alt="Гостиница Неаполь" width="192" height="138">
         </a>
 
         <nav class="nav" id="site-nav" aria-label="Разделы сайта" data-nav>
