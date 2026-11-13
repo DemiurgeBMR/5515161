@@ -108,7 +108,8 @@ function admin_header(string $title, string $active = '', string $bodyClass = ''
 <div class="adm-shell">
     <aside class="adm-side" id="adm-nav" data-adm-nav>
         <a class="adm-brand" href="<?= is_housekeeper($me) ? '/admin/cleaning.php' : '/admin/' ?>">
-            <span class="logo__name"><?= e(hotel()['name']) ?></span>
+            <svg class="adm-brand__mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M5 53 30 7l28 46H42L30 33 19 53H5Zm18-9h19L30 13 23 26l8 0 7 13H28l-5 5Z" fill="currentColor" fill-rule="evenodd"/></svg>
+            <span class="adm-brand__name"><span>ГОСТИНИЦА</span><strong><?= e(hotel()['name']) ?></strong></span>
             <span class="adm-brand__sub">Администрирование</span>
         </a>
         <nav aria-label="Разделы админки">
