@@ -79,7 +79,7 @@ function bath_settings(): array
     }
     $s = [
         'state'           => isset(BATH_STATES[$state]) ? $state : 'soon',
-        'title'           => (string) setting('bath_title', 'Сауна и хамам'),
+        'title'           => preg_replace('/^Баня(?=\\s|$)/u', 'Сауна', (string) setting('bath_title', 'Сауна и хамам')),
         'lead'            => (string) setting('bath_lead', 'Место, где можно выдохнуть после долгого дня. Для гостей гостиницы и жителей города — с отдельным входом, так что в гостинице остаётся тихо.'),
         'features_text'   => (string) setting('bath_features', "Русская парная\nХамам\nКомната отдыха с чаем\nДуш, полотенца и простыни"),
         'rules_text'      => (string) setting('bath_rules', "Приходите за 5–10 минут до начала — время сеанса начинается по записи\nДети — только вместе со взрослыми\nВ парную и хамам — без алкоголя\nСвою еду и напитки можно, кроме стеклянной посуды у купели"),
