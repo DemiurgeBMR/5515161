@@ -361,7 +361,7 @@ a:hover { color: var(--accent-hover); }
     flex-shrink: 0;
 }
 .logo:hover { color: var(--accent); }
-.logo__mark { width: 42px; height: 42px; flex: 0 0 auto; }
+.logo__image { display: block; width: 104px; height: 72px; object-fit: contain; flex: 0 0 auto; }
 .logo__text { display: flex; flex-direction: column; gap: 3px; }
 .logo__name {
     color: var(--ink);
@@ -1667,10 +1667,7 @@ html.is-locked { overflow: hidden; }
 .site-footer a:hover { color: var(--accent); }
 .site-footer__brand { display: grid; gap: 4px; align-content: start; }
 .site-footer__logo { display: inline-flex; align-items: center; gap: 10px; width: fit-content; margin-bottom: 8px; color: var(--accent) !important; }
-.site-footer__logo svg { width: 42px; height: 42px; flex: 0 0 auto; }
-.site-footer__logo span { display: flex; flex-direction: column; gap: 3px; line-height: 1; }
-.site-footer__logo small { font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; }
-.site-footer__logo strong { color: var(--ink); font-size: 1.25rem; letter-spacing: .02em; }
+.site-footer__logo img { display: block; width: 164px; height: 118px; object-fit: contain; }
 .site-footer__brand a { font-weight: 700; color: var(--ink); text-decoration: none; }
 .site-footer__links { display: grid; gap: 10px; align-content: start; }
 .site-footer__legal { display: grid; gap: 6px; align-content: start; }
