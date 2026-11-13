@@ -351,27 +351,33 @@ a:hover { color: var(--accent-hover); }
 }
 
 .logo {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    color: var(--ink);
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
     text-decoration: none;
-    line-height: 1.1;
+    line-height: 1;
     flex-shrink: 0;
 }
-.logo:hover { color: var(--ink); }
+.logo:hover { color: var(--accent); }
+.logo__mark { width: 42px; height: 42px; flex: 0 0 auto; }
+.logo__text { display: flex; flex-direction: column; gap: 3px; }
 .logo__name {
-    font-family: var(--font-serif);
-    font-style: italic;
-    font-weight: 500;
-    font-size: 1.6rem;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-style: normal;
+    font-weight: 800;
+    font-size: 1.35rem;
     line-height: 1;
+    letter-spacing: .025em;
 }
 .logo__sub {
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--ink-3);
 }
 
 .nav { margin-inline: auto; }
