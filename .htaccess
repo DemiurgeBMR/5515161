@@ -1,0 +1,15 @@
+# Запасной вариант для хостинга, где корнем сайта нельзя сделать папку public.
+# Все запросы уходят в public/, а служебные папки закрыты. Если корень сайта —
+# public (так правильно), этот файл не используется.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(config|src|storage|database|tools|tests|\.git|\.github|\.osp)(/|$) - [F,L]
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^\.|\.(md|sql|ini|log|lock|yml|json)$">
+    Require all denied
+</FilesMatch>
