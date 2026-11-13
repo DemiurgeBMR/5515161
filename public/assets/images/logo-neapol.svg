@@ -8,7 +8,7 @@
 <g filter="url(#shadow)" stroke="url(#edge)" stroke-width="3" stroke-linejoin="round">
  <path d="M35 365 265 38 420 260 365 320 265 155 145 365Z" fill="url(#gold)"/>
  <path d="M220 365 335 205 390 275 350 330 315 365Z" fill="url(#gold)"/>
- <path d="M390 365 470 265 620 365Z" fill="url(#gold)" filter="url(#grain)"/>
+ <path d="M390 365 470 265 620 365Z" fill="url(#gold)"/>
 </g>
 <text x="432" y="247" fill="url(#gold)" stroke="#9a6126" stroke-width="1.4" paint-order="stroke" font-family="Arial,sans-serif" font-size="35" font-weight="800" letter-spacing="1">ГОСТИНИЦА</text>
 <text x="350" y="475" text-anchor="middle" fill="url(#gold)" stroke="#9a6126" stroke-width="2" paint-order="stroke" font-family="Arial,sans-serif" font-size="100" font-weight="900" letter-spacing="2">НЕАПОЛЬ</text>
