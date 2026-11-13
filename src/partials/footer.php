@@ -5,7 +5,10 @@ $l = $h['legal'];
 <footer class="site-footer">
     <div class="container site-footer__grid">
         <div class="site-footer__brand">
-            <p class="logo__name"><?= e($h['name']) ?></p>
+            <a class="site-footer__logo" href="/" aria-label="<?= e($h['kind']) ?> <?= e($h['name']) ?> — на главную">
+                <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M5 53 30 7l28 46H42L30 33 19 53H5Zm18-9h19L30 13 23 26l8 0 7 13H28l-5 5Z" fill="currentColor" fill-rule="evenodd"/></svg>
+                <span><small><?= e($h['kind']) ?></small><strong><?= e($h['name']) ?></strong></span>
+            </a>
             <p class="site-footer__muted"><?= e($h['kind']) ?> в Симферополе, <?= e($h['address']['street']) ?></p>
             <p><a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a></p>
         </div>
