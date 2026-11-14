@@ -1,6 +1,5 @@
 <?php
 $h = hotel();
-$l = $h['legal'];
 ?>
 <footer class="site-footer">
     <div class="container site-footer__grid">
@@ -20,9 +19,7 @@ $l = $h['legal'];
 <?php endif; ?>
         </nav>
         <div class="site-footer__legal">
-            <p><?= e($l['operator']) ?>, ИНН <?= e($l['inn']) ?>, <?= ogrn_label() ?> <?= e($l['ogrn']) ?></p>
-            <p>Номер в реестре средств размещения: <?= e($l['registry_number']) ?></p>
-            <p class="site-footer__muted">Цены на сайте — справочные и не являются публичной офертой. Наличие и итоговую стоимость подтверждает администратор.</p>
+            <p class="site-footer__muted">Цены на сайте — справочные. Наличие и итоговую стоимость подтверждает администратор.</p>
         </div>
     </div>
     <div class="container">
