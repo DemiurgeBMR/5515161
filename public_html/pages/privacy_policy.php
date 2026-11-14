@@ -46,13 +46,7 @@ require_once __DIR__ . '/../config.php';
                     <?php echo htmlspecialchars(SITE_URL); ?> (далее — «Сайт», «Сервис»), может получить о
                     пользователе во время использования Сайта.
                 </p>
-                <p>
-                    Оператором персональных данных является:
-                </p>
-                <ul class="legal-placeholder">
-                    <?php include __DIR__ . '/../includes/operator_details.php'; ?>
-                    <li>Email для обращений по вопросам персональных данных: <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a></li>
-                </ul>
+                <p class="legal-placeholder">Сведения об операторе и контактные данные временно не публикуются. Раздел будет дополнен позднее.</p>
             </section>
 
             <section id="terms">
@@ -176,11 +170,7 @@ require_once __DIR__ . '/../config.php';
                     <li>отозвать согласие на обработку персональных данных;</li>
                     <li>обжаловать действия или бездействие Оператора в Роскомнадзоре или в судебном порядке.</li>
                 </ul>
-                <p>
-                    Для реализации указанных прав пользователь может обратиться в личном кабинете
-                    (<a href="/pages/edit_profile.php">Настройки аккаунта</a>) либо направить запрос на
-                    контактный email, указанный в разделе 14.
-                </p>
+                <p>Для реализации указанных прав воспользуйтесь доступными функциями личного кабинета.</p>
             </section>
 
             <section id="consent-withdraw">
@@ -233,10 +223,7 @@ require_once __DIR__ . '/../config.php';
 
             <section id="contacts">
                 <h2>14. Контакты</h2>
-                <p>
-                    По всем вопросам, связанным с обработкой персональных данных, можно обратиться по адресу:
-                    <a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a>.
-                </p>
+                <p class="legal-placeholder">Контактные сведения временно не публикуются. Информация будет добавлена позднее.</p>
             </section>
         </div>
     </div>
