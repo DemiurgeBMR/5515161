@@ -8,21 +8,8 @@
                 </div>
 
                 <div class="footer-col">
-                    <h4 class="footer-title">Контакты</h4>
-                    <dl class="footer-list">
-                        <div><dt>Телефон</dt><dd><a href="tel:<?php echo htmlspecialchars(preg_replace('/[^+0-9]/', '', CONTACT_PHONE)); ?>"><?php echo htmlspecialchars(CONTACT_PHONE); ?></a></dd></div>
-                        <div><dt>Email</dt><dd><a href="mailto:<?php echo htmlspecialchars(CONTACT_EMAIL); ?>"><?php echo htmlspecialchars(CONTACT_EMAIL); ?></a></dd></div>
-                        <div><dt>Адрес</dt><dd><?php echo htmlspecialchars(OPERATOR_ADDRESS); ?></dd></div>
-                    </dl>
-                </div>
-
-                <div class="footer-col">
-                    <h4 class="footer-title">Продавец</h4>
-                    <dl class="footer-list">
-                        <div><dt>Название</dt><dd><?php echo htmlspecialchars(OPERATOR_NAME); ?></dd></div>
-                        <div><dt>ИНН</dt><dd><?php echo htmlspecialchars(OPERATOR_INN); ?></dd></div>
-                        <div><dt>ОГРНИП</dt><dd><?php echo htmlspecialchars(OPERATOR_OGRNIP); ?></dd></div>
-                    </dl>
+                    <h4 class="footer-title">Информация</h4>
+                    <p class="footer-placeholder">Контактные и юридические сведения временно не публикуются.</p>
                 </div>
 
                 <div class="footer-col">
