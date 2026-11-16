@@ -41,3 +41,8 @@ CREATE TABLE admin_mail_messages (
     KEY idx_admin_mail_direction (direction, created_at),
     CONSTRAINT fk_admin_mail_staff FOREIGN KEY (staff_id) REFERENCES staff (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO admin_mail_templates (name, subject, body, created_at, updated_at) VALUES
+('Благодарность за проживание', 'Спасибо, что выбрали {{hotel}}', 'Здравствуйте, {{name}}!\n\nСпасибо, что остановились в гостинице «{{hotel}}». Будем рады видеть вас снова!\n\nЕсли у вас есть пожелания по улучшению нашего сервиса, ответьте на это письмо.', NOW(), NOW()),
+('Сезонное предложение', 'Специальное предложение от {{hotel}}', 'Здравствуйте, {{name}}!\n\nБудем рады снова принять вас в гостинице «{{hotel}}». Напишите нам, чтобы узнать о доступных датах и специальных предложениях.', NOW(), NOW()),
+('Поздравление', 'Тёплые пожелания от {{hotel}}', 'Здравствуйте, {{name}}!\n\nКоллектив гостиницы «{{hotel}}» поздравляет вас и желает всего самого доброго. Будем рады новой встрече!', NOW(), NOW());
