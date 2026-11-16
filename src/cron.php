@@ -77,6 +77,38 @@ function cron_run(): array
         }
     }
 
+
+    // Просьба об отзыве: через 24 часа после выезда. Отправленные письма
+    // отмечаются в audit_log, поэтому повторные запуски cron не дублируют их.
+    $reviewCutoff = date('Y-m-d H:i:s', time() - 86400);
+    $reviewRows = q_all(
+        "SELECT b.id FROM bookings b
+         JOIN guests g ON g.id = b.guest_id
+         WHERE b.status = 'checked_out'
+           AND b.checked_out_at IS NOT NULL
+           AND b.checked_out_at <= ?
+           AND g.email <> ''
+           AND NOT EXISTS (
+               SELECT 1 FROM audit_log a
+               WHERE a.entity = 'booking' AND a.entity_id = b.id
+                 AND a.action = 'review_request_sent'
+           )
+         ORDER BY b.checked_out_at ASC
+         LIMIT 100",
+        [$reviewCutoff]
+    );
+    foreach ($reviewRows as $r) {
+        $b = booking_get((int) $r['id']);
+        if (!$b || $b['guest_email'] === '') {
+            continue;
+        }
+        [$subject, $text] = mail_booking_review_request($b);
+        if (send_mail($b['guest_email'], $subject, $text)) {
+            audit('booking', $b['id'], 'review_request_sent', $b['guest_email'], 'system');
+            $log[] = 'просьба об отзыве: бронь ' . $b['id'];
+        }
+    }
+
     // Уборка — раз в сутки.
     if (time() - (int) setting('cron_cleanup', '0') >= 86400) {
         set_setting('cron_cleanup', (string) time());
