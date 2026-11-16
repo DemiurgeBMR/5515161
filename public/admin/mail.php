@@ -45,6 +45,9 @@ if (is_post()) {
             $subject = trim(post('subject'));
             $body = trim(post('body'));
             if (!filter_var($to, FILTER_VALIDATE_EMAIL) || $subject === '' || $body === '') throw new RuntimeException('Проверьте адрес, тему и текст письма.');
+            $knownGuest = q_one('SELECT name FROM guests WHERE email = ? AND anonymized_at IS NULL ORDER BY id DESC LIMIT 1', [$to]);
+            if ($knownGuest) $body = str_replace(['{{name}}', '{{hotel}}'], [$knownGuest['name'], mail_hotel_name()], $body);
+            $subject = str_replace(['{{name}}', '{{hotel}}'], [$knownGuest['name'] ?? '', mail_hotel_name()], $subject);
             $ok = send_mail($to, $subject, $body);
             flash($ok ? 'ok' : 'error', $ok ? 'Почтовый сервер принял письмо к отправке.' : 'Не удалось отправить письмо. Проверьте настройки и журнал.');
             redirect('/admin/mail.php?tab=sent');
@@ -54,7 +57,7 @@ if (is_post()) {
             if (!$template) throw new RuntimeException('Выберите сохранённый шаблон.');
             $ids = $_POST['guest_ids'] ?? [];
             if (!is_array($ids)) $ids = [];
-            $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $ids)))), 0, 50);
+            $ids = array_slice(array_values(array_unique(array_filter(array_map('intval', $ids)))), 0, 25);
             if (!$ids) throw new RuntimeException('Выберите хотя бы одного гостя с согласием на рассылку.');
             $sent = 0; $failed = 0; $skipped = 0;
             foreach ($ids as $guestId) {
@@ -141,11 +144,11 @@ admin_header('Почта', 'mail');
 </section>
 <?php elseif ($tab === 'campaign'): ?>
 <section class="panel"><h2 class="panel__title">Новая рассылка</h2>
-<p class="hint">Рассылка отправляется каждому гостю отдельным письмом — адреса других получателей не раскрываются. Можно выбрать не более 50 гостей за один запуск. В список попадают только гости с зафиксированным согласием.</p>
+<p class="hint">Рассылка отправляется каждому гостю отдельным письмом — адреса других получателей не раскрываются. Можно выбрать не более 25 гостей за один запуск. В список попадают только гости с зафиксированным согласием.</p>
 <?php if (!$templates): ?><p class="empty">Сначала создайте шаблон в разделе «Шаблоны».</p><?php elseif (!$consentingGuests): ?><p class="empty">Нет гостей с согласием на рассылку. Согласие отмечается в карточке гостя.</p><?php else: ?>
 <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="send_campaign">
 <div class="field"><label for="campaign-template">Шаблон</label><select id="campaign-template" name="template_id" required><?php foreach ($templates as $t): ?><option value="<?= (int) $t['id'] ?>"><?= e($t['name']) ?> — <?= e($t['subject']) ?></option><?php endforeach; ?></select></div>
-<div class="field"><label>Получатели <span class="muted">(не более 50 за отправку)</span></label>
+<div class="field"><label>Получатели <span class="muted">(не более 25 за отправку)</span></label>
 <div class="blist"><?php foreach ($consentingGuests as $g): ?><label class="brow"><span><input type="checkbox" name="guest_ids[]" value="<?= (int) $g['id'] ?>"> <?= e($g['name']) ?></span><span><?= e($g['email']) ?></span></label><?php endforeach; ?></div></div>
 <div class="form-actions"><button class="btn btn--primary btn--sm" type="submit" data-confirm="Отправить выбранным гостям? Письма будут отправлены индивидуально.">Отправить рассылку</button></div>
 </form><?php endif; ?>
