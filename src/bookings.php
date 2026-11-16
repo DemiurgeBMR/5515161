@@ -118,6 +118,11 @@ function guest_upsert(string $name, string $phone, string $email, bool $byStaff 
         // Почту, которую ввёл администратор, считаем актуальной.
         if ($email !== '' && $guest['email'] !== $email) {
             $upd['email'] = $email;
+            // Согласие относится к конкретному адресу: при его смене нужно получить его заново.
+            $upd['marketing_consent'] = 0;
+            $upd['marketing_consent_at'] = null;
+            $upd['marketing_consent_by'] = null;
+            $upd['marketing_unsubscribe_token'] = null;
         }
         q_update('guests', (int) $guest['id'], $upd);
         return (int) $guest['id'];
