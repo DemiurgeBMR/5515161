@@ -78,9 +78,14 @@ if (is_post()) {
 
 $viewId = (int) get('view');
 $view = $viewId ? q_one('SELECT * FROM admin_mail_messages WHERE id = ?', [$viewId]) : null;
+if ($view && $view['direction'] === 'in' && $view['status'] === 'received') {
+    q('UPDATE admin_mail_messages SET status = ? WHERE id = ?', ['read', $viewId]);
+    $view['status'] = 'read';
+}
 $editId = (int) get('edit');
 $editTemplate = $editId ? q_one('SELECT * FROM admin_mail_templates WHERE id = ?', [$editId]) : null;
 $templates = q_all('SELECT * FROM admin_mail_templates ORDER BY updated_at DESC, id DESC');
+$composeTemplate = (int) get('template') ? q_one('SELECT * FROM admin_mail_templates WHERE id = ?', [(int) get('template')]) : null;
 $messages = [];
 if (in_array($tab, ['inbox', 'sent'], true)) {
     $direction = $tab === 'inbox' ? 'in' : 'out';
