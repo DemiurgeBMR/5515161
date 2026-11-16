@@ -29,6 +29,13 @@ if (is_post()) {
             $error = 'Проверьте адрес почты';
         } else {
             guest_update($id, ['name' => mb_substr(post('name'), 0, 100), 'phone' => mb_substr(post('phone'), 0, 25), 'email' => $email, 'note' => mb_substr(post('note'), 0, 2000) ?: null]);
+            if (post('marketing_consent') === '1') {
+                $token = (string) q_val('SELECT marketing_unsubscribe_token FROM guests WHERE id = ?', [$id]);
+                if ($token === '') $token = bin2hex(random_bytes(32));
+                q('UPDATE guests SET marketing_consent = 1, marketing_consent_at = COALESCE(marketing_consent_at, ?), marketing_consent_by = ?, marketing_unsubscribe_token = ? WHERE id = ?', [now(), (int) $me['id'], $token, $id]);
+            } else {
+                q('UPDATE guests SET marketing_consent = 0 WHERE id = ?', [$id]);
+            }
             audit('guest', $id, 'updated');
             flash('ok', 'Данные гостя сохранены.');
             redirect('/admin/guest.php?id=' . $id);
@@ -80,6 +87,7 @@ admin_header($g['name'], 'guests');
                 <div class="field"><label for="g-phone">Телефон</label><input id="g-phone" name="phone" type="tel" value="<?= e($g['phone']) ?>"></div>
                 <div class="field"><label for="g-email">Почта</label><input id="g-email" name="email" type="email" value="<?= e($g['email']) ?>"></div>
                 <div class="field span-all"><label for="g-note">Заметка <span class="muted">видят только сотрудники</span></label><textarea id="g-note" name="note" rows="3"><?= e($g['note'] ?? '') ?></textarea></div>
+                <div class="field span-all"><label class="inline-check"><input type="checkbox" name="marketing_consent" value="1"<?= !empty($g['marketing_consent']) ? ' checked' : '' ?>> Гость дал согласие получать рекламные и информационные рассылки</label><small class="hint">Отмечайте только после получения явного согласия гостя. Ссылка для отписки будет в каждом рекламном письме.</small></div>
                 <p class="hint span-all">Не записывайте сюда диагнозы и паспортные данные — они не нужны для работы и требуют особой защиты.</p>
                 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit">Сохранить</button></div>
             </form>
