@@ -152,10 +152,11 @@ admin_header('Почта', 'mail');
 </section>
 <?php elseif ($tab === 'compose'): ?>
 <section class="panel"><h2 class="panel__title">Новое письмо</h2>
+<?php if ($templates): ?><form method="get" class="form-grid"><input type="hidden" name="tab" value="compose"><div class="field span-all"><label>Загрузить сохранённый шаблон</label><select name="template"><?php foreach ($templates as $t): ?><option value="<?= (int) $t['id'] ?>"<?= (int) get('template') === (int) $t['id'] ? ' selected' : '' ?>><?= e($t['name']) ?></option><?php endforeach; ?></select></div><div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit">Загрузить шаблон</button></div></form><?php endif; ?>
 <form method="post" class="form-grid"><?= csrf_field() ?><input type="hidden" name="action" value="send_one">
 <div class="field span-all"><label>Кому</label><input type="email" name="to" required value="<?= e(get('to')) ?>"></div>
-<div class="field span-all"><label>Тема</label><input name="subject" maxlength="255" required value="<?= e(get('subject')) ?>"></div>
-<div class="field span-all"><label>Текст</label><textarea name="body" rows="10" required></textarea></div>
+<div class="field span-all"><label>Тема</label><input name="subject" maxlength="255" required value="<?= e(get('subject') ?: ($composeTemplate['subject'] ?? '')) ?>"></div>
+<div class="field span-all"><label>Текст</label><textarea name="body" rows="10" required><?= e($composeTemplate['body'] ?? '') ?></textarea></div>
 <div class="form-actions span-all"><button class="btn btn--primary btn--sm" type="submit"><?= icon('send') ?>Отправить</button></div>
 </form></section>
 <?php endif; ?>
