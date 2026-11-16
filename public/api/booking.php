@@ -78,6 +78,7 @@ try {
         'name'         => mb_substr(post('name'), 0, 80),
         'phone'        => mb_substr(post('phone'), 0, 25),
         'email'        => mb_substr(post('email'), 0, 190),
+        'marketing_consent' => post('marketing_consent') === '1',
         'comment'      => mb_substr(post('comment'), 0, 1000),
         'contact_pref' => post('contact', 'call'),
     ]);
