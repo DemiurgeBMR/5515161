@@ -9,6 +9,9 @@ $h = hotel();
             </a>
             <p class="site-footer__muted"><?= e($h['kind']) ?> в Симферополе, <?= e($h['address']['street']) ?></p>
             <p><a href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a></p>
+<?php if (filter_var($h['email'] ?? '', FILTER_VALIDATE_EMAIL)): ?>
+            <p><a href="mailto:<?= e($h['email']) ?>"><?= e($h['email']) ?></a></p>
+<?php endif; ?>
         </div>
         <nav class="site-footer__links" aria-label="Документы">
             <a href="/rules.php">Правила проживания</a>
