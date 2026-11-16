@@ -26,6 +26,14 @@ function cron_run(): array
         }
     }
 
+    // Входящая почта: обновляем IMAP не чаще раза в 15 минут.
+    if (function_exists('imap_open') && time() - (int) setting('cron_imap', '0') >= 900) {
+        set_setting('cron_imap', (string) time());
+        $mailSync = admin_mail_sync_inbox();
+        if (!empty($mailSync['ok'])) $log[] = 'почта: ' . $mailSync['message'];
+        elseif (!empty($mailSync['message'])) error_log('hotel IMAP: ' . $mailSync['message']);
+    }
+
     // Уборка: задачи на сегодня и письмо горничным, когда подходит время.
     cleaning_sync(today()->format('Y-m-d'));
     if ($n = cleaning_notify_due()) {
