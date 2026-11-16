@@ -30,20 +30,18 @@ return [
     //            (для своего компьютера);
     //   'mail' — функцией mail() хостинга (просто, но письма чаще попадают
     //            в спам);
-    //   'smtp' — через почтовый ящик, например Яндекс Почту (надёжнее всего).
-    'mail_transport' => 'log',
+    //   'smtp' — через почтовый ящик Timeweb.
+    'mail_transport' => 'smtp',
 
     // Обратный адрес писем. Для 'smtp' — тот же ящик, что и smtp_user.
-    'mail_from'      => '',
-    'mail_from_name' => '',
+    'mail_from'      => 'info@hotel-neapol.ru',
+    'mail_from_name' => 'Гостиница Неаполь',
 
-    // Для 'smtp'. Яндекс: smtp.yandex.ru, порт 465, ssl; пароль — не от
-    // почты, а «пароль приложения» (Яндекс ID → Безопасность → Пароли
-    // приложений → Почта).
-    'smtp_host'   => 'smtp.yandex.ru',
+    // SMTP Timeweb: порт 465, SSL. Используйте пароль самого почтового ящика.
+    'smtp_host'   => 'smtp.timeweb.ru',
     'smtp_port'   => 465,
     'smtp_secure' => 'ssl',
-    'smtp_user'   => '',
+    'smtp_user'   => 'info@hotel-neapol.ru',
     'smtp_pass'   => '',
 
     // Уведомления о новых заявках получают сотрудники, у которых в профиле
