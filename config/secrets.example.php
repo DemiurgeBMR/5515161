@@ -44,6 +44,12 @@ return [
     'smtp_user'   => 'info@hotel-neapol.ru',
     'smtp_pass'   => '',
 
+    // IMAP Timeweb: входящие письма. Обычно пароль тот же, что и у SMTP.
+    'imap_host' => 'imap.timeweb.ru',
+    'imap_port' => 993,
+    'imap_user' => 'info@hotel-neapol.ru',
+    'imap_pass' => '',
+
     // Уведомления о новых заявках получают сотрудники, у которых в профиле
     // включены уведомления. Сюда можно добавить ещё адреса — через запятую.
     'notify_extra' => '',
