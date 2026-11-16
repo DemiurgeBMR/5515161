@@ -32,7 +32,7 @@ if (is_post()) {
             if (post('marketing_consent') === '1') {
                 $token = (string) q_val('SELECT marketing_unsubscribe_token FROM guests WHERE id = ?', [$id]);
                 if ($token === '') $token = bin2hex(random_bytes(32));
-                q('UPDATE guests SET marketing_consent = 1, marketing_consent_at = COALESCE(marketing_consent_at, ?), marketing_consent_by = ?, marketing_unsubscribe_token = ? WHERE id = ?', [now(), (int) $me['id'], $token, $id]);
+                q('UPDATE guests SET marketing_consent = 1, marketing_consent_at = ?, marketing_consent_by = ?, marketing_unsubscribe_token = ? WHERE id = ?', [now(), (int) $me['id'], $token, $id]);
             } else {
                 q('UPDATE guests SET marketing_consent = 0 WHERE id = ?', [$id]);
             }
