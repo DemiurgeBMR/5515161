@@ -521,6 +521,7 @@ require __DIR__ . '/../src/partials/header.php';
                                 <input type="checkbox" name="marketing_consent" value="1">
                                 <span>Хочу получать рекламные и информационные письма от гостиницы «Неаполь». Согласие добровольное; отписаться можно в любой момент по ссылке в письме.</span>
                             </label>
+                            <p class="field-hint">Для рассылки укажите адрес электронной почты выше. Без этой галочки рекламные письма отправляться не будут.</p>
                         </div>
                         <div class="field">
                             <span class="field__label" id="b-contact-label">Удобнее, если мы</span>
