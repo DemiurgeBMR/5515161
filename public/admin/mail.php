@@ -109,7 +109,7 @@ admin_header('Почта', 'mail');
 <?php if ($view): ?>
 <section class="panel">
     <div class="adm-head"><div><h2><?= e($view['subject'] ?: '(без темы)') ?></h2><p class="adm-head__sub"><?= e($view['email']) ?> · <?= e(ru_datetime($view['created_at'])) ?></p></div><a class="btn btn--outline btn--sm" href="/admin/mail.php?tab=<?= $view['direction'] === 'in' ? 'inbox' : 'sent' ?>">Назад</a></div>
-    <p class="hint">Статус: <?= e($view['status'] === 'accepted' ? 'принято сервером к отправке' : ($view['status'] === 'received' ? 'получено' : 'ошибка отправки')) ?></p>
+    <p class="hint">Статус: <?= e($view['status'] === 'accepted' ? 'принято сервером к отправке' : (in_array($view['status'], ['received', 'read'], true) ? 'получено' : 'ошибка отправки')) ?></p>
     <?php if ($view['error_text']): ?><p class="form-error"><?= e($view['error_text']) ?></p><?php endif; ?>
     <div class="msg"><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit"><?= e($view['body'] ?? '') ?></pre></div>
     <?php if ($view['direction'] === 'in'): ?><a class="btn btn--primary btn--sm" href="/admin/mail.php?tab=compose&amp;to=<?= rawurlencode($view['email']) ?>&amp;subject=<?= rawurlencode('Re: ' . $view['subject']) ?>">Ответить</a><?php endif; ?>
@@ -119,7 +119,7 @@ admin_header('Почта', 'mail');
     <div class="adm-head"><div><h2 class="panel__title">Входящие письма</h2><p class="hint">Письма синхронизируются из IMAP по запросу. На хостинге должно быть включено PHP-расширение IMAP.</p></div>
     <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="sync"><button class="btn btn--outline btn--sm" type="submit"><?= icon('refresh-cw') ?>Обновить входящие</button></form></div>
     <?php if (!$messages): ?><p class="empty">Пока нет импортированных писем. Нажмите «Обновить входящие».</p><?php else: ?>
-    <div class="blist"><?php foreach ($messages as $m): ?><a class="brow" href="/admin/mail.php?tab=inbox&amp;view=<?= (int) $m['id'] ?>"><span class="brow__name"><?= e($m['subject'] ?: '(без темы)') ?></span><span class="status status--confirmed">Получено</span><span class="brow__meta"><?= e($m['email']) ?> · <?= e(ru_datetime($m['created_at'])) ?></span></a><?php endforeach; ?></div>
+    <div class="blist"><?php foreach ($messages as $m): ?><a class="brow" href="/admin/mail.php?tab=inbox&amp;view=<?= (int) $m['id'] ?>"><span class="brow__name"><?= e($m['subject'] ?: '(без темы)') ?></span><span class="status status--<?= $m['status'] === 'received' ? 'new' : 'confirmed' ?>"><?= $m['status'] === 'received' ? 'Новое' : 'Прочитано' ?></span><span class="brow__meta"><?= e($m['email']) ?> · <?= e(ru_datetime($m['created_at'])) ?></span></a><?php endforeach; ?></div>
     <?php endif; ?>
 </section>
 <?php elseif ($tab === 'sent'): ?>
