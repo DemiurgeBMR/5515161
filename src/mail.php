@@ -17,19 +17,28 @@ function send_mail(string $to, string $subject, string $text, string $replyTo = 
     $text = str_replace("\r\n", "\n", $text);
     $subject = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $subject)); // перевод строки в теме — путь к подмене заголовков
 
+    $error = '';
     try {
         switch ($s['mail_transport']) {
             case 'smtp':
-                return send_mail_smtp($to, $subject, $text, $replyTo, $fromName);
+                $ok = send_mail_smtp($to, $subject, $text, $replyTo, $fromName);
+                break;
             case 'mail':
-                return send_mail_php($to, $subject, $text, $replyTo, $fromName);
+                $ok = send_mail_php($to, $subject, $text, $replyTo, $fromName);
+                break;
             default:
-                return send_mail_log($to, $subject, $text, $replyTo);
+                $ok = send_mail_log($to, $subject, $text, $replyTo);
+                break;
         }
     } catch (Throwable $e) {
-        error_log('hotel mail: не отправлено письмо «' . $subject . '»: ' . $e->getMessage());
-        return false;
+        $error = $e->getMessage();
+        error_log('hotel mail: не отправлено письмо «' . $subject . '»: ' . $error);
+        $ok = false;
     }
+    if (function_exists('admin_mail_record_sent')) {
+        admin_mail_record_sent($to, $subject, $text, $ok, $error);
+    }
+    return $ok;
 }
 
 function send_mail_log(string $to, string $subject, string $text, string $replyTo): bool
