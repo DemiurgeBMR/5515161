@@ -29,8 +29,8 @@ function hotel_secrets(): array
         $file = HOTEL_ROOT . '/config/secrets.php';
         $defaults = [
             'db_host' => 'MySQL-8.0', 'db_port' => 3306, 'db_name' => 'hotel', 'db_user' => 'root', 'db_pass' => '',
-            'mail_transport' => 'log', 'mail_from' => '', 'mail_from_name' => '',
-            'smtp_host' => '', 'smtp_port' => 465, 'smtp_secure' => 'ssl', 'smtp_user' => '', 'smtp_pass' => '',
+            'mail_transport' => 'smtp', 'mail_from' => 'info@hotel-neapol.ru', 'mail_from_name' => 'Гостиница Неаполь',
+            'smtp_host' => 'smtp.timeweb.ru', 'smtp_port' => 465, 'smtp_secure' => 'ssl', 'smtp_user' => 'info@hotel-neapol.ru', 'smtp_pass' => '',
             'notify_extra' => '', 'setup_key' => '', 'telegram_bot_token' => '', 'telegram_webhook_secret' => '', 'telegram_personal_data' => false,
             'telegram_proxy' => '', 'telegram_api_base' => '',
         ];
