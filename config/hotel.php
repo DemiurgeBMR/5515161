@@ -45,7 +45,7 @@ return [
 
     // Ссылки на карточку гостиницы — там же гости оставляют отзывы.
     'listings' => [
-        'yandex' => '[ссылка на карточку в Яндекс Картах]',
+        'yandex' => 'https://yandex.ru/maps/146/simferopol/house/ulitsa_generala_rodionova_7a/Z00YdwRkT0IPQFpufXVzdHprbQ==/?ll=34.134714%2C44.925651&z=16.99',
         '2gis'   => '[ссылка на карточку в 2ГИС]',
     ],
 
