@@ -516,6 +516,12 @@ require __DIR__ . '/../src/partials/header.php';
                             <input id="b-email" type="email" name="email" maxlength="190" autocomplete="email" inputmode="email" placeholder="name@mail.ru" aria-describedby="b-email-hint">
                             <p class="field-hint" id="b-email-hint">Необязательно. Пришлём подтверждение и ссылку на бронь — по ней можно написать администратору или попросить продлить проживание.</p>
                         </div>
+                        <div class="consent consent--marketing">
+                            <label class="check">
+                                <input type="checkbox" name="marketing_consent" value="1">
+                                <span>Хочу получать рекламные и информационные письма от гостиницы «Неаполь». Согласие добровольное; отписаться можно в любой момент по ссылке в письме.</span>
+                            </label>
+                        </div>
                         <div class="field">
                             <span class="field__label" id="b-contact-label">Удобнее, если мы</span>
                             <div class="chips" role="radiogroup" aria-labelledby="b-contact-label">
@@ -698,6 +704,9 @@ require __DIR__ . '/../src/partials/header.php';
                 <dl class="contacts__list">
                     <div><dt>Адрес</dt><dd><?= e(full_address()) ?><br><span class="muted"><?= e($h['address']['entrance']) ?></span></dd></div>
                     <div><dt>Телефон</dt><dd><a class="contacts__phone" href="<?= e(tel_href()) ?>"><?= e($h['phone']) ?></a><br><span class="muted">Администратор на связи <?= e($h['admin_hours']) ?>. Отвечаем в течение <?= e($h['response_time']) ?>.</span></dd></div>
+<?php if (filter_var($h['email'] ?? '', FILTER_VALIDATE_EMAIL)): ?>
+                    <div><dt>Электронная почта</dt><dd><a href="mailto:<?= e($h['email']) ?>"><?= e($h['email']) ?></a></dd></div>
+<?php endif; ?>
                     <div><dt>Заселение</dt><dd>с <?= e($h['check_in']) ?>, выезд до <?= e($h['check_out']) ?></dd></div>
                 </dl>
                 <div class="contacts__buttons">
