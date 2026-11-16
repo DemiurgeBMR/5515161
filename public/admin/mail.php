@@ -10,6 +10,9 @@ $tab = get('tab', 'inbox');
 $allowedTabs = ['inbox', 'sent', 'templates', 'campaign', 'compose'];
 if (!in_array($tab, $allowedTabs, true)) $tab = 'inbox';
 $notice = '';
+$mailSettings = hotel_secrets();
+$mailFrom = trim((string) ($mailSettings['mail_from'] ?? $mailSettings['smtp_user'] ?? 'info@hotel-neapol.ru'));
+$mailFromName = trim((string) ($mailSettings['mail_from_name'] ?? 'Гостиница Неаполь'));
 
 if (is_post()) {
     csrf_check();
@@ -81,6 +84,10 @@ if (is_post()) {
 
 $viewId = (int) get('view');
 $view = $viewId ? q_one('SELECT * FROM admin_mail_messages WHERE id = ?', [$viewId]) : null;
+$viewEmail = $view ? trim((string) $view['email']) : '';
+$canReply = $view && $view['direction'] === 'in'
+    && filter_var($viewEmail, FILTER_VALIDATE_EMAIL)
+    && !preg_match('/^(mailer-daemon|postmaster|no-?reply)([+._-].*)?@/i', $viewEmail);
 if ($view && $view['direction'] === 'in' && $view['status'] === 'received') {
     q('UPDATE admin_mail_messages SET status = ? WHERE id = ?', ['read', $viewId]);
     $view['status'] = 'read';
@@ -115,7 +122,7 @@ admin_header('Почта', 'mail');
     <p class="hint">Статус: <?= e($view['status'] === 'accepted' ? 'принято сервером к отправке' : (in_array($view['status'], ['received', 'read'], true) ? 'получено' : 'ошибка отправки')) ?></p>
     <?php if ($view['error_text']): ?><p class="form-error"><?= e($view['error_text']) ?></p><?php endif; ?>
     <div class="msg"><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit"><?= e($view['body'] ?? '') ?></pre></div>
-    <?php if ($view['direction'] === 'in'): ?><a class="btn btn--primary btn--sm" href="/admin/mail.php?tab=compose&amp;to=<?= rawurlencode($view['email']) ?>&amp;subject=<?= rawurlencode('Re: ' . $view['subject']) ?>">Ответить</a><?php endif; ?>
+    <?php if ($canReply): ?><a class="btn btn--primary btn--sm" href="/admin/mail.php?tab=compose&amp;to=<?= rawurlencode($viewEmail) ?>&amp;subject=<?= rawurlencode('Re: ' . $view['subject']) ?>">Ответить</a><?php elseif ($view['direction'] === 'in'): ?><p class="hint">Это автоматическое уведомление или адрес отправителя не подходит для ответа. Кнопка ответа отключена.</p><?php endif; ?>
 </section>
 <?php elseif ($tab === 'inbox'): ?>
 <section class="panel">
@@ -154,7 +161,7 @@ admin_header('Почта', 'mail');
 </form><?php endif; ?>
 </section>
 <?php elseif ($tab === 'compose'): ?>
-<section class="panel"><h2 class="panel__title">Новое письмо</h2>
+<section class="panel"><h2 class="panel__title">Новое письмо</h2><p class="hint">Отправитель: <strong><?= e($mailFromName) ?> &lt;<?= e($mailFrom) ?>&gt;</strong>. Все письма из этого раздела отправляются от имени гостиницы через SMTP Timeweb.</p>
 <?php if ($templates): ?><form method="get" class="form-grid"><input type="hidden" name="tab" value="compose"><div class="field span-all"><label>Загрузить сохранённый шаблон</label><select name="template"><?php foreach ($templates as $t): ?><option value="<?= (int) $t['id'] ?>"<?= (int) get('template') === (int) $t['id'] ? ' selected' : '' ?>><?= e($t['name']) ?></option><?php endforeach; ?></select></div><div class="form-actions span-all"><button class="btn btn--outline btn--sm" type="submit">Загрузить шаблон</button></div></form><?php endif; ?>
 <form method="post" class="form-grid"><?= csrf_field() ?><input type="hidden" name="action" value="send_one">
 <div class="field span-all"><label>Кому</label><input type="email" name="to" required value="<?= e(get('to')) ?>"></div>
