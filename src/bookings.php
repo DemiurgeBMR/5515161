@@ -342,6 +342,9 @@ function booking_create(array $d, bool $byStaff = false): array
     if (!valid_email($email)) {
         throw new BookingError('Проверьте адрес почты', 'email');
     }
+    if (!$byStaff && !empty($d['marketing_consent']) && $email === '') {
+        throw new BookingError('Укажите почту, чтобы получать рассылки', 'email');
+    }
     if (!in_array($status, ['new', 'confirmed', 'checked_in', 'checked_out'], true)) {
         throw new BookingError('Неизвестный статус', 'status');
     }
@@ -404,6 +407,15 @@ function booking_create(array $d, bool $byStaff = false): array
         }
 
         $gid = $guestId ?: guest_upsert($name, $phone, $email, $byStaff);
+        // Маркетинговые письма — только после отдельного добровольного согласия гостя.
+        // Неотмеченная галочка не меняет уже сохранённый выбор; отписка доступна из письма.
+        if (!$byStaff && !empty($d['marketing_consent']) && $email !== '') {
+            $unsubscribeToken = (string) q_val('SELECT marketing_unsubscribe_token FROM guests WHERE id = ?', [$gid]);
+            if ($unsubscribeToken === '') {
+                $unsubscribeToken = bin2hex(random_bytes(32));
+            }
+            q('UPDATE guests SET marketing_consent = 1, marketing_consent_at = ?, marketing_consent_by = NULL, marketing_unsubscribe_token = ? WHERE id = ?', [now(), $unsubscribeToken, $gid]);
+        }
         $quote = quote($chosenType, $checkIn, $checkOut);
         $manualTotal = isset($d['total_price']) && $d['total_price'] !== '' && $d['total_price'] !== null;
         $total = $manualTotal ? max(0, (int) $d['total_price']) : $quote['total'];
