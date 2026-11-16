@@ -44,13 +44,14 @@ function admin_counters(): array
         'conflicts' => count(ical_conflicts()),
         'bath'      => bath_new_count(),
         'cleaning'  => cleaning_due_count(),
+        'mail' => (int) q_val("SELECT COUNT(*) FROM admin_mail_messages WHERE direction = 'in' AND status = 'received'"),
     ];
 }
 
 /** Числа на пунктах меню. */
 function admin_badges(array $c): array
 {
-    return ['today' => $c['messages'] + $c['conflicts'] + ($c['time_requests'] ?? 0), 'bookings' => $c['new'], 'bath' => $c['bath'], 'cleaning' => $c['cleaning']];
+    return ['today' => $c['messages'] + $c['conflicts'] + ($c['time_requests'] ?? 0), 'bookings' => $c['new'], 'bath' => $c['bath'], 'cleaning' => $c['cleaning'], 'mail' => $c['mail'] ?? 0];
 }
 
 function admin_nav(): array
