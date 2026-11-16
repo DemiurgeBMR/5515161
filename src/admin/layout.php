@@ -68,6 +68,7 @@ function admin_nav(): array
         'bookings' => ['/admin/bookings.php', 'Брони', 'bed-double'],
         'bath'     => ['/admin/bath.php', 'Сауна', 'flame'],
         'guests'   => ['/admin/guests.php', 'Гости', 'users'],
+        'mail'     => ['/admin/mail.php', 'Почта', 'mail'],
         'rooms'    => ['/admin/rooms.php', 'Номера и фото', 'key-round'],
         'prices'   => ['/admin/prices.php', 'Цены', 'sparkles'],
         'reports'  => ['/admin/reports.php', 'Отчёты', 'file-text'],
