@@ -511,6 +511,7 @@ require __DIR__ . '/availability.php';
 require __DIR__ . '/bookings.php';
 require __DIR__ . '/auth.php';
 require __DIR__ . '/mail.php';
+require __DIR__ . '/admin_mail.php';
 require __DIR__ . '/uploads.php';
 require __DIR__ . '/ical.php';
 require __DIR__ . '/cron.php';
