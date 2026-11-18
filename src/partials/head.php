@@ -41,8 +41,6 @@ $ogImage = array_key_exists('og_image', $page) ? $page['og_image'] : og_image_ur
     <meta name="theme-color" content="#f3ebe1">
     <meta name="format-detection" content="telephone=no">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preload" href="/assets/fonts/manrope-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="/assets/fonts/cormorant-garamond-cyrillic-500-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
